@@ -38,6 +38,23 @@ export const ITEMS = {
   sandwich:   { n: 'Bánh kẹp',      icon: 'food/sandwich', v: 30, energy: 8 },
   pizza:      { n: 'Pizza',         icon: 'food/pizza', v: 40, energy: 12 },
   pancakes:   { n: 'Bánh kếp',      icon: 'food/pancakes', v: 28, energy: 8 },
+
+  sunflower:  { n: 'Hướng dương',   icon: 'nature/flower_yellowB', v: 4 },
+  cabbage:    { n: 'Bắp cải',       icon: 'food/cabbage', v: 9 },
+  onion:      { n: 'Hành tây',      icon: 'food/onion', v: 8 },
+  banana:     { n: 'Chuối',         icon: 'food/banana', v: 8 },
+  lemon:      { n: 'Chanh',         icon: 'food/lemon', v: 8 },
+  pear:       { n: 'Lê',            icon: 'food/pear', v: 9 },
+  cherry:     { n: 'Anh đào',       icon: 'food/cherries', v: 11 },
+  honey:      { n: 'Mật ong',       icon: 'food/honey', v: 14 },
+  donut:      { n: 'Bánh vòng',     icon: 'food/donut-sprinkles', v: 34 },
+  cupcake:    { n: 'Bánh cupcake',  icon: 'food/cupcake', v: 36 },
+  croissant:  { n: 'Bánh sừng bò',  icon: 'food/croissant', v: 30 },
+  muffin:     { n: 'Bánh muffin',   icon: 'food/muffin', v: 32 },
+  waffle:     { n: 'Bánh quế',      icon: 'food/waffle', v: 34, energy: 9 },
+  jam:        { n: 'Mứt dâu',       icon: 'food/honey', tint: 0xff7a7a, v: 30 },
+  lemontea:   { n: 'Trà chanh mật ong', icon: 'food/cup-tea', v: 28 },
+  salad:      { n: 'Sa lát',        icon: 'food/salad', v: 32, energy: 10 },
 };
 
 // ---------- Cây trồng (ruộng 1x1) ----------
@@ -49,14 +66,21 @@ export const CROPS = {
   strawberry: { lv: 4, t: 80,  cost: 4, xp: 2, stages: ['nature/crops_leafsStageA', 'nature/crops_leafsStageB', 'nature/crops_leafsStageB'], deco: 'food/strawberry' },
   tomato:     { lv: 5, t: 90,  cost: 4, xp: 2, stages: ['nature/crops_leafsStageA', 'nature/crops_leafsStageB', 'nature/crops_leafsStageB'], deco: 'food/tomato' },
   pumpkin:    { lv: 6, t: 120, cost: 6, xp: 3, stages: ['nature/crops_leafsStageA', 'nature/crops_leafsStageB', 'nature/crop_pumpkin'] },
+  sunflower:  { lv: 6, t: 70,  cost: 4, xp: 2, stages: ['nature/crops_leafsStageA', 'nature/crops_leafsStageB', 'nature/flower_yellowB'], fit: { size: 0.36 } },
   melon:      { lv: 8, t: 150, cost: 8, xp: 4, stages: ['nature/crops_leafsStageA', 'nature/crops_leafsStageB', 'nature/crop_melon'] },
+  cabbage:    { lv: 9, t: 130, cost: 7, xp: 4, stages: ['nature/crops_leafsStageA', 'nature/crops_leafsStageB', 'food/cabbage'], fit: { size: 0.34 } },
+  onion:      { lv: 10, t: 140, cost: 7, xp: 4, stages: ['nature/crops_leafsStageA', 'nature/crops_leafsStageB', 'food/onion'], fit: { size: 0.28 } },
 };
 
 // ---------- Cây ăn quả (1x1, thu hoạch nhiều lần) ----------
 export const TREES = {
-  palm:   { n: 'Cây dừa',  lv: 2, cost: 60,  t: 100, yield: 'coconut', qty: 2, xp: 2, model: 'pirate/palm-straight', fruit: 'food/coconut' },
+  palm:   { n: 'Cây dừa',  lv: 2, cost: 60,  t: 100, yield: 'coconut', qty: 2, xp: 2, model: 'pirate/palm-straight', fruit: 'food/coconut', palm: true },
   apple:  { n: 'Cây táo',  lv: 3, cost: 80,  t: 120, yield: 'apple',   qty: 3, xp: 2, model: 'town/tree', fruit: 'food/apple' },
   orange: { n: 'Cây cam',  lv: 6, cost: 120, t: 150, yield: 'orange',  qty: 3, xp: 3, model: 'town/tree-high-round', fruit: 'food/orange' },
+  banana: { n: 'Cây chuối', lv: 7, cost: 140, t: 160, yield: 'banana', qty: 3, xp: 3, model: 'pirate/palm-bend', fruit: 'food/banana', palm: true },
+  lemon:  { n: 'Cây chanh', lv: 8, cost: 160, t: 170, yield: 'lemon',  qty: 3, xp: 3, model: 'town/tree', fruit: 'food/lemon' },
+  pear:   { n: 'Cây lê',    lv: 10, cost: 200, t: 190, yield: 'pear',  qty: 3, xp: 4, model: 'town/tree-high-round', fruit: 'food/pear' },
+  cherry: { n: 'Cây anh đào', lv: 12, cost: 260, t: 210, yield: 'cherry', qty: 3, xp: 4, model: 'town/tree', fruit: 'food/cherries', tint: 0xffc4d8 },
 };
 
 // ---------- Chuồng thú (3x3) ----------
@@ -64,6 +88,7 @@ export const PENS = {
   coop:   { n: 'Chuồng gà', lv: 1, cost: 80,  animal: 'pets/animal-chick', an: 'Gà',  feed: 'chickenfeed', prod: 'egg',      t: 60,  xp: 1, max: 6, animalCost: 30 },
   cowpen: { n: 'Chuồng bò', lv: 4, cost: 200, animal: 'pets/animal-cow',   an: 'Bò',  feed: 'cowfeed',     prod: 'milk',     t: 120, xp: 2, max: 5, animalCost: 80 },
   pigpen: { n: 'Chuồng heo',lv: 7, cost: 320, animal: 'pets/animal-pig',   an: 'Heo', feed: 'pigfeed',     prod: 'mushroom', t: 150, xp: 3, max: 5, animalCost: 120 },
+  beehive:{ n: 'Vườn ong',  lv: 7, cost: 280, animal: 'pets/animal-bee',   an: 'Ong', feed: 'sunflower',   prod: 'honey',    t: 120, xp: 3, max: 4, animalCost: 100, fly: true },
 };
 
 // ---------- Nhà máy (2x2) ----------
@@ -93,6 +118,18 @@ export const FACTORIES = {
     { out: 'sandwich', in: { bread: 1, cheese: 1, egg: 1 }, t: 80, lv: 6 },
     { out: 'pancakes', in: { wheat: 2, egg: 1, milk: 1 }, t: 80, lv: 7 },
     { out: 'pizza',    in: { bread: 1, cheese: 1, tomato: 2 }, t: 100, lv: 8 },
+    { out: 'salad',    in: { cabbage: 1, tomato: 1, onion: 1 }, t: 90, lv: 10 },
+    { out: 'waffle',   in: { wheat: 2, egg: 1, honey: 1 }, t: 90, lv: 11 },
+  ]},
+  sweets: { n: 'Tiệm bánh ngọt', lv: 9, cost: 420, rec: [
+    { out: 'donut',     in: { wheat: 2, egg: 1, honey: 1 }, t: 90, lv: 9 },
+    { out: 'cupcake',   in: { wheat: 1, milk: 1, strawberry: 2 }, t: 100, lv: 9 },
+    { out: 'croissant', in: { wheat: 3, milk: 1 }, t: 80, lv: 10 },
+    { out: 'muffin',    in: { wheat: 2, egg: 1, banana: 1 }, t: 90, lv: 11 },
+  ]},
+  jammaker: { n: 'Nhà làm mứt', lv: 10, cost: 460, rec: [
+    { out: 'jam',      in: { strawberry: 3, honey: 1 }, t: 100, lv: 10 },
+    { out: 'lemontea', in: { lemon: 2, honey: 1 }, t: 80, lv: 10 },
   ]},
 };
 
@@ -117,6 +154,13 @@ export const DECOR = {
   crab:        { n: 'Bạn Cua',       lv: 99, cost: 0,  model: 'pets/animal-crab', pet: true, fit: { h: 0.5 }, gift: true },
   fountain:    { n: 'Đài phun nước', lv: 5, cost: 300, model: 'town/fountain-round', fit: { size: 1.9 }, w: 2, d: 2 },
   boat:        { n: 'Thuyền nhỏ',    lv: 4, cost: 90,  model: 'pirate/boat-row-small', fit: { size: 1.9 }, w: 2, d: 2 },
+  campfire:    { n: 'Lửa trại',      lv: 4, cost: 40,  model: 'survival/campfire-pit', fit: { size: 0.7 } },
+  hedge:       { n: 'Hàng rào cây',  lv: 4, cost: 15,  model: 'town/hedge', fit: { size: 0.95 } },
+  cart:        { n: 'Xe đẩy',        lv: 5, cost: 60,  model: 'town/cart', fit: { size: 0.95 } },
+  tent:        { n: 'Lều cắm trại',  lv: 6, cost: 90,  model: 'survival/tent-canvas', fit: { size: 0.95 } },
+  flag:        { n: 'Cờ đuôi nheo',  lv: 7, cost: 50,  model: 'pirate/flag', fit: { h: 1.6 } },
+  flower_red2: { n: 'Khóm hoa hồng', lv: 7, cost: 12,  model: 'nature/flower_redB', fit: { size: 0.55 } },
+  lighthouse:  { n: 'Ngọn hải đăng', lv: 10, cost: 600, model: 'pirate/tower-complete-small', fit: { size: 1.9 }, w: 2, d: 2 },
 };
 
 // ---------- Chướng ngại vật (dọn bằng năng lượng) ----------
@@ -161,6 +205,19 @@ export const QUESTS = [
   { who: 'rosa', text: 'Bà thích bánh quy lắm. Cháu làm 2 hộp bánh quy nhé?', ev: 'make', key: 'cookie', n: 2, coins: 40, xp: 10, lv: 3 },
   { who: 'maisie', text: 'Trồng 1 cây táo hoặc cây dừa để có trái cây quanh năm nhé!', ev: 'buytree', n: 1, coins: 30, xp: 8, lv: 3 },
   { who: 'tom', text: 'Mua thêm 2 bạn gà cho chuồng thêm vui nào.', ev: 'buyanimal', n: 2, coins: 40, xp: 10, gems: 2, lv: 3 },
+  { who: 'sam', text: 'Bến tàu hôm nay đông khách lắm. Giao 3 đơn hàng nhé!', ev: 'deliver', n: 3, coins: 50, xp: 12, lv: 3 },
+  { who: 'maisie', text: 'Mình đi thuyền ra Bãi Vỏ Sò phiêu lưu đi! Dọn 5 chướng ngại vật nhé.', ev: 'clear', n: 5, coins: 40, xp: 12, gems: 2, lv: 3 },
+  { who: 'tom', text: 'Có chuồng bò rồi! Thu 3 hộp sữa nào.', ev: 'collect', key: 'milk', n: 3, coins: 60, xp: 14, lv: 4 },
+  { who: 'rosa', text: 'Bà muốn làm bánh mì kẹp. Cháu làm 2 miếng phô mai nhé?', ev: 'make', key: 'cheese', n: 2, coins: 60, xp: 15, lv: 4 },
+  { who: 'lily', text: 'Trời nóng quá! Làm 2 cốc nước dừa mát lạnh đi.', ev: 'make', key: 'coconutmilk', n: 2, coins: 70, xp: 16, lv: 5 },
+  { who: 'ben', text: 'Thu hoạch 6 quả dâu tây ngọt lịm nhé!', ev: 'harvest', key: 'strawberry', n: 6, coins: 60, xp: 15, lv: 5 },
+  { who: 'maisie', text: 'Trồng hoa hướng dương để chuẩn bị nuôi ong nào. Thu 6 bông nhé!', ev: 'harvest', key: 'sunflower', n: 6, coins: 70, xp: 18, lv: 6 },
+  { who: 'sam', text: 'Bếp nấu mở rồi! Nấu 1 nồi súp rau thơm phức.', ev: 'make', key: 'soup', n: 1, coins: 80, xp: 20, gems: 2, lv: 6 },
+  { who: 'tom', text: 'Ong vàng đã tới! Thu 2 hũ mật ong nhé.', ev: 'collect', key: 'honey', n: 2, coins: 90, xp: 22, lv: 7 },
+  { who: 'rosa', text: 'Bà dạy cháu làm bánh kem. Làm 1 chiếc thật đẹp nhé!', ev: 'make', key: 'cake', n: 1, coins: 90, xp: 22, lv: 7 },
+  { who: 'lily', text: 'Đóng đầy 6 thùng hàng lên tàu để tàu chạy nhé!', ev: 'crate', n: 6, coins: 120, xp: 26, gems: 3, lv: 8 },
+  { who: 'ben', text: 'Tiệm bánh ngọt mở cửa! Làm 2 chiếc bánh vòng nào.', ev: 'make', key: 'donut', n: 2, coins: 120, xp: 28, lv: 9 },
+  { who: 'maisie', text: 'Làm mứt dâu tặng mọi người trên đảo nhé! Làm 2 hũ.', ev: 'make', key: 'jam', n: 2, coins: 140, xp: 30, gems: 3, lv: 10 },
 ];
 
 // ---------- Đảo phiêu lưu ----------

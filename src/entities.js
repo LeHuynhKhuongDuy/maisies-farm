@@ -105,7 +105,7 @@ function fieldView(o) {
       const c = CROPS[o.crop], model = c.stages[st === 3 ? 2 : st];
       const sc = (CROP_SCALE[o.crop] || 1) * (st === 0 ? 0.7 : 1);
       CLUSTER.forEach(([x, z], n) => {
-        const m = make(model, st === 3 && c.tint ? { s: sc, tint: c.tint } : { s: sc }); m.position.set(x, 0.04, z); m.rotation.y = n * 1.3; plant.add(m);
+        const m = make(model, st === 3 && c.fit ? { ...c.fit } : st === 3 && c.tint ? { s: sc, tint: c.tint } : { s: sc }); m.position.set(x, 0.04, z); m.rotation.y = n * 1.3; plant.add(m);
         if (st === 3 && c.deco) for (let q = 0; q < 2; q++) {
           const f = make(c.deco, { size: 0.13 }); f.position.set(x + (q ? 0.08 : -0.07), 0.18 + q * 0.06, z + (q ? -0.05 : 0.06)); plant.add(f);
         }
@@ -117,8 +117,8 @@ function fieldView(o) {
 
 function treeView(o) {
   const T = TREES[o.t], root = new THREE.Group();
-  const isPalm = o.t === 'palm';
-  const m = make(T.model, { h: isPalm ? 2.1 : 1.8 }); root.add(m);
+  const isPalm = !!T.palm;
+  const m = make(T.model, { h: isPalm ? 2.1 : 1.8, tint: T.tint }); root.add(m);
   const fruits = new THREE.Group(); root.add(fruits);
   const spots = isPalm ? [[0.12, 1.62, 0.05], [-0.08, 1.6, 0.1], [0.02, 1.6, -0.12]] : [[0.3, 1.05, 0.25], [-0.28, 1.2, 0.2], [0.05, 1.35, 0.35], [0.25, 1.4, -0.2]];
   spots.forEach(([x, y, z]) => { const f = make(T.fruit, { size: isPalm ? 0.2 : 0.18 }); f.position.set(x, y, z); fruits.add(f); });
@@ -130,7 +130,7 @@ function treeView(o) {
   };
 }
 
-const PEN_GROUND = { coop: 0xe9d27f, cowpen: 0xa6dc72, pigpen: 0xb88a5c };
+const PEN_GROUND = { coop: 0xe9d27f, cowpen: 0xa6dc72, pigpen: 0xb88a5c, beehive: 0xc6e89a };
 function penView(o) {
   const P = PENS[o.t], root = new THREE.Group();
   const ground = box(2.9, 0.05, 2.9, PEN_GROUND[o.t]); ground.position.y = 0.0; root.add(ground);
@@ -142,7 +142,10 @@ function penView(o) {
     const wv = make('nature/fence_simple', { s: 1 }); wv.rotation.y = Math.PI / 2; wv.position.set(-1.47, 0, x); root.add(wv);
     const e = make('nature/fence_simple', { s: 1 }); e.rotation.y = Math.PI / 2; e.position.set(1.47, 0, x); root.add(e);
   }
-  if (o.t === 'coop') {
+  if (o.t === 'beehive') {
+    for (let i = 0; i < 2; i++) { const hv = make('survival/box-large', { size: 0.55, tint: 0xffd23f }); hv.position.set(-0.95 + i * 0.6, 0, -0.95); root.add(hv); }
+    [[0.6, -0.7], [0.9, 0.3], [-0.8, 0.5], [0.1, 0.8], [-0.2, -0.3]].forEach(([x, z], i) => { const f = make(i % 2 ? 'nature/flower_yellowB' : 'nature/flower_redB', { size: 0.35 }); f.position.set(x, 0, z); root.add(f); });
+  } else if (o.t === 'coop') {
     const hut = house(1, 1, { roof: 'town/roof-point', roofH: 0.7, roofTint: 0xe8604c }); hut.scale.setScalar(0.75); hut.position.set(-0.85, 0, -0.85); root.add(hut);
   } else {
     const tr = make('survival/box-large', { size: 0.8 }); tr.position.set(-0.9, 0, -0.9); root.add(tr);
@@ -151,7 +154,7 @@ function penView(o) {
   const herd = [];
   const sync = () => {
     while (herd.length < o.animals.length) {
-      const a = make(P.animal, { h: o.t === 'coop' ? 0.5 : 0.7 });
+      const a = make(P.animal, { h: o.t === 'coop' ? 0.5 : o.t === 'beehive' ? 0.35 : 0.7 });
       a.position.set((Math.random() - 0.5) * 1.6, 0.03, (Math.random() - 0.5) * 1.4 + 0.2);
       a.userData.goal = a.position.clone(); a.userData.wait = Math.random() * 3;
       root.add(a); herd.push(a);
@@ -167,6 +170,7 @@ function penView(o) {
         const st = o.animals[i]; if (!st) return;
         const u = a.userData; u.mixer?.update(dt);
         const ready = st.e && t >= st.e, busy = st.e && t < st.e;
+        if (P.fly) a.position.y = 0.55 + Math.sin(t * 3 + i) * 0.12;
         if (ready) { play(a, 'dance'); return; }
         const d = u.goal.clone().sub(a.position); d.y = 0;
         if (d.length() > 0.05) {
@@ -212,6 +216,19 @@ function facView(o) {
       const b1 = make('pirate/barrel', { size: 0.45 }); b1.position.set(-0.7, 0, 0.65); root.add(b1);
       const cr = make('pirate/crate', { size: 0.5 }); cr.position.set(0.65, 0, 0.7); root.add(cr);
       const fr = make('food/orange', { size: 0.16 }); fr.position.set(0.65, 0.42, 0.7); root.add(fr);
+      break;
+    }
+    case 'sweets': {
+      const h = house(2, 2, { roofTint: 0xff8ad8 }); h.scale.setScalar(0.85); root.add(h);
+      const ck = make('food/cupcake', { size: 0.35 }); ck.position.set(0.6, 0, 0.85); root.add(ck);
+      const dn = make('food/donut-sprinkles', { size: 0.3 }); dn.position.set(-0.6, 0, 0.85); root.add(dn);
+      puff = smoke(); puff.position.set(-0.45, 2.1, -0.3); root.add(puff);
+      break;
+    }
+    case 'jammaker': {
+      const h = house(2, 2, { stone: true, roofTint: 0x9a6cff }); h.scale.setScalar(0.85); root.add(h);
+      const j = make('food/honey', { size: 0.3, tint: 0xff7a7a }); j.position.set(0.6, 0, 0.85); root.add(j);
+      const b = make('pirate/barrel', { size: 0.45 }); b.position.set(-0.65, 0, 0.75); root.add(b);
       break;
     }
     case 'kitchen': {

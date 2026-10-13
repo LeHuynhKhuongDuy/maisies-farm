@@ -338,8 +338,8 @@ function sendShip(sx, sy) {
 
 // ============ Kho ============
 const CAT = [
-  ['Nông sản', k => CROPS[k] || ['apple', 'coconut', 'orange'].includes(k)],
-  ['Từ chuồng', k => ['egg', 'milk', 'mushroom'].includes(k)],
+  ['Nông sản', k => CROPS[k] || Object.values(TREES).some(t => t.yield === k)],
+  ['Từ chuồng', k => Object.values(PENS).some(p => p.prod === k)],
   ['Thức ăn thú', k => k.endsWith('feed')],
   ['Món ngon', k => true],
 ];
