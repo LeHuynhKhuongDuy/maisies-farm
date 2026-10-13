@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8be6ec"/><stop offset="1" stop-color="#3cc4d6"/></linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f0e4d0"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="400" cy="110" r="52" fill="#ffd23f"/>
+  <ellipse cx="256" cy="400" rx="230" ry="86" fill="#f4dca0"/>
+  <ellipse cx="256" cy="380" rx="196" ry="66" fill="#8fd052"/>
+  <!-- barn -->
+  <path d="M150 360 V250 L256 170 L362 250 V360 Z" fill="#e8504a"/>
+  <path d="M132 258 L256 160 L380 258 L362 274 L256 190 L150 274 Z" fill="url(#roof)"/>
+  <rect x="220" y="286" width="72" height="74" rx="6" fill="#fff6e8"/>
+  <path d="M224 290 L288 356 M288 290 L224 356" stroke="#e8504a" stroke-width="10"/>
+  <rect x="236" y="222" width="40" height="34" rx="5" fill="#fff6e8"/>
+  <!-- wheat -->
+  <g fill="#ffd25e" stroke="#d9a514" stroke-width="3">
+    <ellipse cx="96" cy="356" rx="10" ry="22"/><ellipse cx="120" cy="364" rx="10" ry="22"/>
+    <ellipse cx="392" cy="364" rx="10" ry="22"/><ellipse cx="416" cy="356" rx="10" ry="22"/>
+  </g>
+  <!-- chick -->
+  <rect x="318" y="372" width="54" height="46" rx="12" fill="#ffd23f" stroke="#e0a800" stroke-width="4"/>
+  <circle cx="334" cy="390" r="5" fill="#3a2a1a"/><circle cx="356" cy="390" r="5" fill="#3a2a1a"/>
+  <path d="M340 400 h10 l-5 8 z" fill="#ff8a3c"/>
+</svg>
