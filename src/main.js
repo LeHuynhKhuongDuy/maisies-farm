@@ -9,6 +9,7 @@ import { renderHUD, $ } from './ui.js';
 import { audioUnlock } from './sound.js';
 import { advUpdate } from './adventure.js';
 import { initVisitors, visitorsUpdate } from './visitors.js';
+import { buildAmbient, updateAmbient } from './ambient.js';
 
 async function boot() {
   load();
@@ -23,6 +24,7 @@ async function boot() {
   for (const o of S.objs) addView(o);
   buildSpecials();
   initVisitors();
+  buildAmbient();
   focusOn({ x: 0, z: -1 });
   const momentum = initInput(canvas);
   initUI();
@@ -45,6 +47,7 @@ async function boot() {
       for (const v of VIEWS.values()) { v.update?.(t, dt); updateBounce(v.root); }
       updateSpecials(t, dt);
       visitorsUpdate(t, dt);
+      updateAmbient(t, dt);
     }
     W.waterTex.offset.x = (t * 0.01) % 1; W.waterTex.offset.y = (t * 0.006) % 1;
     positionBubbles();
