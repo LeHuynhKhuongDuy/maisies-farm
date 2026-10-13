@@ -8,7 +8,7 @@ export function initInput(canvas) {
   let start = null, moved = false, mode = null, longT = 0, pinch = null, inertia = { x: 0, y: 0 }, lastMove = 0;
 
   canvas.addEventListener('pointerdown', e => {
-    canvas.setPointerCapture(e.pointerId);
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     inertia.x = inertia.y = 0;
     if (pts.size === 1) {

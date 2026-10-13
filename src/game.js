@@ -389,6 +389,7 @@ function shopItems(tab) {
       out.push({ id: 'fac:' + k, icon: 'fac:' + k, n: F.n, cost: F.cost, lv: F.lv, note: owned ? 'Đã có' : F.rec.map(r => nameOf(r.out)).slice(0, 2).join(', '), max: owned });
     }
   } else {
+    for (const [k, n] of Object.entries(S.store || {})) if (n > 0) out.push({ id: 'stored:' + k, icon: 'decor:' + k, n: DECOR[k].n, cost: 0, lv: 1, note: `Đã cất · có ${n}`, stored: true });
     for (const [k, D] of Object.entries(DECOR)) if (!D.gift) out.push({ id: 'decor:' + k, icon: 'decor:' + k, n: D.n, cost: D.cost, lv: D.lv, note: D.pet ? 'Biết đi dạo' : '' });
   }
   return out;
@@ -412,6 +413,7 @@ function openShop(tab = shopTab) {
 }
 function buy(id) {
   const it = shopItems(shopTab).find(x => x.id === id); if (!it) return;
+  if (it.stored) { const t = id.split(':')[1]; S.store[t]--; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t; return; }
   if (S.level < it.lv) { toast(`Mở ở cấp ${it.lv}`); sfx('no'); return; }
   if (it.max) { toast(it.note); sfx('no'); return; }
   if (S.coins < it.cost) { toast(`Cần thêm ${it.cost - S.coins} xu nữa`); sfx('no'); return; }
@@ -484,6 +486,7 @@ function drawPlaceTray() {
   $('#tray').innerHTML = `<button class="traybtn no" data-act="placeno" aria-label="Huỷ">✕</button>
     <div class="traytxt">${placing.isNew ? 'Kéo để chọn chỗ' : 'Kéo để chuyển chỗ'}<small>${placing.cost ? 'Giá ' + placing.cost + ' xu' : 'Chạm ✓ để xong'}</small></div>
     ${rot ? '<button class="traybtn rot" data-act="placerot" aria-label="Xoay">↻</button>' : ''}
+    ${rot && !placing.isNew ? '<button class="traybtn store" data-act="placestore" aria-label="Cất vào túi">📦</button>' : ''}
     <button class="traybtn ok" data-act="placeok" aria-label="Đặt">✓</button>`;
   $('#tray').hidden = false; tray = 'place';
   updateGhost();
@@ -514,6 +517,7 @@ function placeConfirm() {
 function placeCancel() {
   if (!placing) return;
   const { obj, isNew, view, orig } = placing;
+  if (placing.fromStore) S.store[placing.fromStore]++;
   if (isNew) removeView('ghost');
   else { Object.assign(obj, orig); place(view, obj); view.root.position.y = 0; }
   W.scene.remove(marker);
@@ -631,15 +635,32 @@ on('levelup', (L, bonus) => {
 on('quest', () => renderHUD());
 on('ship', ev => { if (ev === 'arrive') { toast('Tàu chở hàng đã cập bến!'); sfx('ship'); } });
 
+// Lịch quà 7 ngày: điểm danh liên tục thì quà to dần, ngày 7 có quà lớn
+const DAILY = [{ coins: 40 }, { energy: 15 }, { coins: 80 }, { gems: 2 }, { coins: 140 }, { gems: 3, energy: 30 }, { gems: 6, coins: 200 }];
+const dayName = d => new Date(d).toDateString();
 function openGift() {
-  const today = new Date().toDateString();
+  const today = dayName(Date.now()), yest = dayName(Date.now() - 86400000);
+  const L = (S.login ||= { streak: 0, last: '' });
+  const can = S.lastDaily !== today;
+  const idx = can ? (L.last === yest ? (L.streak % 7) : 0) : ((L.streak - 1 + 7) % 7);
+  const cells = DAILY.map((r, i) => {
+    const got = can ? i < idx : i <= idx, isToday = i === idx;
+    const what = [r.coins && `${coinI}${r.coins}`, r.gems && `${gemI}${r.gems}`, r.energy && `${boltI}${r.energy}`].filter(Boolean).join(' ');
+    return `<div class="dday ${got ? 'got' : ''} ${isToday && can ? 'today' : ''} ${i === 6 ? 'big' : ''}"><b>Ngày ${i + 1}</b><span class="gift">${i === 6 ? '🎁' : '📦'}</span><span class="rw">${what}</span></div>`;
+  }).join('');
+  openModal('gift', 'Quà mỗi ngày', `<p class="hint">Vào chơi mỗi ngày để nhận quà. Ngày thứ 7 có quà lớn!</p><div class="daily">${cells}</div>
+    <div style="margin-top:14px">${can ? '<button class="btn wide orange" data-act="claimdaily">Nhận quà hôm nay</button>' : '<button class="btn wide gray" data-close>Mai quay lại nhé!</button>'}</div>`);
+}
+function claimDaily(x, y) {
+  const today = dayName(Date.now()), yest = dayName(Date.now() - 86400000);
   if (S.lastDaily === today) return;
-  const coins = 30 + S.level * 5;
-  S.lastDaily = today; S.coins += coins; S.gems += 1; S.energy = Math.max(S.energy, ENERGY_MAX);
-  openModal('gift', 'Quà mỗi ngày', `<div class="celebrate"><div style="font-size:80px;line-height:1">🎁</div>
-    <div class="reward" style="font-size:22px"><span>${coinI}+${coins}</span><span>${gemI}+1</span><span>${boltI}Đầy</span></div>
-    <p class="hint">Ngày mai quay lại nhận quà tiếp nhé!</p><button class="btn wide orange" data-close>Cảm ơn!</button></div>`);
-  confetti(); sfx('level');
+  const L = (S.login ||= { streak: 0, last: '' });
+  L.streak = L.last === yest ? L.streak + 1 : 1; L.last = today; S.lastDaily = today;
+  const r = DAILY[(L.streak - 1) % 7];
+  if (r.coins) { S.coins += r.coins; flyCoins(x, y, r.coins); }
+  if (r.gems) { S.gems += r.gems; flyGems(x, y); }
+  if (r.energy) S.energy = Math.max(S.energy, ENERGY_MAX) + (r.energy > 20 ? 0 : r.energy);
+  confetti(); sfx('level'); openGift();
 }
 
 function openSettings(confirmReset) {
@@ -670,6 +691,16 @@ const ACT = {
   closetray() { closeTray(); },
   placeok() { placeConfirm(); }, placeno() { placeCancel(); },
   placerot() { placing.obj.r = ((placing.obj.r || 0) + 1) % 4; updateGhost(); },
+  placestore() {
+    const o = placing.obj; W.scene.remove(marker); removeView(o.id);
+    S.objs.splice(S.objs.indexOf(o), 1); (S.store ||= {})[o.t] = (S.store[o.t] || 0) + 1;
+    placing = null; closeTray(); sfx('collect'); toast(`Đã cất ${DECOR[o.t].n.toLowerCase()} vào túi. Đặt lại trong Cửa hàng → Trang trí`);
+  },
+  claimdaily(b, x, y) { claimDaily(x, y); },
+  placestored(b) {
+    const t = b.dataset.k; if (!(S.store?.[t] > 0)) return;
+    S.store[t]--; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t;
+  },
   make(b, x, y) { makeRecipe(byId(+b.dataset.oid), +b.dataset.i, x, y); },
   collectfac(b, x, y) { collectJobs(byId(+b.dataset.oid), x, y); redrawModal(); },
   speedjob(b) {

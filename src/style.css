@@ -97,6 +97,19 @@ body.in-adv .sidebtn { display: none !important; }
 
 textarea.code { width: 100%; height: 120px; padding: 10px; border-radius: 14px; border: 3px solid var(--cream-d); font: 12px/1.3 ui-monospace, Menlo, monospace; color: var(--ink); background: var(--white); resize: none; word-break: break-all; -webkit-user-select: text; user-select: text; }
 
+/* lịch quà */
+.daily { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.dday { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 16px; background: var(--white); box-shadow: 0 3px 0 var(--cream-d); text-align: center; }
+.dday b { font-size: 13px; color: var(--ink-soft); }
+.dday .gift { font-size: 30px; line-height: 1.1; }
+.dday .rw { font-size: 13px; font-weight: 800; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; align-items: center; }
+.dday .rw .ico { width: 16px; height: 16px; margin: 0; }
+.dday.big { grid-column: span 2; background: #fff3c4; }
+.dday.today { box-shadow: 0 0 0 3px var(--orange), 0 3px 0 var(--orange-d); animation: pop 1s ease-in-out infinite; }
+.dday.got { opacity: .55; }
+.dday.got::after { content: '✓'; position: absolute; top: 4px; right: 8px; color: var(--green-d); font-weight: 800; font-size: 18px; }
+.traybtn.store { background: var(--orange); box-shadow: 0 4px 0 var(--orange-d); font-size: 24px; }
+
 /* câu cá */
 .pond { position: relative; height: 200px; border-radius: 22px; overflow: hidden; background: linear-gradient(#5fd0e0, #2a92ab); box-shadow: inset 0 0 0 4px rgba(255,255,255,.4); cursor: pointer; }
 .pond .swim { position: absolute; opacity: .35; animation: swim 10s linear infinite; }
