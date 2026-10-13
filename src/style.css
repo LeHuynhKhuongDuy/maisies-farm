@@ -106,6 +106,10 @@ textarea.code { width: 100%; height: 120px; padding: 10px; border-radius: 14px; 
 .bub .ico.coin { width: 34px; height: 34px; margin: 0; }
 button.it { font: inherit; }
 
+/* ---------- Hàng xóm ---------- */
+.advbtn.nbbtn { bottom: calc(var(--sb) + 170px); background: linear-gradient(#ffb0d8, #ff7ab8); box-shadow: 0 5px 0 #c94f8a, 0 8px 16px rgba(0,0,0,.25); }
+.ico.friends { width: 44px; height: 40px; margin: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 44'%3E%3Ccircle cx='17' cy='14' r='7' fill='%23fff'/%3E%3Ccircle cx='32' cy='16' r='6' fill='%23ffe8b0'/%3E%3Cpath d='M4 38c0-9 6-14 13-14s13 5 13 14z' fill='%23fff'/%3E%3Cpath d='M24 38c1-7 4-12 9-12 6 0 11 4 11 12z' fill='%23ffe8b0'/%3E%3C/svg%3E"); }
+
 /* ---------- Phiêu lưu ---------- */
 .advbtn { position: absolute; left: calc(var(--sl) + 10px); bottom: calc(var(--sb) + 92px); background: linear-gradient(#7fe0a0, var(--green)); box-shadow: 0 5px 0 var(--green-d), 0 8px 16px rgba(0,0,0,.25); }
 .ico.map { width: 42px; height: 40px; margin: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 44'%3E%3Cpath d='M4 8l12-4 16 5 12-4v31l-12 4-16-5-12 4z' fill='%23fff3d0' stroke='%23fff' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M16 4v31M32 9v31' stroke='%23e0c48a' stroke-width='2'/%3E%3Cpath d='M22 16l5 5m0-5l-5 5' stroke='%23ff5d5d' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M9 30c4-6 8 2 12-6' fill='none' stroke='%233aa7e8' stroke-width='2.5' stroke-dasharray='3 3'/%3E%3C/svg%3E"); }

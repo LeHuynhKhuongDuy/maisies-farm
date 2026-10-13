@@ -12,6 +12,7 @@ import { initVisitors, visitorsUpdate } from './visitors.js';
 import { buildAmbient, updateAmbient } from './ambient.js';
 import { initEvents, eventIcons } from './events.js';
 import { ensureMarket } from './market.js';
+import { nbUpdate, neighborsHelpYou } from './neighbors.js';
 
 async function boot() {
   load();
@@ -25,6 +26,7 @@ async function boot() {
   initWorld(canvas);
   for (const o of S.objs) addView(o);
   ensureMarket(addView);
+  neighborsHelpYou();
   buildSpecials();
   initVisitors();
   buildAmbient();
@@ -47,6 +49,7 @@ async function boot() {
     const t = nowT / 1000;
     momentum();
     if (W.mode === 'adv') advUpdate(t, dt);
+    else if (W.mode === 'nb') nbUpdate(t, dt);
     else {
       for (const v of VIEWS.values()) { v.update?.(t, dt); updateBounce(v.root); }
       updateSpecials(t, dt);

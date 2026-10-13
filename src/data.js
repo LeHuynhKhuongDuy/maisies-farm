@@ -292,7 +292,7 @@ export const COLLECTIONS = [
 // ---------- Sự kiện hằng tuần ----------
 export const EVENT = {
   n: 'Lễ hội Biển', token: 'Vỏ sò vàng', icon: 'food/mussel', tint: 0xffd23f,
-  gain: { harvest: 1, collect: 1, make: 1, deliver: 3, crate: 2, clear: 1, visitor: 3, chest: 3 },
+  gain: { harvest: 1, collect: 1, make: 1, deliver: 3, crate: 2, clear: 1, visitor: 3, chest: 3, help: 1 },
   tiers: [
     { at: 20, coins: 80 }, { at: 50, gems: 3 }, { at: 90, coins: 200 },
     { at: 140, decor: 'sandcastle' }, { at: 200, gems: 10 }, { at: 280, decor: 'goldboat' },

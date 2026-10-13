@@ -331,7 +331,7 @@ function obstacleView(o) {
   return { root };
 }
 
-function createView(o) {
+export function createView(o) {
   switch (o.k) {
     case 'field': return fieldView(o);
     case 'tree': return treeView(o);

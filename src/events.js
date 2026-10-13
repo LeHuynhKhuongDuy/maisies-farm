@@ -5,7 +5,7 @@ import { ICONS } from './assets.js';
 import { sfx } from './sound.js';
 import { $, coinI, gemI, esc, fmt, toast, confetti, openModal, closeModal, renderHUD } from './ui.js';
 
-const DROP = { harvest: 0.03, collect: 0.03, make: 0.04, clear: 0.08, chest: 0.35, deliver: 0.06, visitor: 0.1, crate: 0.06 };
+const DROP = { harvest: 0.03, collect: 0.03, make: 0.04, clear: 0.08, chest: 0.35, deliver: 0.06, visitor: 0.1, crate: 0.06, help: 0.06 };
 const PIECES = COLLECTIONS.flatMap(c => c.pieces.map(p => ({ set: c.id, id: p[0], n: p[1], model: p[2] })));
 
 function monday(d = new Date()) { const day = (d.getDay() + 6) % 7; return new Date(d.getFullYear(), d.getMonth(), d.getDate() - day); }

@@ -10,6 +10,7 @@ import { ICONS } from './assets.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
 import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
+import { nbTap, openNeighbors } from './neighbors.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint } from './ui.js';
@@ -29,6 +30,7 @@ const speedCost = ms => Math.max(1, Math.ceil(ms / 120000));
 export function onTap(sx, sy) {
   audioUnlock();
   if (W.mode === 'adv') { advTap(sx, sy); renderHUD(); return; }
+  if (W.mode === 'nb') { nbTap(sx, sy); renderHUD(); return; }
   if (placing) { const p = groundAt(sx, sy); if (p) moveGhost(p); return; }
   const oid = pickAt(sx, sy);
   closeTimer();
@@ -516,7 +518,7 @@ function placeCancel() {
   placing = null; closeTray();
 }
 export function onLongPress(sx, sy) {
-  if (placing || W.mode === 'adv') return;
+  if (placing || W.mode !== 'farm') return;
   const oid = pickAt(sx, sy);
   const o = typeof oid === 'number' ? byId(oid) : null;
   if (!o || o.k === 'obstacle') return;
@@ -527,7 +529,7 @@ export function onLongPress(sx, sy) {
 // ============ Kéo: gieo/thu hoạch liên tục, kéo đồ đang đặt ============
 let drag = null;
 export function beginDrag(sx, sy) {
-  if (W.mode === 'adv') return false;
+  if (W.mode !== 'farm') return false;
   if (placing) {
     const oid = pickAt(sx, sy);
     if (oid === 'ghost' || oid === placing.obj.id) { drag = { mode: 'ghost' }; return true; }
@@ -752,6 +754,11 @@ export function initUI() {
   $('#questBtn').onclick = () => { audioUnlock(); openQuest(); };
   $('#btnGift').onclick = () => { audioUnlock(); openGift(); renderHUD(); save(); };
   $('#energyPill').onclick = () => { audioUnlock(); openEnergy(); };
+  $('#btnNb').onclick = () => {
+    audioUnlock(); sfx('tap');
+    if (S.level < 2) { toast('Hàng xóm mở ở cấp 2'); return; }
+    openNeighbors({});
+  };
   $('#btnAdv').onclick = () => {
     audioUnlock(); sfx('tap');
     if (S.level < 2) { toast('Phiêu lưu mở ở cấp 2'); return; }

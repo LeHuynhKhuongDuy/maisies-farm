@@ -164,7 +164,7 @@ export function groundAt(sx, sy) {
 // Trả về đối tượng (root có userData.oid) dưới ngón tay
 export function pickAt(sx, sy) {
   setRay(sx, sy);
-  const hits = ray.intersectObjects(W.mode === 'adv' ? W.advPick : W.pickables, true);
+  const hits = ray.intersectObjects(W.mode === 'farm' ? W.pickables : W.advPick, true);
   for (const h of hits) {
     let o = h.object;
     while (o && o.userData.oid === undefined) o = o.parent;
