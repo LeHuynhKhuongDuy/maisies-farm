@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { make, play } from './assets.js';
 import { W, cellToWorld } from './world.js';
 import { S, footprint, now, rnd } from './state.js';
-import { GRID, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE } from './data.js';
+import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE } from './data.js';
 
 export const VIEWS = new Map();
 const mats = {};
@@ -284,6 +284,29 @@ function boardView() {
   return { root, cart };
 }
 
+// Quầy chợ: hàng đang bày hiện lên mặt sạp
+function marketView(o) {
+  const root = new THREE.Group();
+  const base = box(1.9, 0.05, 1.9, 0xd8c39a); root.add(base);
+  const st = make('town/stall-red', { size: 1.5 }); st.position.set(0, 0, -0.15); root.add(st);
+  const c1 = make('pirate/crate', { size: 0.45 }); c1.position.set(-0.7, 0, 0.7); root.add(c1);
+  const b1 = make('pirate/barrel', { size: 0.4 }); b1.position.set(0.72, 0, 0.7); root.add(b1);
+  const goods = new THREE.Group(); goods.position.set(0, 0.72, 0.15); root.add(goods);
+  let sig = '';
+  return {
+    root,
+    refresh() {
+      const s = o.slots.map(x => x ? x.item + (x.sold ? '$' : '') : '-').join();
+      if (s === sig) return; sig = s; goods.clear();
+      o.slots.forEach((x, i) => {
+        if (!x || x.sold) return;
+        const m = make(ITEMS[x.item].icon, { size: 0.26, tint: ITEMS[x.item].tint });
+        m.position.set(-0.5 + (i % 3) * 0.5, 0, Math.floor(i / 3) * 0.3 - 0.1); goods.add(m);
+      });
+    },
+  };
+}
+
 function decorView(o) {
   const D = DECOR[o.t], root = new THREE.Group();
   const m = make(D.model, { ...D.fit, tint: D.tint, paint: D.paint }); root.add(m);
@@ -319,6 +342,7 @@ function createView(o) {
     case 'board': return boardView(o);
     case 'decor': return decorView(o);
     case 'obstacle': return obstacleView(o);
+    case 'market': return marketView(o);
   }
   return { root: new THREE.Group() };
 }

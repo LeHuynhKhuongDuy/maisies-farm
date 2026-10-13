@@ -11,6 +11,7 @@ import { advUpdate } from './adventure.js';
 import { initVisitors, visitorsUpdate } from './visitors.js';
 import { buildAmbient, updateAmbient } from './ambient.js';
 import { initEvents, eventIcons } from './events.js';
+import { ensureMarket } from './market.js';
 
 async function boot() {
   load();
@@ -23,6 +24,7 @@ async function boot() {
   const canvas = $('#c');
   initWorld(canvas);
   for (const o of S.objs) addView(o);
+  ensureMarket(addView);
   buildSpecials();
   initVisitors();
   buildAmbient();

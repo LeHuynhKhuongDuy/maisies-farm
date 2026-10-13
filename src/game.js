@@ -3,12 +3,13 @@ import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, Q
   fieldCost, xpNeed, ENERGY_MAX, barnUpgradeCost } from './data.js';
 import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
-  currentQuest, questEvent, claimQuest, newId, resetGame } from './state.js';
+  currentQuest, questEvent, claimQuest, newId, resetGame, exportSave, importSave } from './state.js';
 import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn } from './world.js';
 import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce } from './entities.js';
 import { ICONS } from './assets.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
+import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint } from './ui.js';
@@ -47,6 +48,7 @@ export function tapObject(oid, sx, sy) {
     case 'pen': return tapPen(o, sx, sy);
     case 'fac': return tapFactory(o, sx, sy);
     case 'board': sfx('tap'); return openOrders();
+    case 'market': if (collectMarket(sx, sy)) { VIEWS.get(o.id).refresh(); return; } sfx('tap'); return openMarket();
     case 'barn': sfx('tap'); return openBarn();
     case 'house': sfx('tap'); return openQuest();
     case 'obstacle': return clearObstacle(o, sx, sy);
@@ -643,6 +645,7 @@ function openSettings(confirmReset) {
     <div class="setting" style="flex-direction:column;align-items:flex-start;font-size:15px;font-weight:700">
       <b style="font-size:17px">Cài lên điện thoại</b>
       iPhone: mở bằng Safari → nút Chia sẻ → "Thêm vào MH chính".<br>Android: mở bằng Chrome → menu ⋮ → "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính".</div>
+    <div class="setting">Chuyển sang máy khác <span class="row" style="gap:6px"><button class="btn small blue" data-act="backup">Lấy mã</button><button class="btn small" data-act="restore">Nhập mã</button></span></div>
     <div class="setting">${confirmReset ? 'Chắc chắn chơi lại từ đầu?' : 'Chơi lại từ đầu'}
       <button class="btn small red" data-act="${confirmReset ? 'resetyes' : 'reset'}">${confirmReset ? 'Xoá hết' : 'Chơi lại'}</button></div>
     <p class="hint" style="font-size:13px;margin-top:10px">Hình 3D: Kenney.nl (CC0). Maisie's Farm · làm tặng bé Maisie.</p>`);
@@ -708,6 +711,25 @@ const ACT = {
   togglesound() { S.sound = !S.sound; openSettings(); },
   togglemusic() { S.music = !S.music; if (S.music) startMusic(); else stopMusic(); openSettings(); },
   reset() { openSettings(true); },
+  backup() {
+    openModal('backup', 'Mã sao lưu', `<p class="hint">Sao chép mã này, rồi trên máy mới vào Cài đặt → Nhập mã.</p>
+      <textarea id="saveCode" class="code" readonly>${exportSave()}</textarea>
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn orange" data-act="copycode">Sao chép mã</button></div>`);
+  },
+  copycode() {
+    const t = $('#saveCode');
+    navigator.clipboard?.writeText(t.value).then(() => toast('Đã sao chép mã'), () => { t.select(); toast('Hãy giữ vào ô mã và chọn Sao chép'); })
+      ?? (t.select(), toast('Hãy giữ vào ô mã và chọn Sao chép'));
+  },
+  restore() {
+    openModal('restore', 'Nhập mã sao lưu', `<p class="hint">Dán mã từ máy cũ vào đây. Nông trại hiện tại trên máy này sẽ được thay thế.</p>
+      <textarea id="restoreCode" class="code" placeholder="Dán mã vào đây"></textarea>
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn red" data-act="restoreyes">Khôi phục</button></div>`);
+  },
+  restoreyes() {
+    try { importSave($('#restoreCode').value); toast('Đã khôi phục! Đang mở lại…'); setTimeout(() => location.reload(), 600); }
+    catch (e) { toast('Mã không đúng. Kiểm tra lại đã dán đủ mã chưa nhé'); sfx('no'); }
+  },
   resetyes() { resetGame(); location.reload(); },
 };
 
@@ -765,6 +787,8 @@ function buildBubbles() {
     } else if (o.k === 'fac') {
       const done = o.jobs.filter(j => t >= j.e);
       if (done.length) list.push({ oid: o.id, y: 2.6, icon: FACTORIES[o.t].rec[done[0].r].out, n: done.length > 1 ? done.length : null });
+    } else if (o.k === 'market') {
+      if (soldCount()) list.push({ oid: o.id, y: 1.9, html: coinI, n: soldCount() });
     } else if (o.k === 'board') {
       if (S.orders.some(x => !x.wait && hasAll(x.items))) list.push({ oid: o.id, y: 1.9, mark: '!' });
     }
@@ -774,13 +798,13 @@ function buildBubbles() {
   const q = currentQuest();
   if (q && S.qprog >= q.n) list.push({ oid: 'maisie', y: 1.3, mark: '✓' });
   else if (q && S.quest < QUESTS.length && S.qprog === 0) list.push({ oid: 'maisie', y: 1.3, mark: '!' });
-  const sig = list.map(b => b.oid + (b.icon || b.mark) + b.n + b.cls).join('|');
+  const sig = list.map(b => b.oid + (b.icon || b.mark || 'h') + b.n + b.cls).join('|');
   if (sig === buildBubbles.sig) return;
   buildBubbles.sig = sig;
   bubbleList.forEach(b => b.el.remove());
   bubbleList = list.map(b => {
     const el = document.createElement('button'); el.className = 'bub ' + (b.mark ? 'mark' : '') + ' ' + (b.cls || '');
-    el.innerHTML = b.mark ? b.mark : `${img(b.icon)}${b.n != null ? `<span class="n">${b.n}</span>` : ''}`;
+    el.innerHTML = b.mark ? b.mark : `${b.html || img(b.icon)}${b.n != null ? `<span class="n">${b.n}</span>` : ''}`;
     el.onclick = e => { audioUnlock(); tapObject(b.oid, e.clientX, e.clientY); renderHUD(); save(); };
     $('#bubbles').appendChild(el);
     return { ...b, el };
@@ -837,7 +861,7 @@ export function positionBubbles() {
 let lastSave = 0;
 export function tick() {
   const t = now();
-  energyTick(); shipTick(); visitorsTick();
+  energyTick(); shipTick(); visitorsTick(); marketTick();
   if (!(M && M.type === 'orders')) refreshOrders();
   for (const v of VIEWS.values()) v.refresh?.(t);
   buildBubbles();

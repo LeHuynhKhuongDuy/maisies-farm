@@ -18,7 +18,7 @@ export function footprint(o) {
   switch (o.k) {
     case 'field': case 'tree': return [1, 1];
     case 'pen': case 'house': return [3, 3];
-    case 'fac': case 'barn': return [2, 2];
+    case 'fac': case 'barn': case 'market': return [2, 2];
     case 'board': return [2, 1];
     case 'decor': { const d = DECOR[o.t]; const w = d.w || 1, h = d.d || 1; return o.r % 2 ? [h, w] : [w, h]; }
     case 'obstacle': return [1, 1];
@@ -237,5 +237,12 @@ export function load() {
   if (!S.ship) S.ship = newShip();
   refreshOrders();
   return S;
+}
+// Mã sao lưu để chuyển nông trại sang máy khác
+export const exportSave = () => btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+export function importSave(code) {
+  const o = JSON.parse(decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))));
+  if (!o || o.v !== 1 || !Array.isArray(o.objs)) throw new Error('bad');
+  S = o; save();
 }
 export function resetGame() { S = freshState(); S.ship = newShip(); refreshOrders(); save(); }
