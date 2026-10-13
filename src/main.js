@@ -43,9 +43,18 @@ async function boot() {
   if (import.meta.env.DEV) window.__game = { get S() { return S; }, W };
   setInterval(tick, 250);
   tick();
-  let last = performance.now();
+  let last = performance.now(), slow = 0, lowered = false;
+  // Máy yếu: tự giảm độ nét và bóng đổ để chơi mượt hơn
+  const lowerQuality = () => {
+    lowered = true;
+    W.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    W.scene.traverse(o => { if (o.isDirectionalLight && o.shadow) { o.shadow.mapSize.set(1024, 1024); o.shadow.map?.dispose(); o.shadow.map = null; } });
+    window.dispatchEvent(new Event('resize'));
+  };
+  if (S.lowGfx) lowerQuality();
   const loop = () => {
     const nowT = performance.now(), dt = Math.min(0.1, (nowT - last) / 1000); last = nowT;
+    if (!lowered && !document.hidden) { slow = dt > 0.04 ? slow + dt : Math.max(0, slow - dt * 0.5); if (slow > 3) { S.lowGfx = true; lowerQuality(); } }
     const t = nowT / 1000;
     momentum();
     if (W.mode === 'adv') advUpdate(t, dt);
@@ -60,6 +69,7 @@ async function boot() {
     positionBubbles();
     W.renderer.render(W.scene, W.camera);
     requestAnimationFrame(loop);
+    if (lowered) W.renderer.shadowMap.autoUpdate = (Math.floor(t * 30) % 2) === 0; // bóng cập nhật 15 lần/giây
   };
   loop();
 

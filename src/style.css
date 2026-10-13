@@ -290,3 +290,19 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
 @media (max-width: 420px) { .grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); } .card img { width: 64px; height: 64px; } }
+
+/* Điện thoại xoay ngang: màn hình thấp thì xếp nút theo hàng ngang */
+@media (max-height: 520px) {
+  .tl { flex-direction: row; flex-wrap: wrap; gap: 8px 16px; width: 270px; }
+  .tl .lvl { flex-basis: 100%; }
+  .questbtn { width: 50px; height: 50px; }
+  .sidebtn { width: 50px; height: 50px; }
+  .sidebtn img { width: 34px; height: 34px; }
+  .advbtn { bottom: calc(var(--sb) + 12px); width: 58px; height: 58px; }
+  .advbtn.nbbtn { bottom: calc(var(--sb) + 12px); left: calc(var(--sl) + 80px); }
+  .giftbtn { left: calc(var(--sl) + 150px); bottom: calc(var(--sb) + 12px); width: 56px; height: 56px; font-size: 32px; }
+  .rbtn { width: 58px; height: 58px; }
+  .rbtn.big { width: 70px; height: 70px; }
+  .sheet { max-height: 100%; }
+  .sheet-head h2 { font-size: 22px; }
+}
