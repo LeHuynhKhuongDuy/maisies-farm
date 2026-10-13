@@ -218,6 +218,13 @@ function facView(o) {
       const fr = make('food/orange', { size: 0.16 }); fr.position.set(0.65, 0.42, 0.7); root.add(fr);
       break;
     }
+    case 'seafood': {
+      const h = house(2, 2, { roofTint: 0x2fb8b0 }); h.scale.setScalar(0.85); root.add(h);
+      const fire = make('survival/campfire-pit', { size: 0.5 }); fire.position.set(0.65, 0, 0.8); root.add(fire);
+      const f = make('food/fish', { size: 0.35 }); f.position.set(-0.6, 0, 0.85); root.add(f);
+      puff = smoke(); puff.position.set(0.65, 0.25, 0.8); root.add(puff);
+      break;
+    }
     case 'sweets': {
       const h = house(2, 2, { roofTint: 0xff8ad8 }); h.scale.setScalar(0.85); root.add(h);
       const ck = make('food/cupcake', { size: 0.35 }); ck.position.set(0.6, 0, 0.85); root.add(ck);
@@ -391,6 +398,15 @@ export function buildSpecials() {
   ship.userData.oid = 'ship';
   W.farm.add(ship); W.pickables.push(ship);
   SPECIAL.ship = ship; SPECIAL.shipHome = home; SPECIAL.dock = dock;
+
+  // Cầu câu cá ở mép phải đảo
+  const pier = new THREE.Group(), pp = cellToWorld(GRID - 1, 9);
+  for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock-small', { size: 1.5 }); d.rotation.y = Math.PI / 2; d.position.set(-1.45 + i * 1.45, -0.62, 0); pier.add(d); }
+  const pb = make('pirate/barrel', { size: 0.4 }); pb.position.set(-1.3, 0.15, 0.45); pier.add(pb);
+  const bucket = make('survival/bucket', { size: 0.3 }); bucket.position.set(0.9, 0.15, -0.4); pier.add(bucket);
+  const rod = make('pirate/tool-paddle', { h: 1.2 }); rod.position.set(1.6, 0.15, 0.3); rod.rotation.z = -0.6; pier.add(rod);
+  pier.position.set(pp.x + 3.6, 0, pp.z); pier.userData.oid = 'pier';
+  W.farm.add(pier); W.pickables.push(pier); SPECIAL.pier = pier;
 
   // Maisie đi dạo quanh nhà
   const maisie = make(PEOPLE[0].model, { h: 0.95 });

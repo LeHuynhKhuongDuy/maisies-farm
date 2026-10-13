@@ -55,6 +55,10 @@ export const ITEMS = {
   jam:        { n: 'Mứt dâu',       icon: 'food/honey', tint: 0xff7a7a, v: 30 },
   lemontea:   { n: 'Trà chanh mật ong', icon: 'food/cup-tea', v: 28 },
   salad:      { n: 'Sa lát',        icon: 'food/salad', v: 32, energy: 10 },
+  fish:       { n: 'Cá biển',       icon: 'food/fish', v: 7 },
+  bigfish:    { n: 'Cá vàng to',    icon: 'food/fish', tint: 0xffa040, v: 16 },
+  grilledfish:{ n: 'Cá xiên nướng', icon: 'food/skewer', v: 30, energy: 8 },
+  sushi:      { n: 'Sushi',         icon: 'food/sushi-salmon', v: 34, energy: 9 },
 };
 
 // ---------- Cây trồng (ruộng 1x1) ----------
@@ -120,6 +124,11 @@ export const FACTORIES = {
     { out: 'pizza',    in: { bread: 1, cheese: 1, tomato: 2 }, t: 100, lv: 8 },
     { out: 'salad',    in: { cabbage: 1, tomato: 1, onion: 1 }, t: 90, lv: 10 },
     { out: 'waffle',   in: { wheat: 2, egg: 1, honey: 1 }, t: 90, lv: 11 },
+  ]},
+  seafood: { n: 'Quán hải sản', lv: 5, cost: 300, rec: [
+    { out: 'grilledfish', in: { fish: 2, corn: 1 }, t: 70, lv: 5 },
+    { out: 'sushi',       in: { fish: 1, cabbage: 1 }, t: 80, lv: 9 },
+    { out: 'soup',        in: { bigfish: 1, carrot: 1, tomato: 1 }, t: 80, lv: 6 },
   ]},
   sweets: { n: 'Tiệm bánh ngọt', lv: 9, cost: 420, rec: [
     { out: 'donut',     in: { wheat: 2, egg: 1, honey: 1 }, t: 90, lv: 9 },

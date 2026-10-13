@@ -97,6 +97,27 @@ body.in-adv .sidebtn { display: none !important; }
 
 textarea.code { width: 100%; height: 120px; padding: 10px; border-radius: 14px; border: 3px solid var(--cream-d); font: 12px/1.3 ui-monospace, Menlo, monospace; color: var(--ink); background: var(--white); resize: none; word-break: break-all; -webkit-user-select: text; user-select: text; }
 
+/* câu cá */
+.pond { position: relative; height: 200px; border-radius: 22px; overflow: hidden; background: linear-gradient(#5fd0e0, #2a92ab); box-shadow: inset 0 0 0 4px rgba(255,255,255,.4); cursor: pointer; }
+.pond .swim { position: absolute; opacity: .35; animation: swim 10s linear infinite; }
+.pond .swim img { width: 44px; height: 44px; transform: scaleX(-1); }
+.pond .s1 { top: 14%; animation-duration: 12s; } .pond .s2 { top: 52%; animation-duration: 8s; animation-delay: -3s; } .pond .s3 { top: 74%; animation-duration: 14s; animation-delay: -7s; }
+@keyframes swim { from { left: -15%; } to { left: 110%; } }
+.pond .rod { position: absolute; inset: 0; display: grid; place-items: center; font-size: 64px; }
+.pond .line { position: absolute; left: 50%; top: 0; width: 2px; height: calc(50% - 12px); background: rgba(255,255,255,.85); }
+.pond .bobber { position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: linear-gradient(var(--red) 0 50%, var(--white) 50% 100%); box-shadow: 0 0 0 4px rgba(255,255,255,.3); animation: floaty 1.6s ease-in-out infinite; }
+.pond .bobber.bite { animation: dunk .32s ease-in-out infinite; }
+.pond .ripple { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 3px solid rgba(255,255,255,.8); border-radius: 50%; animation: ripple .7s ease-out infinite; }
+.pond .bang { position: absolute; left: calc(50% + 24px); top: calc(50% - 60px); font-size: 34px; animation: pop .4s ease-in-out infinite; }
+.pond .caught { position: absolute; inset: 0; display: grid; place-items: center; font-size: 70px; animation: pop-in .4s ease-out; }
+.pond .caught img, .pond .caught .ico { width: 110px; height: 110px; margin: 0; }
+@keyframes floaty { 50% { transform: translateY(5px); } }
+@keyframes dunk { 50% { transform: translateY(14px) scale(.85); } }
+@keyframes ripple { to { transform: scale(3.2); opacity: 0; } }
+.btn.hot { background: var(--gold); color: var(--ink); box-shadow: 0 4px 0 var(--gold-d); animation: pop .45s ease-in-out infinite; }
+.bub.mark.fishmark { background: #bdf0ff; font-size: 22px; -webkit-text-stroke: 0; }
+.bub.mark.fishmark::after { border-top-color: #bdf0ff; }
+
 /* quầy chợ */
 .slot.mk { width: 96px; height: 96px; }
 .slot.mk img { width: 54px; height: 54px; }

@@ -17,7 +17,7 @@ const PARTS = [
   'pirate/structure-platform-dock', 'pirate/structure-platform-dock-small', 'pirate/ship-small', 'pirate/crate',
   'pirate/barrel', 'pirate/palm-straight', 'pirate/rocks-sand-a', 'pirate/flag',
   'survival/campfire-pit', 'survival/workbench', 'survival/barrel', 'survival/box-large', 'survival/bucket',
-  'survival/resource-wood', 'survival/tool-axe',
+  'survival/resource-wood', 'survival/tool-axe', 'pirate/tool-paddle', 'pirate/structure-platform-dock-small',
 ];
 
 export function allModelKeys() {

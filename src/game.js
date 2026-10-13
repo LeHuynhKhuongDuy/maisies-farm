@@ -11,6 +11,7 @@ import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
 import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
 import { nbTap, openNeighbors } from './neighbors.js';
+import { openFishing } from './fishing.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint } from './ui.js';
@@ -42,6 +43,7 @@ export function tapObject(oid, sx, sy) {
   if (oid === 'ship') { bounce('dock'); return openShip(); }
   if (oid === 'maisie') { SPECIAL.maisie.userData.wave = 1.5; return openQuest(); }
   if (typeof oid === 'string' && oid.startsWith('v:')) return tapVisitor(oid);
+  if (oid === 'pier') { bounce('pier'); sfx('tap'); return openFishing({ openEnergy }); }
   const o = byId(oid); if (!o) return;
   bounce(oid);
   switch (o.k) {
@@ -802,6 +804,7 @@ function buildBubbles() {
   }
   if (S.ship.st === 'docked' && S.ship.crates.some(c => !c.done && have(c.item) >= c.n)) list.push({ oid: 'ship', y: 3.4, mark: '!' });
   list.push(...visitorBubbles());
+  list.push({ oid: 'pier', y: 1.4, mark: '🎣', cls: 'fishmark' });
   const q = currentQuest();
   if (q && S.qprog >= q.n) list.push({ oid: 'maisie', y: 1.3, mark: '✓' });
   else if (q && S.quest < QUESTS.length && S.qprog === 0) list.push({ oid: 'maisie', y: 1.3, mark: '!' });
@@ -818,7 +821,7 @@ function buildBubbles() {
   });
 }
 const v3 = new THREE.Vector3();
-function rootOf(oid) { return oid === 'ship' ? SPECIAL.dock : oid === 'maisie' ? SPECIAL.maisie : typeof oid === 'string' && oid.startsWith('v:') ? visitorRoot(oid) : VIEWS.get(oid)?.root; }
+function rootOf(oid) { return oid === 'ship' ? SPECIAL.dock : oid === 'pier' ? SPECIAL.pier : oid === 'maisie' ? SPECIAL.maisie : typeof oid === 'string' && oid.startsWith('v:') ? visitorRoot(oid) : VIEWS.get(oid)?.root; }
 // ---------- Bàn tay hướng dẫn cho mấy nhiệm vụ đầu ----------
 let hand = null;
 function questTarget() {
