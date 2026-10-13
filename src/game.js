@@ -8,6 +8,7 @@ import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn } from
 import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce } from './entities.js';
 import { ICONS } from './assets.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
+import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint } from './ui.js';
@@ -37,6 +38,7 @@ export function onTap(sx, sy) {
 export function tapObject(oid, sx, sy) {
   if (oid === 'ship') { bounce('dock'); return openShip(); }
   if (oid === 'maisie') { SPECIAL.maisie.userData.wave = 1.5; return openQuest(); }
+  if (typeof oid === 'string' && oid.startsWith('v:')) return tapVisitor(oid);
   const o = byId(oid); if (!o) return;
   bounce(oid);
   switch (o.k) {
@@ -768,6 +770,7 @@ function buildBubbles() {
     }
   }
   if (S.ship.st === 'docked' && S.ship.crates.some(c => !c.done && have(c.item) >= c.n)) list.push({ oid: 'ship', y: 3.4, mark: '!' });
+  list.push(...visitorBubbles());
   const q = currentQuest();
   if (q && S.qprog >= q.n) list.push({ oid: 'maisie', y: 1.3, mark: '✓' });
   else if (q && S.quest < QUESTS.length && S.qprog === 0) list.push({ oid: 'maisie', y: 1.3, mark: '!' });
@@ -784,8 +787,40 @@ function buildBubbles() {
   });
 }
 const v3 = new THREE.Vector3();
-function rootOf(oid) { return oid === 'ship' ? SPECIAL.dock : oid === 'maisie' ? SPECIAL.maisie : VIEWS.get(oid)?.root; }
+function rootOf(oid) { return oid === 'ship' ? SPECIAL.dock : oid === 'maisie' ? SPECIAL.maisie : typeof oid === 'string' && oid.startsWith('v:') ? visitorRoot(oid) : VIEWS.get(oid)?.root; }
+// ---------- Bàn tay hướng dẫn cho mấy nhiệm vụ đầu ----------
+let hand = null;
+function questTarget() {
+  if (W.mode !== 'farm' || M || placing || S.quest >= 10) return null;
+  const q = currentQuest(); if (!q) return null;
+  if (S.qprog >= q.n) return { el: '#questBtn' };
+  const t = now(), objs = S.objs;
+  const find = f => objs.find(f);
+  switch (q.ev) {
+    case 'harvest': { const r = find(o => o.k === 'field' && cropStage(o, t) === 3 && (!q.key || o.crop === q.key)); if (r) return { oid: r.id, y: 1 };
+      const e = find(o => o.k === 'field' && !o.crop); return e ? { oid: e.id, y: 1 } : null; }
+    case 'plant': { const e = find(o => o.k === 'field' && !o.crop); return e ? { oid: e.id, y: 1 } : null; }
+    case 'make': { const f = find(o => o.k === 'fac' && FACTORIES[o.t].rec.some(r => r.out === q.key)); return f ? { oid: f.id, y: 2.8 } : { el: '#btnShop' }; }
+    case 'feed': case 'collect': case 'buyanimal': { const p = find(o => o.k === 'pen'); return p ? { oid: p.id, y: 1.8 } : null; }
+    case 'deliver': { const b = find(o => o.k === 'board'); return b ? { oid: b.id, y: 2.1 } : null; }
+    case 'clear': { let best = null, bd = 1e9; for (const o of objs) if (o.k === 'obstacle') { const d = Math.hypot(o.x - 12, o.z - 10); if (d < bd) { bd = d; best = o; } } return best ? { oid: best.id, y: 1.4 } : null; }
+    case 'crate': return { oid: 'ship', y: 3.6 };
+    case 'buydecor': case 'buytree': return { el: '#btnShop' };
+  }
+  return null;
+}
+function positionHand() {
+  if (!hand) { hand = document.createElement('div'); hand.className = 'hand'; hand.textContent = '👇'; $('#bubbles').appendChild(hand); }
+  const tg = questTarget();
+  if (!tg) { hand.hidden = true; return; }
+  let x, y;
+  if (tg.el) { const r = $(tg.el)?.getBoundingClientRect(); if (!r || !r.width) { hand.hidden = true; return; } x = r.left + r.width / 2; y = r.top - 6; }
+  else { const r = rootOf(tg.oid); if (!r) { hand.hidden = true; return; } v3.copy(r.position); v3.y += tg.y; [x, y] = toScreen(v3); }
+  hand.hidden = false; hand.style.transform = `translate(${x}px,${y}px)`;
+}
+
 export function positionBubbles() {
+  positionHand();
   for (const b of bubbleList) {
     const r = rootOf(b.oid); if (!r) continue;
     v3.copy(r.position); v3.y += b.y;
@@ -802,7 +837,7 @@ export function positionBubbles() {
 let lastSave = 0;
 export function tick() {
   const t = now();
-  energyTick(); shipTick();
+  energyTick(); shipTick(); visitorsTick();
   if (!(M && M.type === 'orders')) refreshOrders();
   for (const v of VIEWS.values()) v.refresh?.(t);
   buildBubbles();
