@@ -151,6 +151,8 @@ export const DECOR = {
   bunny:       { n: 'Thỏ trắng',     lv: 4, cost: 150, model: 'pets/animal-bunny', pet: true, fit: { h: 0.65 } },
   parrot:      { n: 'Vẹt',           lv: 5, cost: 180, model: 'pets/animal-parrot', pet: true, fit: { h: 0.6 } },
   penguin:     { n: 'Chim cánh cụt', lv: 6, cost: 220, model: 'pets/animal-penguin', pet: true, fit: { h: 0.6 } },
+  sandcastle:  { n: 'Lâu đài cát',   lv: 99, cost: 0,  model: 'pirate/tower-complete-small', fit: { size: 1.8 }, w: 2, d: 2, gift: true, paint: 0xf2d38a },
+  goldboat:    { n: 'Thuyền vàng',   lv: 99, cost: 0,  model: 'pirate/boat-row-large', fit: { size: 1.9 }, w: 2, d: 2, gift: true, paint: 0xffc93c },
   crab:        { n: 'Bạn Cua',       lv: 99, cost: 0,  model: 'pets/animal-crab', pet: true, fit: { h: 0.5 }, gift: true },
   fountain:    { n: 'Đài phun nước', lv: 5, cost: 300, model: 'town/fountain-round', fit: { size: 1.9 }, w: 2, d: 2 },
   boat:        { n: 'Thuyền nhỏ',    lv: 4, cost: 90,  model: 'pirate/boat-row-small', fit: { size: 1.9 }, w: 2, d: 2 },
@@ -273,3 +275,26 @@ export const ADVENTURES = [
     intro: 'Một bạn cánh cụt trôi dạt tới mũi đá. Mình tới đưa bạn ấy về nhà nhé!',
     reward: { coins: 600, gems: 14, xp: 180 } },
 ];
+
+// ---------- Bộ sưu tập (nhặt ngẫu nhiên khi chơi) ----------
+export const COLLECTIONS = [
+  { id: 'sea', n: 'Kho báu biển', reward: { coins: 200, gems: 5 }, pieces: [
+    ['bottle', 'Thư trong chai', 'pirate/bottle'], ['mussel', 'Con trai', 'food/mussel'], ['pearl', 'Ngọc trai', 'food/mussel-open'],
+    ['bones', 'Xương cá', 'food/fish-bones'], ['pflag', 'Cờ cướp biển', 'pirate/flag'] ] },
+  { id: 'sweet', n: 'Kẹo ngọt', reward: { coins: 220, gems: 5 }, pieces: [
+    ['lolly', 'Kẹo mút', 'food/lollypop'], ['pop', 'Kem que', 'food/popsicle'], ['choco', 'Thanh sô-cô-la', 'food/candy-bar'],
+    ['mint', 'Kem bạc hà', 'food/ice-cream-scoop-mint'], ['cdonut', 'Bánh vòng sô-cô-la', 'food/donut-chocolate'] ] },
+  { id: 'tropic', n: 'Trái cây nhiệt đới', reward: { coins: 260, gems: 6 }, pieces: [
+    ['pine', 'Dứa', 'food/pineapple'], ['coco', 'Nửa trái dừa', 'food/coconut-half'], ['grape', 'Chùm nho', 'food/grapes'],
+    ['melon2', 'Dưa hấu', 'food/watermelon'], ['lime', 'Lát chanh', 'food/lemon-half'] ] },
+];
+
+// ---------- Sự kiện hằng tuần ----------
+export const EVENT = {
+  n: 'Lễ hội Biển', token: 'Vỏ sò vàng', icon: 'food/mussel', tint: 0xffd23f,
+  gain: { harvest: 1, collect: 1, make: 1, deliver: 3, crate: 2, clear: 1, visitor: 3, chest: 3 },
+  tiers: [
+    { at: 20, coins: 80 }, { at: 50, gems: 3 }, { at: 90, coins: 200 },
+    { at: 140, decor: 'sandcastle' }, { at: 200, gems: 10 }, { at: 280, decor: 'goldboat' },
+  ],
+};

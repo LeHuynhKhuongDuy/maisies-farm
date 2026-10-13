@@ -174,6 +174,7 @@ export function claimQuest() {
   return q;
 }
 export function questEvent(ev, key, n = 1) {
+  emit('act', ev, key, n);
   const q = currentQuest();
   if (!q || q.ev !== ev || (q.key && q.key !== key)) return;
   S.qprog = Math.min(q.n, S.qprog + n);

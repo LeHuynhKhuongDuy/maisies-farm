@@ -4,19 +4,20 @@ import { loadAll, renderIcons, iconList } from './assets.js';
 import { initWorld, W, focusOn } from './world.js';
 import { VIEWS, addView, buildSpecials, updateSpecials, updateBounce, buildingIcons } from './entities.js';
 import { initInput } from './input.js';
-import { initUI, tick, positionBubbles } from './game.js';
+import { initUI, tick, positionBubbles, placePendingPets } from './game.js';
 import { renderHUD, $ } from './ui.js';
 import { audioUnlock } from './sound.js';
 import { advUpdate } from './adventure.js';
 import { initVisitors, visitorsUpdate } from './visitors.js';
 import { buildAmbient, updateAmbient } from './ambient.js';
+import { initEvents, eventIcons } from './events.js';
 
 async function boot() {
   load();
   const fill = $('#loadfill');
   await loadAll(p => { fill.style.width = (p * 85) + '%'; });
   $('#loadtxt').textContent = 'Đang vẽ hình…';
-  await renderIcons([...iconList(), ...buildingIcons()]);
+  await renderIcons([...iconList(), ...buildingIcons(), ...eventIcons()]);
   fill.style.width = '100%';
 
   const canvas = $('#c');
@@ -28,6 +29,7 @@ async function boot() {
   focusOn({ x: 0, z: -1 });
   const momentum = initInput(canvas);
   initUI();
+  initEvents({ placePending: placePendingPets });
   renderHUD();
 
   $('#loading').hidden = true;

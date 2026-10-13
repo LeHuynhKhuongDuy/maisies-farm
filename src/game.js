@@ -740,7 +740,7 @@ export function initUI() {
 }
 
 // Thú được giải cứu từ đảo phiêu lưu về sống ở nông trại
-function placePendingPets() {
+export function placePendingPets() {
   const list = S.pendingDecor || [];
   while (list.length) {
     const t = list.shift(), spot = findFree(1, 1, 12, 9);

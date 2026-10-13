@@ -286,7 +286,7 @@ function boardView() {
 
 function decorView(o) {
   const D = DECOR[o.t], root = new THREE.Group();
-  const m = make(D.model, D.fit); root.add(m);
+  const m = make(D.model, { ...D.fit, tint: D.tint, paint: D.paint }); root.add(m);
   if (!D.pet) return { root };
   // thú cưng đi dạo quanh chỗ đặt
   m.userData.goal = new THREE.Vector3(); m.userData.wait = 1;

@@ -11,7 +11,8 @@ export function fmt(ms) {
   if (s < 60) return s + ' giây';
   const m = Math.floor(s / 60), r = s % 60;
   if (m < 60) return r ? `${m} phút ${r} giây` : `${m} phút`;
-  return `${Math.floor(m / 60)} giờ ${m % 60} phút`;
+  if (m < 1440) return `${Math.floor(m / 60)} giờ ${m % 60} phút`;
+  return `${Math.floor(m / 1440)} ngày ${Math.floor(m % 1440 / 60)} giờ`;
 }
 export const short = n => n >= 10000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1) + 'k' : String(n);
 

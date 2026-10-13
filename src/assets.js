@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE, ADV_THEMES, ADVENTURES } from './data.js';
+import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE, ADV_THEMES, ADVENTURES, COLLECTIONS, EVENT } from './data.js';
 
 const BASE = import.meta.env.BASE_URL + 'models/';
 const cache = new Map(); // key -> gltf
@@ -31,6 +31,8 @@ export function allModelKeys() {
   PEOPLE.forEach(p => s.add(p.model));
   Object.values(ADV_THEMES).forEach(t => t.obstacles.forEach(o => s.add(o[0])));
   ADVENTURES.forEach(a => s.add(a.goal.model));
+  COLLECTIONS.forEach(c => c.pieces.forEach(p => s.add(p[2])));
+  s.add(EVENT.icon);
   return [...s];
 }
 
@@ -119,7 +121,7 @@ export async function renderIcons(list) {
   const dl = new THREE.DirectionalLight(0xffffff, 2.2); dl.position.set(2, 4, 3); scene.add(dl);
   const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
   for (const [id, spec] of list) {
-    const m = spec.obj ? spec.obj() : make(spec.model, { tint: spec.tint });
+    const m = spec.obj ? spec.obj() : make(spec.model, { tint: spec.tint, paint: spec.paint });
     if (spec.extra) spec.extra(m);
     // nhân vật/thú: đứng tư thế "idle" thay vì dang tay
     const { mixer, clips } = m.userData;
@@ -148,7 +150,7 @@ export function iconList() {
   const list = Object.entries(ITEMS).map(([k, it]) => [k, { model: it.icon, tint: it.tint }]);
   Object.entries(TREES).forEach(([k, t]) => list.push(['tree:' + k, { model: t.model }]));
   Object.entries(PENS).forEach(([k, p]) => list.push(['animal:' + k, { model: p.animal, rotY: 0.4 }]));
-  Object.entries(DECOR).forEach(([k, d]) => list.push(['decor:' + k, { model: d.model, rotY: d.pet ? 0.4 : -0.5 }]));
+  Object.entries(DECOR).forEach(([k, d]) => list.push(['decor:' + k, { model: d.model, tint: d.tint, paint: d.paint, rotY: d.pet ? 0.4 : -0.5 }]));
   PEOPLE.forEach(p => list.push(['face:' + p.id, { model: p.model, rotY: 0.25, face: true }]));
   list.push(['b:windmill', { model: 'town/windmill', rotY: -0.8 }]);
   list.push(['b:stall-red', { model: 'town/stall-red' }]);

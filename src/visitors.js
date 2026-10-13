@@ -1,7 +1,7 @@
 // Khách ghé thăm: đi bộ từ bến tàu vào nông trại, xin mua một món, nhận xong thì về
 import * as THREE from 'three';
 import { GRID, ITEMS, CROPS, PEOPLE } from './data.js';
-import { S, now, rnd, pick, have, add, addXP, producible, footprint, save, questEvent } from './state.js';
+import { S, now, rnd, pick, have, add, addXP, producible, footprint, save, questEvent, emit } from './state.js';
 import { W, cellToWorld } from './world.js';
 import { make, play, ICONS } from './assets.js';
 import { sfx } from './sound.js';
@@ -107,6 +107,6 @@ export function tapVisitor(oid) {
     if (have(v.item) < v.n) { toast(`Cần thêm ${v.n - have(v.item)} ${ITEMS[v.item].n.toLowerCase()}`); sfx('no'); return; }
     add(v.item, -v.n); S.coins += v.coins; S.gems += v.gems; addXP(v.xp);
     flyCoins(e.clientX, e.clientY, v.coins); flyXP(e.clientX, e.clientY); if (v.gems) flyGems(e.clientX, e.clientY);
-    sfx('coin'); closeModal(); leave(v, true); questEvent('deliver'); renderHUD();
+    sfx('coin'); closeModal(); leave(v, true); questEvent('deliver'); emit('act', 'visitor'); renderHUD();
   };
 }

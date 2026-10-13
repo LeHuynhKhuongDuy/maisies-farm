@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ADVENTURES, ADV_THEMES, ITEMS, CROPS, DECOR } from './data.js';
-import { S, rnd, add, barnRoom, addXP, save, questEvent } from './state.js';
+import { S, rnd, add, barnRoom, addXP, save, questEvent, emit } from './state.js';
 import { W, pickAt, toScreen, focusOn, updateCamera, slab, roundedRect } from './world.js';
 import { make, play, ICONS } from './assets.js';
 import { sfx } from './sound.js';
@@ -223,6 +223,7 @@ export function advTap(sx, sy) {
     const mixer = v.userData.mixer; if (mixer) { play(v, 'open'); }
     sfx('collect');
     cur.p.chests.push(i);
+    emit('act', 'chest');
     const coins = 20 + rnd(30), roll = Math.random();
     S.coins += coins; flyCoins(sx, sy, coins);
     if (roll < 0.4) { S.gems += 1 + rnd(2); flyGems(sx, sy); }
