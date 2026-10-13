@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS,
+import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES,
   fieldCost, xpNeed, ENERGY_MAX, barnUpgradeCost } from './data.js';
 import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
@@ -7,13 +7,16 @@ import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, a
 import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn } from './world.js';
 import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce } from './entities.js';
 import { ICONS } from './assets.js';
+import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint } from './ui.js';
 
+// Chỉ vẽ lại bảng do chính game.js mở (bảng khác mở thẳng từ ui.js thì bỏ qua)
+let drawOwner = null;
 function openModal(type, title, html, extra) {
-  if (!extra || extra.sig === undefined) { M_draw = null; M_sig = null; }
   uiOpen(type, title, html, extra);
+  drawOwner = extra && extra.sig !== undefined ? M : null;
 }
 
 const byId = id => S.objs.find(o => o.id === id);
@@ -23,6 +26,7 @@ const speedCost = ms => Math.max(1, Math.ceil(ms / 120000));
 // ============ Chạm vào thế giới ============
 export function onTap(sx, sy) {
   audioUnlock();
+  if (W.mode === 'adv') { advTap(sx, sy); renderHUD(); return; }
   if (placing) { const p = groundAt(sx, sy); if (p) moveGhost(p); return; }
   const oid = pickAt(sx, sy);
   closeTimer();
@@ -377,7 +381,7 @@ function shopItems(tab) {
       out.push({ id: 'fac:' + k, icon: 'fac:' + k, n: F.n, cost: F.cost, lv: F.lv, note: owned ? 'Đã có' : F.rec.map(r => nameOf(r.out)).slice(0, 2).join(', '), max: owned });
     }
   } else {
-    for (const [k, D] of Object.entries(DECOR)) out.push({ id: 'decor:' + k, icon: 'decor:' + k, n: D.n, cost: D.cost, lv: D.lv, note: D.pet ? 'Biết đi dạo' : '' });
+    for (const [k, D] of Object.entries(DECOR)) if (!D.gift) out.push({ id: 'decor:' + k, icon: 'decor:' + k, n: D.n, cost: D.cost, lv: D.lv, note: D.pet ? 'Biết đi dạo' : '' });
   }
   return out;
 }
@@ -508,7 +512,7 @@ function placeCancel() {
   placing = null; closeTray();
 }
 export function onLongPress(sx, sy) {
-  if (placing) return;
+  if (placing || W.mode === 'adv') return;
   const oid = pickAt(sx, sy);
   const o = typeof oid === 'number' ? byId(oid) : null;
   if (!o || o.k === 'obstacle') return;
@@ -519,6 +523,7 @@ export function onLongPress(sx, sy) {
 // ============ Kéo: gieo/thu hoạch liên tục, kéo đồ đang đặt ============
 let drag = null;
 export function beginDrag(sx, sy) {
+  if (W.mode === 'adv') return false;
   if (placing) {
     const oid = pickAt(sx, sy);
     if (oid === 'ghost' || oid === placing.obj.id) { drag = { mode: 'ghost' }; return true; }
@@ -602,6 +607,7 @@ function unlocksAt(L) {
   for (const [k, P] of Object.entries(PENS)) if (P.lv === L) u.push(['pen:' + k, P.n]);
   for (const [k, F] of Object.entries(FACTORIES)) { if (F.lv === L) u.push(['fac:' + k, F.n]); else for (const r of F.rec) if (r.lv === L && F.lv < L) u.push([r.out, nameOf(r.out)]); }
   for (const [k, D] of Object.entries(DECOR)) if (D.lv === L) u.push(['decor:' + k, D.n]);
+  for (const A of ADVENTURES) if (A.lv === L) u.push([A.goal.pet ? 'decor:' + A.goal.pet : 'decor:chest', 'Đảo ' + A.n]);
   return u;
 }
 on('levelup', (L, bonus) => {
@@ -642,7 +648,7 @@ function openSettings(confirmReset) {
 
 // ============ Xử lý nút bấm trong bảng & khay ============
 let M_draw = null, M_sig = null;
-function redrawModal() { if (M && M_draw) { setModalBody(M_draw()); M.sig = M_sig?.(); } }
+function redrawModal() { if (M && M === drawOwner && M_draw) { setModalBody(M_draw()); M.sig = M_sig?.(); } }
 
 const ACT = {
   seed(b) {
@@ -722,8 +728,26 @@ export function initUI() {
   $('#questBtn').onclick = () => { audioUnlock(); openQuest(); };
   $('#btnGift').onclick = () => { audioUnlock(); openGift(); renderHUD(); save(); };
   $('#energyPill').onclick = () => { audioUnlock(); openEnergy(); };
+  $('#btnAdv').onclick = () => {
+    audioUnlock(); sfx('tap');
+    if (S.level < 2) { toast('Phiêu lưu mở ở cấp 2'); return; }
+    openAdventures({ openEnergy, onLeave: placePendingPets });
+  };
   $('#barnIco').src = ICONS['b:crate'];
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (M) closeModal(); else if (placing) placeCancel(); } });
+}
+
+// Thú được giải cứu từ đảo phiêu lưu về sống ở nông trại
+function placePendingPets() {
+  const list = S.pendingDecor || [];
+  while (list.length) {
+    const t = list.shift(), spot = findFree(1, 1, 12, 9);
+    if (!spot) break;
+    const o = { id: newId(), k: 'decor', t, x: spot[0], z: spot[1], r: 0 };
+    S.objs.push(o); addView(o); focusOn(VIEWS.get(o.id).root.position);
+    toast(`${DECOR[t].n} đã về nông trại!`); bounce(o.id);
+  }
+  save();
 }
 
 // ============ Bong bóng trên đầu vật thể ============
@@ -783,7 +807,7 @@ export function tick() {
   for (const v of VIEWS.values()) v.refresh?.(t);
   buildBubbles();
   timerPop?.draw?.();
-  if (M && M_sig) { const s = M_sig(); if (s !== M.sig) redrawModal(); }
+  if (M && M === drawOwner && M_sig) { const s = M_sig(); if (s !== M.sig) redrawModal(); }
   document.querySelectorAll('[data-rt]').forEach(el => { el.textContent = fmt(+el.dataset.rt - t); });
   document.querySelectorAll('#mBody [data-s]').forEach(el => { el.style.width = Math.min(100, (t - el.dataset.s) / (el.dataset.e - el.dataset.s) * 100) + '%'; });
   renderHUD();

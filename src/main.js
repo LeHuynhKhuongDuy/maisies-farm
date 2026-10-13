@@ -7,6 +7,7 @@ import { initInput } from './input.js';
 import { initUI, tick, positionBubbles } from './game.js';
 import { renderHUD, $ } from './ui.js';
 import { audioUnlock } from './sound.js';
+import { advUpdate } from './adventure.js';
 
 async function boot() {
   load();
@@ -29,7 +30,7 @@ async function boot() {
   $('#hud').hidden = false;
   document.addEventListener('pointerdown', audioUnlock, { once: true });
 
-  if (import.meta.env.DEV) window.__game = { get S() { return S; } };
+  if (import.meta.env.DEV) window.__game = { get S() { return S; }, W };
   setInterval(tick, 250);
   tick();
   let last = performance.now();
@@ -37,8 +38,11 @@ async function boot() {
     const nowT = performance.now(), dt = Math.min(0.1, (nowT - last) / 1000); last = nowT;
     const t = nowT / 1000;
     momentum();
-    for (const v of VIEWS.values()) { v.update?.(t, dt); updateBounce(v.root); }
-    updateSpecials(t, dt);
+    if (W.mode === 'adv') advUpdate(t, dt);
+    else {
+      for (const v of VIEWS.values()) { v.update?.(t, dt); updateBounce(v.root); }
+      updateSpecials(t, dt);
+    }
     W.waterTex.offset.x = (t * 0.01) % 1; W.waterTex.offset.y = (t * 0.006) % 1;
     positionBubbles();
     W.renderer.render(W.scene, W.camera);

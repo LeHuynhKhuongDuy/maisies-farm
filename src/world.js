@@ -8,6 +8,7 @@ export const worldToCell = (p) => [Math.floor(p.x + GRID / 2), Math.floor(p.z + 
 export const W = {
   renderer: null, scene: null, camera: null, target: new THREE.Vector3(0, 0, 2),
   zoom: 1.35, clock: new THREE.Clock(), waterTex: null, pickables: [],
+  mode: 'farm', farm: null, advPick: [], bounds: { x0: -14, x1: 14, z0: -14, z1: 18 },
 };
 
 const AZ = Math.PI / 4, EL = THREE.MathUtils.degToRad(38), DIST = 60;
@@ -40,19 +41,20 @@ export function initWorld(canvas) {
   sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02;
   scene.add(sun);
 
+  W.farm = new THREE.Group(); scene.add(W.farm);
   buildIsland(scene);
   resize();
   window.addEventListener('resize', resize);
 }
 
-function roundedRect(size, r) {
+export function roundedRect(size, r) {
   const s = new THREE.Shape(), h = size / 2;
   s.moveTo(-h + r, -h); s.lineTo(h - r, -h); s.quadraticCurveTo(h, -h, h, -h + r);
   s.lineTo(h, h - r); s.quadraticCurveTo(h, h, h - r, h); s.lineTo(-h + r, h);
   s.quadraticCurveTo(-h, h, -h, h - r); s.lineTo(-h, -h + r); s.quadraticCurveTo(-h, -h, -h + r, -h);
   return s;
 }
-function slab(size, r, depth, mat, topY) {
+export function slab(size, r, depth, mat, topY) {
   const g = new THREE.ExtrudeGeometry(roundedRect(size, r), { depth, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 2, curveSegments: 10 });
   g.rotateX(-Math.PI / 2);
   const m = new THREE.Mesh(g, mat);
@@ -61,7 +63,7 @@ function slab(size, r, depth, mat, topY) {
   return m;
 }
 
-function canvasTex(w, h, draw) {
+export function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   draw(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c);
@@ -88,7 +90,7 @@ function buildIsland(scene) {
   const shallow = new THREE.Mesh(new THREE.ShapeGeometry(roundedRect(GRID + 9, 6), 12),
     new THREE.MeshStandardMaterial({ color: 0x8be6ec, transparent: true, opacity: 0.55, roughness: 0.3 }));
   shallow.rotation.x = -Math.PI / 2; shallow.position.y = -0.5;
-  scene.add(shallow);
+  W.farm.add(shallow);
 
   // Bãi cát
   const sandTex = canvasTex(128, 128, (x, w, h) => {
@@ -96,7 +98,8 @@ function buildIsland(scene) {
     for (let i = 0; i < 160; i++) { x.fillStyle = `rgba(${180 + Math.random() * 40},${140 + Math.random() * 30},80,.25)`; x.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
   });
   sandTex.repeat.set(0.25, 0.25);
-  scene.add(slab(GRID + 4.4, 3, 0.8, new THREE.MeshStandardMaterial({ map: sandTex, roughness: 0.95 }), -0.12));
+  W.sandMat = new THREE.MeshStandardMaterial({ map: sandTex, roughness: 0.95 });
+  W.farm.add(slab(GRID + 4.4, 3, 0.8, W.sandMat, -0.12));
 
   // Cỏ dạng ô bàn cờ nhạt như sân cỏ
   const grassTex = canvasTex(128, 128, (x, w, h) => {
@@ -108,7 +111,7 @@ function buildIsland(scene) {
   grassTex.magFilter = THREE.NearestFilter;
   const grass = slab(GRID + 0.4, 1.6, 0.5, new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }), 0);
   grass.name = 'ground';
-  scene.add(grass);
+  W.farm.add(grass);
   W.ground = grass;
 }
 
@@ -124,9 +127,9 @@ export function updateCamera() {
   cam.left = -half * w / short; cam.right = half * w / short;
   cam.top = half * h / short; cam.bottom = -half * h / short;
   // giới hạn vùng nhìn trong đảo
-  const lim = GRID / 2 + 1;
-  W.target.x = THREE.MathUtils.clamp(W.target.x, -lim, lim);
-  W.target.z = THREE.MathUtils.clamp(W.target.z, -lim, lim + 4);
+  const b = W.bounds;
+  W.target.x = THREE.MathUtils.clamp(W.target.x, b.x0, b.x1);
+  W.target.z = THREE.MathUtils.clamp(W.target.z, b.z0, b.z1);
   cam.position.set(
     W.target.x + DIST * Math.cos(EL) * Math.sin(AZ),
     W.target.y + DIST * Math.sin(EL),
@@ -161,7 +164,7 @@ export function groundAt(sx, sy) {
 // Trả về đối tượng (root có userData.oid) dưới ngón tay
 export function pickAt(sx, sy) {
   setRay(sx, sy);
-  const hits = ray.intersectObjects(W.pickables, true);
+  const hits = ray.intersectObjects(W.mode === 'adv' ? W.advPick : W.pickables, true);
   for (const h of hits) {
     let o = h.object;
     while (o && o.userData.oid === undefined) o = o.parent;

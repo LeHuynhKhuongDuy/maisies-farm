@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE } from './data.js';
+import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE, ADV_THEMES, ADVENTURES } from './data.js';
 
 const BASE = import.meta.env.BASE_URL + 'models/';
 const cache = new Map(); // key -> gltf
@@ -29,6 +29,8 @@ export function allModelKeys() {
   Object.values(DECOR).forEach(d => s.add(d.model));
   Object.values(OBSTACLES).forEach(o => s.add(o.model));
   PEOPLE.forEach(p => s.add(p.model));
+  Object.values(ADV_THEMES).forEach(t => t.obstacles.forEach(o => s.add(o[0])));
+  ADVENTURES.forEach(a => s.add(a.goal.model));
   return [...s];
 }
 

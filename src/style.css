@@ -67,6 +67,20 @@ img.inl { width: 26px; height: 26px; vertical-align: -7px; }
 .giftbtn { position: absolute; left: calc(var(--sl) + 12px); bottom: calc(var(--sb) + 16px); width: 64px; height: 64px; font-size: 40px; border-radius: 20px;
   background: linear-gradient(#ffe57a, var(--gold)); border: 4px solid var(--white); box-shadow: 0 5px 0 var(--gold-d); animation: wiggle 2s ease-in-out infinite; }
 
+/* ---------- Phiêu lưu ---------- */
+.advbtn { position: absolute; left: calc(var(--sl) + 10px); bottom: calc(var(--sb) + 92px); background: linear-gradient(#7fe0a0, var(--green)); box-shadow: 0 5px 0 var(--green-d), 0 8px 16px rgba(0,0,0,.25); }
+.ico.map { width: 42px; height: 40px; margin: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 44'%3E%3Cpath d='M4 8l12-4 16 5 12-4v31l-12 4-16-5-12 4z' fill='%23fff3d0' stroke='%23fff' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M16 4v31M32 9v31' stroke='%23e0c48a' stroke-width='2'/%3E%3Cpath d='M22 16l5 5m0-5l-5 5' stroke='%23ff5d5d' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M9 30c4-6 8 2 12-6' fill='none' stroke='%233aa7e8' stroke-width='2.5' stroke-dasharray='3 3'/%3E%3C/svg%3E"); }
+.ico.boat { width: 42px; height: 40px; margin: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 44'%3E%3Cpath d='M24 4v24' stroke='%23fff' stroke-width='3'/%3E%3Cpath d='M26 6l14 20H26z' fill='%23fff'/%3E%3Cpath d='M22 9L10 26h12z' fill='%23ffe8b0'/%3E%3Cpath d='M5 30h38l-6 9H11z' fill='%23c98d52' stroke='%23fff' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+#advHud { position: fixed; inset: 0; pointer-events: none; z-index: 11; }
+#advHud > * { pointer-events: auto; }
+.advtitle { position: absolute; top: calc(var(--st) + 10px); left: 50%; transform: translateX(-50%); padding: 6px 22px 8px; border-radius: 0 0 22px 22px; background: var(--cream); border: 4px solid var(--white); box-shadow: 0 4px 0 var(--edge-d); text-align: center; line-height: 1.1; max-width: 60vw; }
+.advtitle b { display: block; font-size: 20px; color: var(--blue-d); }
+.advtitle span { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.rbtn.home { position: absolute; left: calc(var(--sl) + 10px); bottom: calc(var(--sb) + 14px); background: linear-gradient(#ffc061, var(--orange)); box-shadow: 0 5px 0 var(--orange-d), 0 8px 16px rgba(0,0,0,.25); }
+body.in-adv #bubbles, body.in-adv .questbtn, body.in-adv .giftbtn, body.in-adv .br, body.in-adv .advbtn { display: none !important; }
+body.in-adv .tl { top: calc(var(--st) + 8px); }
+.card.adv img { width: 84px; height: 84px; }
+
 /* ---------- Bong bóng trên vật thể ---------- */
 #bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
 .bub { position: absolute; left: 0; top: 0; width: 46px; height: 50px; margin: -50px 0 0 -23px; pointer-events: auto;

@@ -114,6 +114,7 @@ export const DECOR = {
   bunny:       { n: 'Thỏ trắng',     lv: 4, cost: 150, model: 'pets/animal-bunny', pet: true, fit: { h: 0.65 } },
   parrot:      { n: 'Vẹt',           lv: 5, cost: 180, model: 'pets/animal-parrot', pet: true, fit: { h: 0.6 } },
   penguin:     { n: 'Chim cánh cụt', lv: 6, cost: 220, model: 'pets/animal-penguin', pet: true, fit: { h: 0.6 } },
+  crab:        { n: 'Bạn Cua',       lv: 99, cost: 0,  model: 'pets/animal-crab', pet: true, fit: { h: 0.5 }, gift: true },
   fountain:    { n: 'Đài phun nước', lv: 5, cost: 300, model: 'town/fountain-round', fit: { size: 1.9 }, w: 2, d: 2 },
   boat:        { n: 'Thuyền nhỏ',    lv: 4, cost: 90,  model: 'pirate/boat-row-small', fit: { size: 1.9 }, w: 2, d: 2 },
 };
@@ -160,4 +161,58 @@ export const QUESTS = [
   { who: 'rosa', text: 'Bà thích bánh quy lắm. Cháu làm 2 hộp bánh quy nhé?', ev: 'make', key: 'cookie', n: 2, coins: 40, xp: 10, lv: 3 },
   { who: 'maisie', text: 'Trồng 1 cây táo hoặc cây dừa để có trái cây quanh năm nhé!', ev: 'buytree', n: 1, coins: 30, xp: 8, lv: 3 },
   { who: 'tom', text: 'Mua thêm 2 bạn gà cho chuồng thêm vui nào.', ev: 'buyanimal', n: 2, coins: 40, xp: 10, gems: 2, lv: 3 },
+];
+
+// ---------- Đảo phiêu lưu ----------
+// Mỗi đảo là lưới w x h; bắt đầu ở mép trước (gần bến thuyền), đích ở cuối đảo.
+// obstacles: [mô hình, cách thu phóng, năng lượng, tỉ lệ xuất hiện]
+export const ADV_THEMES = {
+  beach: {
+    ground: 0xf4dca0, ground2: 0xeacb88, edge: 0xd9b46a,
+    obstacles: [
+      ['nature/plant_bushLarge', { size: 0.9 }, 1, 4], ['nature/grass_large', { size: 0.8 }, 1, 3],
+      ['pirate/crate', { size: 0.7 }, 1, 2], ['pirate/barrel', { size: 0.6 }, 1, 2],
+      ['pirate/rocks-sand-a', { size: 0.95 }, 2, 2], ['pirate/palm-straight', { h: 1.7 }, 3, 2],
+    ],
+  },
+  jungle: {
+    ground: 0x9ed65e, ground2: 0x8cc951, edge: 0x6aa83c,
+    obstacles: [
+      ['nature/plant_bushLarge', { size: 0.95 }, 1, 4], ['nature/tree_palmTall', { h: 1.8 }, 3, 2],
+      ['nature/tree_fat', { h: 1.7 }, 3, 2], ['nature/rock_largeA', { size: 0.95 }, 2, 2],
+      ['nature/stump_old', { size: 0.65 }, 1, 2], ['nature/log_stack', { size: 0.85 }, 2, 2],
+      ['nature/mushroom_red', { size: 0.5 }, 1, 1],
+    ],
+  },
+  pirate: {
+    ground: 0xe8cf95, ground2: 0xdcc085, edge: 0xc9a865,
+    obstacles: [
+      ['pirate/crate', { size: 0.75 }, 1, 3], ['pirate/crate-bottles', { size: 0.75 }, 1, 2],
+      ['pirate/barrel', { size: 0.6 }, 1, 3], ['pirate/rocks-a', { size: 0.95 }, 2, 2],
+      ['pirate/palm-bend', { h: 1.8 }, 3, 2], ['nature/plant_bushLarge', { size: 0.9 }, 1, 2],
+    ],
+  },
+};
+
+export const ADVENTURES = [
+  { id: 'shell', n: 'Bãi Vỏ Sò', lv: 2, w: 9, h: 12, seed: 11, theme: 'beach', chests: 3,
+    goal: { n: 'Rương vỏ sò', model: 'pirate/chest' },
+    intro: 'Nghe nói có một rương vỏ sò lấp lánh trên bãi biển gần đây. Cùng đi tìm nhé!',
+    reward: { coins: 150, gems: 4, xp: 40 } },
+  { id: 'crab', n: 'Vịnh Cua Đỏ', lv: 3, w: 10, h: 14, seed: 23, theme: 'beach', chests: 3,
+    goal: { n: 'Bạn Cua bị kẹt', model: 'pets/animal-crab', pet: 'crab' },
+    intro: 'Một bạn cua nhỏ bị kẹt giữa đống thùng gỗ. Mình dọn đường tới cứu bạn ấy nhé!',
+    reward: { coins: 220, gems: 5, xp: 60 } },
+  { id: 'palm', n: 'Rừng Dừa', lv: 5, w: 11, h: 15, seed: 37, theme: 'jungle', chests: 4,
+    goal: { n: 'Bạn Vẹt lạc đường', model: 'pets/animal-parrot', pet: 'parrot' },
+    intro: 'Bạn vẹt bay lạc vào rừng dừa rồi. Mình vào rừng tìm bạn ấy về nông trại nhé!',
+    reward: { coins: 320, gems: 7, xp: 90 } },
+  { id: 'pirate', n: 'Đảo Cướp Biển', lv: 7, w: 12, h: 16, seed: 51, theme: 'pirate', chests: 5,
+    goal: { n: 'Kho báu cướp biển', model: 'pirate/chest' },
+    intro: 'Tấm bản đồ cũ chỉ tới kho báu trên đảo cướp biển. Mình ra khơi thôi!',
+    reward: { coins: 500, gems: 12, xp: 150 } },
+  { id: 'penguin', n: 'Mũi Đá Gió', lv: 9, w: 12, h: 16, seed: 67, theme: 'beach', chests: 5,
+    goal: { n: 'Bạn Cánh Cụt', model: 'pets/animal-penguin', pet: 'penguin' },
+    intro: 'Một bạn cánh cụt trôi dạt tới mũi đá. Mình tới đưa bạn ấy về nhà nhé!',
+    reward: { coins: 600, gems: 14, xp: 180 } },
 ];

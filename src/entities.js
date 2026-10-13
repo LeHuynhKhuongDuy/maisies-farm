@@ -316,7 +316,7 @@ export function addView(o) {
   const v = createView(o);
   v.root.userData.oid = o.id;
   place(v, o);
-  W.scene.add(v.root);
+  W.farm.add(v.root);
   W.pickables.push(v.root);
   VIEWS.set(o.id, v);
   v.refresh?.(now());
@@ -324,7 +324,7 @@ export function addView(o) {
 }
 export function removeView(id) {
   const v = VIEWS.get(id); if (!v) return;
-  W.scene.remove(v.root);
+  W.farm.remove(v.root);
   W.pickables.splice(W.pickables.indexOf(v.root), 1);
   VIEWS.delete(id);
 }
@@ -341,14 +341,14 @@ export function buildSpecials() {
   const crt = make('pirate/crate', { size: 0.5 }); crt.position.set(-0.5, 0.15, 2.4); dock.add(crt);
   dock.position.set(p.x, 0, p.z);
   dock.userData.oid = 'ship';
-  W.scene.add(dock); W.pickables.push(dock);
+  W.farm.add(dock); W.pickables.push(dock);
 
   const ship = make('pirate/ship-small', { h: 3.2 });
   ship.rotation.y = Math.PI;
   const home = new THREE.Vector3(p.x + 2.1, -0.5, p.z + 4.0);
   ship.position.copy(home);
   ship.userData.oid = 'ship';
-  W.scene.add(ship); W.pickables.push(ship);
+  W.farm.add(ship); W.pickables.push(ship);
   SPECIAL.ship = ship; SPECIAL.shipHome = home; SPECIAL.dock = dock;
 
   // Maisie đi dạo quanh nhà
@@ -356,7 +356,7 @@ export function buildSpecials() {
   maisie.userData.oid = 'maisie';
   const mp = cellToWorld(12, 8); maisie.position.copy(mp);
   maisie.userData.goal = mp.clone(); maisie.userData.wait = 2;
-  W.scene.add(maisie); W.pickables.push(maisie);
+  W.farm.add(maisie); W.pickables.push(maisie);
   SPECIAL.maisie = maisie;
 }
 
