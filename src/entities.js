@@ -138,10 +138,10 @@ function fieldView(o) {
 function treeView(o) {
   const T = TREES[o.t], root = new THREE.Group();
   const isPalm = !!T.palm;
-  const ripeArt = o.t === 'apple' ? 'appletree' : o.t === 'palm' ? 'palm' : null;
+  const ripeArt = { apple: 'appletree', palm: 'palm', banana: 'bananatree' }[o.t] || null;
   if (ripeArt && hasSprite(ripeArt)) {
     if (T.lush) root.add(planterBase());
-    const ripe = art(ripeArt), green = hasSprite('leafytree') && o.t !== 'palm' ? art('leafytree') : null;
+    const ripe = art(ripeArt), green = hasSprite('leafytree') && !isPalm ? art('leafytree') : null;
     [ripe, green].forEach(a => { if (a) { a.position.y = T.lush ? 0.15 : 0; root.add(a); } });
     const star = sparkle(); root.add(star);
     return {
@@ -185,7 +185,9 @@ function penView(o) {
   // hàng rào gỗ trắng bao quanh, cổng ở giữa cạnh trước
   root.add(fenceRing(2.92, 2.92));
   if (o.t === 'beehive') {
-    for (let i = 0; i < 2; i++) { const hv = make('survival/box-large', { size: 0.55, tint: 0xffd23f }); hv.position.set(-0.95 + i * 0.6, 0, -0.95); root.add(hv); }
+    const hive = art('beehive');
+    if (hive) { hive.position.set(-0.85, 0, -0.85); root.add(hive); }
+    else for (let i = 0; i < 2; i++) { const hv = make('survival/box-large', { size: 0.55, tint: 0xffd23f }); hv.position.set(-0.95 + i * 0.6, 0, -0.95); root.add(hv); }
     [[0.6, -0.7], [0.9, 0.3], [-0.8, 0.5], [0.1, 0.8], [-0.2, -0.3]].forEach(([x, z], i) => { const f = make(i % 2 ? 'nature/flower_yellowB' : 'nature/flower_redB', { size: 0.35 }); f.position.set(x, 0, z); root.add(f); });
   } else if (o.t === 'coop' && hasSprite('coop')) {
     const hut = art('coop'); hut.position.set(-0.85, 0, -0.85); root.add(hut);
@@ -261,13 +263,14 @@ function facView(o) {
   const { m, spin, axis } = pic ? { m: pic } : kkBuilding(o.t); root.add(m);
   if (!pic) FAC_PROPS[o.t]?.(root);
   let puff = null;
-  if (SMOKE_AT[o.t]) { puff = smoke(); puff.position.set(...SMOKE_AT[o.t]); root.add(puff); }
+  if (SMOKE_AT[o.t] && !pic) { puff = smoke(); puff.position.set(...SMOKE_AT[o.t]); root.add(puff); }
   return {
     root,
     refresh(t) { if (puff) puff.visible = o.jobs.some(j => t < j.e && t >= j.s); },
     update(t, dt) {
       const working = o.jobs.some(j => t < j.e && t >= j.s);
       if (spin) spin.rotation[axis] += dt * (working ? 2.2 : 0.3);
+      if (pic) { const b = working ? Math.abs(Math.sin(t * 4)) * 0.025 : 0; pic.userData.plane.scale.set(1 + b * 0.5, 1 - b, 1); }
       if (puff?.visible) puff.userData.tick(t);
     },
   };
@@ -437,9 +440,10 @@ export function buildSpecials() {
   dock.userData.oid = 'ship';
   W.farm.add(dock); W.pickables.push(dock);
 
-  const ship = make('pirate/ship-small', { h: 3.2 });
-  ship.rotation.y = Math.PI;
-  const home = new THREE.Vector3(p.x + 2.1, -0.5, p.z + 4.0);
+  const shipArt = art('ship', 1, 1, { shadow: false });
+  const ship = shipArt || make('pirate/ship-small', { h: 3.2 });
+  if (!shipArt) ship.rotation.y = Math.PI;
+  const home = new THREE.Vector3(p.x + 2.1, -0.5, p.z + (shipArt ? 5.0 : 4.0)); // hình 2D: lùi ra biển cho khỏi đè bãi cát
   ship.position.copy(home);
   ship.userData.oid = 'ship';
   W.farm.add(ship); W.pickables.push(ship);
@@ -468,7 +472,7 @@ export function updateSpecials(t, dt) {
   const target = SPECIAL.shipHome.clone(); if (away) target.z += 30;
   sh.position.lerp(target, Math.min(1, dt * 0.6));
   sh.position.y = -0.5 + Math.sin(t * 1.4) * 0.05;
-  sh.rotation.z = Math.sin(t * 1.1) * 0.03;
+  (sh.userData.plane || sh).rotation.z = Math.sin(t * 1.1) * 0.03;
   sh.visible = sh.position.z < SPECIAL.shipHome.z + 25;
 
   const m = SPECIAL.maisie, u = m.userData; u.mixer?.update(dt);

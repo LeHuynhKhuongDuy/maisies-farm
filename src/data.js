@@ -350,5 +350,9 @@ export const SPRITE_ART = {
   wheat: { width: 1.3 }, corn: { width: 1.3 }, carrot: { width: 1.3 }, sprout: { width: 1.2 },
   appletree: { width: 1.7 }, leafytree: { width: 1.6 }, palm: { width: 1.7 },
   maisie: { width: 0.75 }, bush: { width: 0.95 }, rock: { width: 0.9 },
+  dairy: { width: 2.6 }, juicebar: { width: 2.6 }, kitchen: { width: 2.7 }, seafood: { width: 2.6 },
+  sweets: { width: 2.6 }, jammaker: { width: 2.7 }, beehive: { width: 1.5 }, ship: { width: 3.6 },
+  strawberry: { width: 1.3 }, tomato: { width: 1.3 }, pumpkin: { width: 1.3 }, sunflower: { width: 1.25 },
+  melon: { width: 1.3 }, cabbage: { width: 1.3 }, onion: { width: 1.25 }, bananatree: { width: 1.8 },
 };
 export const PEN_SPRITE = { coop: 'chicken', cowpen: 'cow', pigpen: 'pig' };
