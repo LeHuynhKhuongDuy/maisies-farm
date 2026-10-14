@@ -11,6 +11,8 @@ from PIL import Image, ImageFilter
 
 src, name = sys.argv[1], sys.argv[2]
 max_side = int(sys.argv[3]) if len(sys.argv) > 3 else 512
+# ngưỡng 'trắng nền' (tăng lên cho hình có màu trắng kem như con gà)
+thr = int(sys.argv[4]) if len(sys.argv) > 4 else 222
 
 data = urllib.request.urlopen(src).read() if src.startswith('http') else open(src, 'rb').read()
 img = Image.open(io.BytesIO(data)).convert('RGB')
@@ -19,7 +21,7 @@ h, w, _ = a.shape
 
 # Điểm "giống nền": sáng và gần như không màu
 mx, mn = a.max(axis=2), a.min(axis=2)
-bgish = (mn > 222) & ((mx - mn) < 26)
+bgish = (mn > thr) & ((mx - mn) < (26 if thr <= 222 else 12))
 
 # Loang từ mép ảnh qua các điểm giống nền (giữ lại phần trắng nằm bên trong hình, vd. mây, tường trắng)
 bg = np.zeros((h, w), bool)
