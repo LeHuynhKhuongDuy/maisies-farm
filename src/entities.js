@@ -122,7 +122,7 @@ function fieldView(o) {
       if (st < 0) return;
       const c = CROPS[o.crop], model = c.stages[st === 3 ? 2 : st];
       const sp = st === 3 ? (hasSprite(o.crop) ? o.crop : null) : (hasSprite('sprout') ? 'sprout' : null);
-      if (sp) { const a = art(sp, 1, 1, { scale: st === 0 ? 0.7 : st === 1 ? 0.9 : 1, shadow: false }); a.position.y = 0.0; plant.add(a); return; }
+      if (sp) { const k = st === 0 ? 0.65 : st === 1 ? 0.88 : 1; const a = art(sp, k, k, { scale: k, shadow: false }); plant.add(a); return; }
       const sc = (CROP_SCALE[o.crop] || 1) * (st === 0 ? 0.7 : 1);
       CLUSTER.forEach(([x, z], n) => {
         const m = make(model, st === 3 && c.fit ? { ...c.fit } : st === 3 && c.tint ? { s: sc, tint: c.tint } : { s: sc }); m.position.set(x, 0.04, z); m.rotation.y = n * 1.3; plant.add(m);
