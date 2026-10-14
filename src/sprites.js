@@ -50,13 +50,37 @@ export function spriteObject(name, { width = 1.4, w = 1, d = 1, lift = 0, shadow
   if (!planeCache.has(key)) { const geo = new THREE.PlaneGeometry(width, height); geo.translate(0, height / 2, 0); planeCache.set(key, geo); }
   const mat = new THREE.MeshBasicMaterial({ map: T.tex, transparent: true, alphaTest: 0.35, side: THREE.DoubleSide });
   const p = new THREE.Mesh(planeCache.get(key), mat);
-  p.quaternion.copy(faceQuat);
+  // khung xoay về camera; tấm ảnh nằm trong khung nên có thể nhún/nghiêng/co giãn/lật theo trục của chính nó
+  const pivot = new THREE.Group();
+  pivot.quaternion.copy(faceQuat);
   // mép dưới ảnh = điểm trước nhất của ô đất (góc gần camera)
   const fwd = new THREE.Vector3(Math.sin(AZ), 0, Math.cos(AZ));
-  p.position.copy(new THREE.Vector3(w / 2, 0, d / 2).projectOnVector(fwd));
-  p.position.y = lift;
+  pivot.position.copy(new THREE.Vector3(w / 2, 0, d / 2).projectOnVector(fwd));
+  pivot.position.y = lift;
   p.userData.sprite = true;
-  g.add(p); g.userData.plane = p;
+  pivot.add(p); g.add(pivot); g.userData.plane = p;
   if (shadow) g.add(blobShadow(w * 0.62, d * 0.62));
   return g;
+}
+
+// Cử động cho hình 2D một ảnh: thở (co giãn nhẹ), đi (nhún + lắc lư), vui (nhảy), giật mình khi chạm
+export function animateArt(obj, t, state, seed = 0) {
+  const p = obj.userData.plane; if (!p) return;
+  const sx = Math.sign(p.scale.x) || 1;
+  if (state === 'walk') {
+    const ph = t * 9 + seed;
+    p.position.y = Math.abs(Math.sin(ph)) * 0.06;
+    p.rotation.z = Math.sin(ph) * 0.09;
+    p.scale.set(sx, 1, 1);
+  } else if (state === 'happy') {
+    const ph = t * 6 + seed, up = Math.max(0, Math.sin(ph));
+    p.position.y = up * 0.16;
+    p.scale.set(sx * (1 + (1 - up) * 0.06), 1 - (1 - up) * 0.08, 1);
+    p.rotation.z = 0;
+  } else { // đứng yên: thở nhẹ, thỉnh thoảng cúi xuống (ăn)
+    const br = Math.sin(t * 2.2 + seed);
+    p.position.y = 0;
+    p.scale.set(sx * (1 - br * 0.015), 1 + br * 0.03, 1);
+    p.rotation.z = state === 'eat' ? Math.sin(t * 3 + seed) * 0.05 - 0.06 * sx : 0;
+  }
 }

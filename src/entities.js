@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { make, play } from './assets.js';
-import { hasSprite, spriteObject } from './sprites.js';
+import { hasSprite, spriteObject, animateArt } from './sprites.js';
 import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, lushTree, roundBush } from './props.js';
 import { W, cellToWorld } from './world.js';
 import { S, footprint, now, rnd } from './state.js';
@@ -215,14 +215,14 @@ function penView(o) {
         const u = a.userData; u.mixer?.update(dt);
         const ready = st.e && t >= st.e, busy = st.e && t < st.e;
         if (P.fly) a.position.y = 0.55 + Math.sin(t * 3 + i) * 0.12;
-        if (ready) { play(a, 'dance'); if (u.isArt) u.plane.position.y = Math.abs(Math.sin(t * 6 + i)) * 0.12; return; }
+        if (ready) { play(a, 'dance'); if (u.isArt) animateArt(a, t, 'happy', i); return; }
         const d = u.goal.clone().sub(a.position); d.y = 0;
         if (d.length() > 0.05) {
           play(a, 'walk'); d.setLength(Math.min(d.length(), dt * 0.45)); a.position.add(d);
           faceDir(a, d.x, d.z);
-          if (u.isArt) u.plane.position.y = Math.abs(Math.sin(t * 9 + i)) * 0.05;
+          if (u.isArt) animateArt(a, t, 'walk', i);
         } else {
-          play(a, busy ? 'eat' : 'idle'); if (u.isArt) u.plane.position.y = 0;
+          play(a, busy ? 'eat' : 'idle'); if (u.isArt) animateArt(a, t, busy ? 'eat' : 'idle', i);
           u.wait -= dt;
           if (u.wait <= 0) { u.goal.set((Math.random() - 0.5) * 1.8, 0.03, (Math.random() - 0.5) * 1.6 + 0.15); u.wait = 2 + Math.random() * 4; }
         }
@@ -473,9 +473,9 @@ export function updateSpecials(t, dt) {
 
   const m = SPECIAL.maisie, u = m.userData; u.mixer?.update(dt);
   const d = u.goal.clone().sub(m.position); d.y = 0;
-  if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 0.9)); m.position.add(d); faceDir(m, d.x, d.z); if (u.isArt) u.plane.position.y = Math.abs(Math.sin(t * 10)) * 0.06; }
+  if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 0.9)); m.position.add(d); faceDir(m, d.x, d.z); if (u.isArt) animateArt(m, t, 'walk'); }
   else {
-    if (u.isArt) u.plane.position.y = 0;
+    if (u.isArt) animateArt(m, t, u.wave > 0 ? 'happy' : 'idle');
     play(m, u.wave > 0 ? 'emote-yes' : 'idle'); u.wait -= dt; u.wave = (u.wave || 0) - dt;
     if (u.wait <= 0) {
       // đi tới một ô trống gần trung tâm
