@@ -51,11 +51,10 @@ export function spriteObject(name, { width = 1.4, w = 1, d = 1, lift = 0, shadow
   const mat = new THREE.MeshBasicMaterial({ map: T.tex, transparent: true, alphaTest: 0.35, side: THREE.DoubleSide });
   const p = new THREE.Mesh(planeCache.get(key), mat);
   p.quaternion.copy(faceQuat);
-  // mép dưới ảnh = điểm trước nhất của ô đất (góc gần camera), lùi vào trong theo `anchor` (tỉ lệ chiều cao ảnh)
+  // mép dưới ảnh = điểm trước nhất của ô đất (góc gần camera)
   const fwd = new THREE.Vector3(Math.sin(AZ), 0, Math.cos(AZ));
-  const corner = new THREE.Vector3(w / 2, 0, d / 2).projectOnVector(fwd);
-  p.position.copy(corner).addScaledVector(fwd, -anchor * height / Math.tan(EL) * 0);
-  p.position.y = lift - anchor * height * Math.cos(EL);
+  p.position.copy(new THREE.Vector3(w / 2, 0, d / 2).projectOnVector(fwd));
+  p.position.y = lift;
   p.userData.sprite = true;
   g.add(p); g.userData.plane = p;
   if (shadow) g.add(blobShadow(w * 0.62, d * 0.62));
