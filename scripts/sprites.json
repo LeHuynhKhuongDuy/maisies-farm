@@ -1,0 +1,25 @@
+{
+  "style": "Cute casual mobile farm game asset, isometric 3/4 view looking down at 30 degrees with the front corner pointing toward the viewer, glossy hand-painted cartoon style, soft warm lighting from top-left, saturated bright colors, smooth soft shading, clean silhouette, single object centered and fully visible, isolated on a pure solid white background, no ground plane, no cast shadow, no text, no border.",
+  "items": {
+    "house": "A cozy two-story farmhouse with a bright blue roof, cream walls, wooden front door with small steps, flower boxes under the windows and a small brick chimney.",
+    "barn": "A classic red wooden farm barn with white trim, big white X-braced double doors and a small hay loft window.",
+    "feedmill": "A charming round windmill with a red pointed roof, white plaster walls, wooden sails, and a few grain sacks at its base.",
+    "bakery": "A cute small bakery building made of warm orange bricks with a big round bread oven front, a striped awning and a chimney.",
+    "coop": "A small red wooden chicken coop house with a pointed roof, a tiny ramp and a round entrance hole.",
+    "chicken": "A cute chubby white hen with a red comb, standing, cartoon farm animal with big friendly eyes.",
+    "cow": "A cute chubby black and white dairy cow standing, cartoon farm animal with a big head, big friendly eyes and a pink nose.",
+    "pig": "A cute chubby pink pig standing, cartoon farm animal with big friendly eyes and a curly tail.",
+    "wheat": "A dense square patch of ripe golden wheat stalks with full grain heads, no soil visible at the edges.",
+    "corn": "A dense square patch of tall ripe corn plants with yellow cobs peeking out of green husks.",
+    "carrot": "A square patch of carrot plants with bright orange carrot tops showing above leafy green fronds.",
+    "sprout": "A square patch of small fresh green seedlings, young leafy sprouts.",
+    "appletree": "A lush round apple tree with a full bright green canopy covered in many shiny red apples, short brown trunk.",
+    "leafytree": "A lush round leafy tree with a full bright green canopy and a short brown trunk, no fruit.",
+    "palm": "A tropical coconut palm tree with a slightly curved trunk, bright green fronds and a cluster of brown coconuts.",
+    "maisie": "A cute little farmer girl character, chibi proportions with a big head, wearing a straw hat with a pink ribbon, denim overalls and a red checkered shirt, standing and smiling, full body.",
+    "bush": "A round fluffy green bush with a few small red berries.",
+    "rock": "A rounded grey stone boulder with a little moss on top.",
+    "market": "A cute farmers market stall with a red and white striped awning, a wooden counter with crates of fruits and vegetables.",
+    "board": "A wooden notice board on two posts with several paper order notes pinned to it and a small roof on top."
+  }
+}

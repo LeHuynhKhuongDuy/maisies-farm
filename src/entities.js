@@ -1,9 +1,27 @@
 import * as THREE from 'three';
 import { make, play } from './assets.js';
+import { hasSprite, spriteObject } from './sprites.js';
 import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, lushTree, roundBush } from './props.js';
 import { W, cellToWorld } from './world.js';
 import { S, footprint, now, rnd } from './state.js';
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS } from './data.js';
+import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE } from './data.js';
+
+// Hình 2D nếu đã có ảnh, không thì trả về null
+export function art(name, w = 1, d = 1, extra = {}) {
+  if (!hasSprite(name)) return null;
+  return spriteObject(name, { width: SPRITE_ART[name].width * (extra.scale || 1), w, d, shadow: extra.shadow !== false });
+}
+// Đặt hướng nhìn cho nhân vật/thú: mô hình 3D thì xoay, hình 2D thì lật trái/phải
+export function faceDir(obj, dx, dz) {
+  if (obj.userData.isArt) { const sx = dx * Math.cos(Math.PI / 4) - dz * Math.sin(Math.PI / 4); if (Math.abs(sx) > 1e-3) obj.userData.plane.scale.x = sx > 0 ? -1 : 1; }
+  else obj.rotation.y = Math.atan2(dx, dz);
+}
+// Thân thể (mô hình hoặc hình 2D) cho nhân vật và thú
+export function bodyOf(spriteName, model, fit) {
+  const a = spriteName && art(spriteName, 0.5, 0.5);
+  if (a) { a.userData.isArt = true; a.userData.plane = a.userData.plane; return a; }
+  return make(model, fit);
+}
 
 export const VIEWS = new Map();
 const mats = {};
@@ -103,6 +121,8 @@ function fieldView(o) {
       star.visible = st === 3;
       if (st < 0) return;
       const c = CROPS[o.crop], model = c.stages[st === 3 ? 2 : st];
+      const sp = st === 3 ? (hasSprite(o.crop) ? o.crop : null) : (hasSprite('sprout') ? 'sprout' : null);
+      if (sp) { const a = art(sp, 1, 1, { scale: st === 0 ? 0.7 : st === 1 ? 0.9 : 1, shadow: false }); a.position.y = 0.0; plant.add(a); return; }
       const sc = (CROP_SCALE[o.crop] || 1) * (st === 0 ? 0.7 : 1);
       CLUSTER.forEach(([x, z], n) => {
         const m = make(model, st === 3 && c.fit ? { ...c.fit } : st === 3 && c.tint ? { s: sc, tint: c.tint } : { s: sc }); m.position.set(x, 0.04, z); m.rotation.y = n * 1.3; plant.add(m);
@@ -118,6 +138,18 @@ function fieldView(o) {
 function treeView(o) {
   const T = TREES[o.t], root = new THREE.Group();
   const isPalm = !!T.palm;
+  const ripeArt = o.t === 'apple' ? 'appletree' : o.t === 'palm' ? 'palm' : null;
+  if (ripeArt && hasSprite(ripeArt)) {
+    if (T.lush) root.add(planterBase());
+    const ripe = art(ripeArt), green = hasSprite('leafytree') && o.t !== 'palm' ? art('leafytree') : null;
+    [ripe, green].forEach(a => { if (a) { a.position.y = T.lush ? 0.15 : 0; root.add(a); } });
+    const star = sparkle(); root.add(star);
+    return {
+      root,
+      refresh(t) { const ready = t >= o.e; ripe.visible = ready || !green; if (green) green.visible = !ready; star.visible = ready; const f = Math.min(1, (t - o.s) / (o.e - o.s)); const k = ready ? 1 : 0.8 + 0.2 * f; ripe.scale.setScalar(k); if (green) green.scale.setScalar(k); },
+      update(t) { if (star.visible) { star.position.set(0, 2.2 + Math.sin(t * 3 + o.id) * 0.08, 0); star.material.rotation = t; } },
+    };
+  }
   if (T.lush) { // cây tán tròn trong bồn viền xanh, kiểu Family Farm
     root.add(planterBase());
     const { group: m, fruits } = lushTree(T.lush); m.position.y = 0.15; root.add(m);
@@ -155,6 +187,8 @@ function penView(o) {
   if (o.t === 'beehive') {
     for (let i = 0; i < 2; i++) { const hv = make('survival/box-large', { size: 0.55, tint: 0xffd23f }); hv.position.set(-0.95 + i * 0.6, 0, -0.95); root.add(hv); }
     [[0.6, -0.7], [0.9, 0.3], [-0.8, 0.5], [0.1, 0.8], [-0.2, -0.3]].forEach(([x, z], i) => { const f = make(i % 2 ? 'nature/flower_yellowB' : 'nature/flower_redB', { size: 0.35 }); f.position.set(x, 0, z); root.add(f); });
+  } else if (o.t === 'coop' && hasSprite('coop')) {
+    const hut = art('coop'); hut.position.set(-0.85, 0, -0.85); root.add(hut);
   } else if (o.t === 'coop') {
     const hut = house(1, 1, { roof: 'town/roof-point', roofH: 0.7, roofTint: 0xe8604c }); hut.scale.setScalar(0.75); hut.position.set(-0.85, 0, -0.85); root.add(hut);
   } else {
@@ -164,7 +198,7 @@ function penView(o) {
   const herd = [];
   const sync = () => {
     while (herd.length < o.animals.length) {
-      const a = make(P.animal, { h: o.t === 'coop' ? 0.5 : o.t === 'beehive' ? 0.35 : o.t === 'cowpen' ? 0.85 : 0.6 });
+      const a = bodyOf(PEN_SPRITE[o.t], P.animal, { h: o.t === 'coop' ? 0.5 : o.t === 'beehive' ? 0.35 : o.t === 'cowpen' ? 0.85 : 0.6 });
       a.position.set((Math.random() - 0.5) * 1.6, 0.03, (Math.random() - 0.5) * 1.4 + 0.2);
       a.userData.goal = a.position.clone(); a.userData.wait = Math.random() * 3;
       root.add(a); herd.push(a);
@@ -181,13 +215,14 @@ function penView(o) {
         const u = a.userData; u.mixer?.update(dt);
         const ready = st.e && t >= st.e, busy = st.e && t < st.e;
         if (P.fly) a.position.y = 0.55 + Math.sin(t * 3 + i) * 0.12;
-        if (ready) { play(a, 'dance'); return; }
+        if (ready) { play(a, 'dance'); if (u.isArt) u.plane.position.y = Math.abs(Math.sin(t * 6 + i)) * 0.12; return; }
         const d = u.goal.clone().sub(a.position); d.y = 0;
         if (d.length() > 0.05) {
           play(a, 'walk'); d.setLength(Math.min(d.length(), dt * 0.45)); a.position.add(d);
-          a.rotation.y = Math.atan2(d.x, d.z);
+          faceDir(a, d.x, d.z);
+          if (u.isArt) u.plane.position.y = Math.abs(Math.sin(t * 9 + i)) * 0.05;
         } else {
-          play(a, busy ? 'eat' : 'idle');
+          play(a, busy ? 'eat' : 'idle'); if (u.isArt) u.plane.position.y = 0;
           u.wait -= dt;
           if (u.wait <= 0) { u.goal.set((Math.random() - 0.5) * 1.8, 0.03, (Math.random() - 0.5) * 1.6 + 0.15); u.wait = 2 + Math.random() * 4; }
         }
@@ -222,8 +257,9 @@ const SMOKE_AT = { bakery: [0.35, 1.7, -0.35], kitchen: [0.7, 0.3, 0.75], seafoo
 function facView(o) {
   const root = new THREE.Group();
   root.add(yardPatch(1.9));
-  const { m, spin, axis } = kkBuilding(o.t); root.add(m);
-  FAC_PROPS[o.t]?.(root);
+  const pic = art(o.t, 2, 2);
+  const { m, spin, axis } = pic ? { m: pic } : kkBuilding(o.t); root.add(m);
+  if (!pic) FAC_PROPS[o.t]?.(root);
   let puff = null;
   if (SMOKE_AT[o.t]) { puff = smoke(); puff.position.set(...SMOKE_AT[o.t]); root.add(puff); }
   return {
@@ -254,6 +290,8 @@ function yardPatch(size) {
 function mainHouseView() {
   const root = new THREE.Group();
   root.add(yardPatch(2.9));
+  const pic = art('house', 3, 3);
+  if (pic) { root.add(pic); return { root }; }
   const { m } = kkBuilding('house'); m.position.z = -0.2; root.add(m);
   const l1 = make('town/lantern', { h: 0.9 }); l1.position.set(-1.25, 0, 1.1); root.add(l1);
   const l2 = make('town/lantern', { h: 0.9 }); l2.position.set(1.25, 0, 1.1); root.add(l2);
@@ -264,6 +302,8 @@ function mainHouseView() {
 function barnView() {
   const root = new THREE.Group();
   root.add(yardPatch(1.95));
+  const pic = art('barn', 2, 2);
+  if (pic) { root.add(pic); return { root }; }
   const { m } = kkBuilding('barn'); m.position.z = -0.1; root.add(m);
   prop(root, 'kk/decoration/props/sack.gltf', { size: 0.4 }, 0.72, 0.78);
   prop(root, 'kk/decoration/props/crate_A_big.gltf', { size: 0.38 }, -0.72, 0.78, 0.4);
@@ -272,6 +312,8 @@ function barnView() {
 
 function boardView() {
   const root = new THREE.Group();
+  const pic = art('board', 2, 1);
+  if (pic) { root.add(pic); return { root, cart: null }; }
   const p1 = box(0.1, 1.2, 0.1, 0x8b5a2b); p1.position.set(-0.75, 0.6, 0); root.add(p1);
   const p2 = p1.clone(); p2.position.x = 0.75; root.add(p2);
   const bd = box(1.8, 0.85, 0.08, 0xc98d52); bd.position.set(0, 0.95, 0); root.add(bd);
@@ -286,6 +328,8 @@ function boardView() {
 function marketView(o) {
   const root = new THREE.Group();
   root.add(yardPatch(1.9));
+  const pic = art('market', 2, 2);
+  if (pic) { root.add(pic); return { root, refresh() {} }; }
   const { m } = kkBuilding('market'); root.add(m);
   const c1 = make('kk/decoration/props/crate_A_big.gltf', { size: 0.35 }); c1.position.set(-0.75, 0, 0.8); root.add(c1);
   const b1 = make('kk/decoration/props/barrel.gltf', { size: 0.32 }); b1.position.set(0.78, 0, 0.8); root.add(b1);
@@ -331,6 +375,8 @@ function decorView(o) {
 function obstacleView(o) {
   const O = OBSTACLES[o.t], root = new THREE.Group();
   let m;
+  const oa = { bush: 'bush', rock: 'rock', tree: 'leafytree' }[o.t];
+  if (oa && hasSprite(oa)) { root.add(art(oa)); return { root }; }
   if (O.proc === 'bush') m = roundBush(0x4fb82e, 0x66cc3e, o.id % 3 === 0);
   else if (O.proc === 'tree') { m = lushTree({ leaf: 0x3fa82a, leaf2: 0x58c23a, n: 0 }).group; m.scale.setScalar(0.85); }
   else m = make(O.model, O.fit);
@@ -409,7 +455,7 @@ export function buildSpecials() {
   W.farm.add(pier); W.pickables.push(pier); SPECIAL.pier = pier;
 
   // Maisie đi dạo quanh nhà
-  const maisie = make(PEOPLE[0].model, { h: 1.15 }); dressUp(maisie, 'maisie');
+  const maisie = bodyOf('maisie', PEOPLE[0].model, { h: 1.15 }); if (!maisie.userData.isArt) dressUp(maisie, 'maisie');
   maisie.userData.oid = 'maisie';
   const mp = cellToWorld(12, 8); maisie.position.copy(mp);
   maisie.userData.goal = mp.clone(); maisie.userData.wait = 2;
@@ -427,8 +473,9 @@ export function updateSpecials(t, dt) {
 
   const m = SPECIAL.maisie, u = m.userData; u.mixer?.update(dt);
   const d = u.goal.clone().sub(m.position); d.y = 0;
-  if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 0.9)); m.position.add(d); m.rotation.y = Math.atan2(d.x, d.z); }
+  if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 0.9)); m.position.add(d); faceDir(m, d.x, d.z); if (u.isArt) u.plane.position.y = Math.abs(Math.sin(t * 10)) * 0.06; }
   else {
+    if (u.isArt) u.plane.position.y = 0;
     play(m, u.wave > 0 ? 'emote-yes' : 'idle'); u.wait -= dt; u.wave = (u.wave || 0) - dt;
     if (u.wait <= 0) {
       // đi tới một ô trống gần trung tâm

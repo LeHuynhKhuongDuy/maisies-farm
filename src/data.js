@@ -341,3 +341,14 @@ export const STARTER_DECOR = [
   ['flowerbed', 11, 7], ['flowerbed', 13, 7], ['flowerbed', 9, 6], ['flowerbed', 10, 6],
   ['flowerbed', 14, 7], ['flowerbed', 17, 7], ['flowerbed', 18, 8],
 ];
+
+// Hình 2D vẽ tay (AI vẽ, ảnh trong public/sprites). width: bề rộng ảnh tính theo ô đất.
+export const SPRITE_ART = {
+  house: { width: 3.7 }, barn: { width: 2.7 }, feedmill: { width: 2.3 }, bakery: { width: 2.6 },
+  market: { width: 2.7 }, board: { width: 2.0 }, coop: { width: 1.25 },
+  chicken: { width: 0.55 }, cow: { width: 1.05 }, pig: { width: 0.85 },
+  wheat: { width: 1.3 }, corn: { width: 1.3 }, carrot: { width: 1.3 }, sprout: { width: 1.2 },
+  appletree: { width: 1.7 }, leafytree: { width: 1.6 }, palm: { width: 1.7 },
+  maisie: { width: 0.75 }, bush: { width: 0.95 }, rock: { width: 0.9 },
+};
+export const PEN_SPRITE = { coop: 'chicken', cowpen: 'cow', pigpen: 'pig' };

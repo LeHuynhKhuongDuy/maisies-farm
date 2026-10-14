@@ -12,7 +12,7 @@ export const W = {
 };
 
 // Góc nhìn chéo 2:1 kiểu game nông trại (nâng 30°)
-const AZ = Math.PI / 4, EL = THREE.MathUtils.degToRad(30), DIST = 60;
+export const AZ = Math.PI / 4, EL = THREE.MathUtils.degToRad(30), DIST = 60;
 const VIEW = 15; // số đơn vị thế giới theo chiều ngắn của màn hình khi zoom = 1
 
 export function initWorld(canvas) {

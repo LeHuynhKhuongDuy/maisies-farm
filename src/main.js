@@ -15,13 +15,15 @@ import { advUpdate } from './adventure.js';
 import { initVisitors, visitorsUpdate } from './visitors.js';
 import { buildAmbient, updateAmbient } from './ambient.js';
 import { initEvents, eventIcons } from './events.js';
+import { loadSprites } from './sprites.js';
 import { ensureMarket } from './market.js';
 import { nbUpdate, neighborsHelpYou } from './neighbors.js';
 
 async function boot() {
   load();
   const fill = $('#loadfill');
-  await loadAll(p => { fill.style.width = (p * 85) + '%'; });
+  await loadAll(p => { fill.style.width = (p * 80) + '%'; });
+  await loadSprites();
   $('#loadtxt').textContent = 'Đang vẽ hình…';
   await renderIcons([...iconList(), ...buildingIcons(), ...eventIcons()]);
   fill.style.width = '100%';

@@ -3,7 +3,7 @@ import { ADVENTURES, ADV_THEMES, ITEMS, CROPS, DECOR } from './data.js';
 import { S, rnd, add, barnRoom, addXP, save, questEvent, emit } from './state.js';
 import { W, pickAt, toScreen, focusOn, updateCamera, slab, roundedRect } from './world.js';
 import { make, play, ICONS } from './assets.js';
-import { dressUp } from './entities.js';
+import { dressUp, bodyOf, faceDir } from './entities.js';
 import { sfx } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, toast, plus, flyCoins, flyGems, flyXP, flyItem, confetti, openModal, closeModal, renderHUD } from './ui.js';
 
@@ -113,7 +113,7 @@ function buildScene(A) {
     g.add(ring); cur.rings.push([i, ring]);
   });
   // Maisie đi phiêu lưu
-  const maisie = make('chars/character-female-a', { h: 1.15 }); dressUp(maisie, 'maisie');
+  const maisie = bodyOf('maisie', 'chars/character-female-a', { h: 1.15 }); if (!maisie.userData.isArt) dressUp(maisie, 'maisie');
   maisie.position.copy(cellPos(map, map.cx, A.h - 1));
   maisie.userData.goal = maisie.position.clone(); maisie.userData.oid = 'a:maisie';
   maisie.rotation.y = Math.PI;
@@ -304,9 +304,9 @@ export function advUpdate(t, dt) {
   if (!cur) return;
   const m = cur.maisie, u = m.userData; u.mixer?.update(dt);
   const d = u.goal.clone().sub(m.position); d.y = 0;
-  if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 2.2)); m.position.add(d); m.rotation.y = Math.atan2(d.x, d.z); u.acted = false; }
+  if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 2.2)); m.position.add(d); faceDir(m, d.x, d.z); u.acted = false; }
   else {
-    if (u.face && !u.acted) { const f = u.face.clone().sub(m.position); m.rotation.y = Math.atan2(f.x, f.z); play(m, 'interact-right'); u.acted = true; u.idleAt = t + 0.8; }
+    if (u.face && !u.acted) { const f = u.face.clone().sub(m.position); faceDir(m, f.x, f.z); play(m, 'interact-right'); u.acted = true; u.idleAt = t + 0.8; }
     else if (u.busy > 0) { u.busy -= dt; }
     else if (!u.idleAt || t > u.idleAt) play(m, 'idle');
   }
