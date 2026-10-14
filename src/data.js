@@ -354,5 +354,29 @@ export const SPRITE_ART = {
   sweets: { width: 2.6 }, jammaker: { width: 2.7 }, beehive: { width: 1.5 }, ship: { width: 3.6 },
   strawberry: { width: 1.3 }, tomato: { width: 1.3 }, pumpkin: { width: 1.3 }, sunflower: { width: 1.25 },
   melon: { width: 1.3 }, cabbage: { width: 1.3 }, onion: { width: 1.25 }, bananatree: { width: 1.8 },
+  orangetree: { width: 1.7 }, lemontree: { width: 1.7 }, peartree: { width: 1.7 }, cherrytree: { width: 1.75 },
+  goldboat: { width: 1.9 }, boat: { width: 1.8 }, tent: { width: 1.3 }, sandcastle: { width: 1.8 },
+  well: { width: 1.05 }, cart: { width: 1.1 }, fountain: { width: 1.95 }, lighthouse: { width: 1.5 },
+  flower_red: { width: 0.6 }, flower_yel: { width: 0.6 }, flower_pur: { width: 0.6 }, flower_red2: { width: 0.65 },
+  mushroomdeco: { width: 0.5 }, lantern: { width: 0.5 }, barrel: { width: 0.55 }, chest: { width: 0.7 }, crate: { width: 0.7 },
+  haysack: { width: 0.55 }, campfire: { width: 0.75 }, hedge: { width: 0.95 }, flag: { width: 0.7 },
+  stump: { width: 0.7 }, logs: { width: 0.85 }, bee: { width: 0.3 }, bench: { width: 0.9 }, wheelbarrow: { width: 0.85 },
+  tom: { width: 0.72 }, lily: { width: 0.68 }, ben: { width: 0.75 }, rosa: { width: 0.62 }, sam: { width: 0.75 },
+  dog: { width: 0.62 }, cat: { width: 0.58 }, bunny: { width: 0.52 }, parrot: { width: 0.6 }, penguin: { width: 0.56 },
+  sheepdeco: { width: 0.7 }, horse: { width: 0.85 }, llama: { width: 0.6 }, crab: { width: 0.6 },
 };
-export const PEN_SPRITE = { coop: 'chicken', cowpen: 'cow', pigpen: 'pig' };
+export const PEN_SPRITE = { coop: 'chicken', cowpen: 'cow', pigpen: 'pig', beehive: 'bee' };
+export const TREE_SPRITE = { apple: 'appletree', palm: 'palm', banana: 'bananatree', orange: 'orangetree', lemon: 'lemontree', pear: 'peartree', cherry: 'cherrytree' };
+// Đồ trang trí: tên hình 2D (mặc định trùng tên món)
+export const DECOR_SPRITE = { palmdeco: 'palm' };
+// Mô hình 3D -> hình 2D thay thế (dùng ở màn phiêu lưu và bến tàu)
+export const MODEL_SPRITE = {
+  'nature/plant_bushLarge': 'bush', 'pirate/crate': 'crate', 'pirate/crate-bottles': 'crate', 'pirate/barrel': 'barrel',
+  'pirate/rocks-sand-a': 'rock', 'pirate/rocks-a': 'rock', 'kk/decoration/nature/rock_single_B.gltf': 'rock',
+  'pirate/palm-straight': 'palm', 'pirate/palm-bend': 'palm', 'nature/tree_palmTall': 'palm',
+  'kk/decoration/nature/trees_A_medium.gltf': 'leafytree', 'nature/stump_old': 'stump', 'nature/log_stack': 'logs',
+  'nature/mushroom_red': 'mushroomdeco', 'pirate/chest': 'chest', 'pirate/boat-row-small': 'boat',
+  'pets/animal-crab': 'crab', 'pets/animal-parrot': 'parrot', 'pets/animal-penguin': 'penguin',
+};
+// Biểu tượng vẽ tay trong public/items/ (ngoài các món trong ITEMS)
+export const ITEM_ICONS_EXTRA = ['shell', 'coin', 'gem', 'energy', 'star'];

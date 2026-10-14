@@ -3,7 +3,7 @@ import { ADVENTURES, ADV_THEMES, ITEMS, CROPS, DECOR } from './data.js';
 import { S, rnd, add, barnRoom, addXP, save, questEvent, emit } from './state.js';
 import { W, pickAt, toScreen, focusOn, updateCamera, slab, roundedRect } from './world.js';
 import { make, play, ICONS } from './assets.js';
-import { dressUp, bodyOf, faceDir } from './entities.js';
+import { dressUp, bodyOf, faceDir, artOrModel } from './entities.js';
 import { sfx } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, toast, plus, flyCoins, flyGems, flyXP, flyItem, confetti, openModal, closeModal, renderHUD } from './ui.js';
 
@@ -86,9 +86,9 @@ function buildScene(A) {
     g.add(t); cur.tiles.set(i, t);
   });
   // thuyền ở bến
-  const boat = make('pirate/boat-row-small', { size: 1.8 });
+  const boat = artOrModel('pirate/boat-row-small', { size: 1.8 });
   boat.position.copy(cellPos(map, map.cx, A.h)).add(new THREE.Vector3(0, -0.45, 0.8));
-  boat.rotation.y = Math.PI / 2; boat.userData.oid = 'a:boat';
+  if (!boat.userData.plane) boat.rotation.y = Math.PI / 2; boat.userData.oid = 'a:boat';
   g.add(boat); cur.pick.push(boat); cur.boat = boat;
 
   const ringGeo = new THREE.RingGeometry(0.4, 0.49, 28);
@@ -96,13 +96,13 @@ function buildScene(A) {
   map.cells.forEach((c, i) => {
     if (c.k === 'water' || c.k === 'open' || isOpen(c)) return;
     let v;
-    if (c.k === 'ob') { const [model, fit] = T.obstacles[c.t]; v = make(model, fit); v.rotation.y = c.rot; }
-    else if (c.k === 'chest') { v = make('pirate/chest', { size: 0.7 }); v.rotation.y = -0.6; }
+    if (c.k === 'ob') { const [model, fit] = T.obstacles[c.t]; v = artOrModel(model, fit); if (!v.userData.plane) v.rotation.y = c.rot; }
+    else if (c.k === 'chest') { v = artOrModel('pirate/chest', { size: 0.7 }); if (!v.userData.plane) v.rotation.y = -0.6; }
     else if (c.k === 'goal') {
       v = new THREE.Group();
       const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.52, 0.12, 24), new THREE.MeshStandardMaterial({ color: 0xffd23f }));
       pad.position.y = 0.06; v.add(pad);
-      const gm = make(A.goal.model, A.goal.pet ? { h: 0.75 } : { size: 0.8 }); gm.position.y = 0.12; v.add(gm);
+      const gm = artOrModel(A.goal.model, A.goal.pet ? { h: 0.75 } : { size: 0.8 }, 0.6, 0.6); gm.position.y = 0.12; v.add(gm);
       v.userData.inner = gm;
       if (p.done) v.visible = false;
     }
@@ -116,7 +116,7 @@ function buildScene(A) {
   const maisie = bodyOf('maisie', 'chars/character-female-a', { h: 1.15 }); if (!maisie.userData.isArt) dressUp(maisie, 'maisie');
   maisie.position.copy(cellPos(map, map.cx, A.h - 1));
   maisie.userData.goal = maisie.position.clone(); maisie.userData.oid = 'a:maisie';
-  maisie.rotation.y = Math.PI;
+  if (!maisie.userData.isArt) maisie.rotation.y = Math.PI;
   g.add(maisie); cur.maisie = maisie;
   updateRings();
   return g;
@@ -280,7 +280,7 @@ function vanish(v, done) {
   const t0 = performance.now(), s0 = 1;
   const f = () => {
     const k = (performance.now() - t0) / 420;
-    if (k < 1) { v.scale.setScalar(s0 * (1 - k)); v.rotation.y += 0.25; requestAnimationFrame(f); }
+    if (k < 1) { v.scale.setScalar(s0 * (1 - k)); if (!v.userData.plane) v.rotation.y += 0.25; requestAnimationFrame(f); }
     else { v.visible = false; done?.(); }
   };
   setTimeout(f, 250);

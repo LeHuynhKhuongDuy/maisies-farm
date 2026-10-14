@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE, ADV_THEMES, ADVENTURES, COLLECTIONS, EVENT, BUILDING_MODELS } from './data.js';
+import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE, ADV_THEMES, ADVENTURES, COLLECTIONS, EVENT, BUILDING_MODELS, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE } from './data.js';
+import { hasSprite, spriteUrl } from './sprites.js';
 
 const BASE = import.meta.env.BASE_URL + 'models/';
 const cache = new Map(); // key -> gltf
@@ -141,7 +142,35 @@ export function tint(obj, color) {
 
 // ---------- Biểu tượng vật phẩm (vẽ mô hình 3D thành ảnh) ----------
 export const ICONS = {};
+// Biểu tượng vẽ tay (nếu có) thay cho ảnh chụp mô hình 3D
+const ITEM_DIR = import.meta.env.BASE_URL + 'items/';
+const sp = name => (name && hasSprite(name) ? spriteUrl(name) : null);
+function paintedIcon(id) {
+  if (ITEMS[id]) return ITEM_DIR + id + '.png';
+  const [kind, key] = id.split(':');
+  switch (kind) {
+    case 'ev': return key === 'token' ? ITEM_DIR + 'shell.png' : null;
+    case 'face': return PEOPLE.some(p => p.id === key) && hasSprite(key) ? ITEM_DIR + 'face-' + key + '.png' : null;
+    case 'decor': return sp(DECOR_SPRITE[key] || key);
+    case 'tree': return sp(TREE_SPRITE[key]);
+    case 'animal': return sp(PEN_SPRITE[key]);
+    case 'fac': return sp(key);
+    case 'pen': return sp(key === 'coop' || key === 'beehive' ? key : PEN_SPRITE[key]);
+  }
+  return null;
+}
+// Xu, kim cương, năng lượng, sao kinh nghiệm trên thanh trạng thái
+function paintedHudIcons() {
+  const u = n => `url(${ITEM_DIR}${n}.png)`;
+  const st = document.createElement('style');
+  st.textContent = `.ico.coin{background-image:${u('coin')}}.ico.gem{background-image:${u('gem')}}.ico.bolt{background-image:${u('energy')}}
+.xp{background:${u('star')} center/contain no-repeat;clip-path:none}`;
+  document.head.appendChild(st);
+}
+
 export async function renderIcons(list) {
+  paintedHudIcons();
+  list = list.filter(([id]) => { const u = paintedIcon(id); if (u) ICONS[id] = u; return !u; });
   const SIZE = 160;
   const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   r.setSize(SIZE, SIZE); r.setPixelRatio(1);

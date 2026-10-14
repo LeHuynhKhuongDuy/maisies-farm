@@ -62,9 +62,12 @@ def cut(img, thr=222, holes=False):
     return out.crop(bbox) if bbox else out
 
 
-def save(out, name, max_side=512):
+def save(out, name, max_side=512, folder='sprites', square=False):
     out.thumbnail((max_side, max_side), Image.LANCZOS)
-    dst = f'public/sprites/{name}.png'
+    if square:  # biểu tượng: đặt giữa khung vuông trong suốt
+        s = max(out.size); sq = Image.new('RGBA', (s, s), (0, 0, 0, 0))
+        sq.alpha_composite(out, ((s - out.width) // 2, (s - out.height) // 2)); out = sq
+    dst = f'public/{folder}/{name}.png'
     out.save(dst, optimize=True)
     print(dst, out.size)
 

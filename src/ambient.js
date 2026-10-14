@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GRID } from './data.js';
 import { W, roundedRect, cellToWorld } from './world.js';
 import { make } from './assets.js';
+import { art, faceDir } from './entities.js';
 
 const A = { clouds: [], birds: [], boats: [], flies: [], foam: [] };
 
@@ -42,8 +43,8 @@ export function buildAmbient() {
 
   // Thuyền buồm chạy vòng ngoài khơi
   for (let i = 0; i < 2; i++) {
-    const s = make(i ? 'pirate/boat-row-large' : 'pirate/ship-small', { h: i ? 0.9 : 3 });
-    s.userData = { r: 24 + i * 7, sp: (i ? -1 : 1) * (0.025 + i * 0.01), ph: i * 3 };
+    const s = art(i ? 'boat' : 'ship', 1, 1, { scale: i ? 0.7 : 0.8, shadow: false }) || make(i ? 'pirate/boat-row-large' : 'pirate/ship-small', { h: i ? 0.9 : 3 });
+    Object.assign(s.userData, { r: 24 + i * 7, sp: (i ? -1 : 1) * (0.025 + i * 0.01), ph: i * 3 });
     g.add(s); A.boats.push(s);
   }
 
@@ -97,6 +98,7 @@ export function updateAmbient(t, dt) {
   for (const s of A.boats) {
     const u = s.userData, a = t * u.sp + u.ph;
     s.position.set(Math.cos(a) * u.r, -0.5 + Math.sin(t * 1.3 + u.ph) * 0.05, Math.sin(a) * u.r);
+    if (u.plane) { u.isArt = true; faceDir(s, -Math.sin(a) * u.sp, Math.cos(a) * u.sp); u.plane.rotation.z = Math.sin(t + u.ph) * 0.04; continue; }
     s.rotation.y = -a + (u.sp > 0 ? Math.PI : 0);
     s.rotation.z = Math.sin(t + u.ph) * 0.04;
   }

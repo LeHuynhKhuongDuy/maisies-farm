@@ -4,12 +4,16 @@ import { hasSprite, spriteObject, animateArt } from './sprites.js';
 import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, lushTree, roundBush } from './props.js';
 import { W, cellToWorld } from './world.js';
 import { S, footprint, now, rnd } from './state.js';
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE } from './data.js';
+import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE } from './data.js';
 
 // Hình 2D nếu đã có ảnh, không thì trả về null
 export function art(name, w = 1, d = 1, extra = {}) {
   if (!hasSprite(name)) return null;
   return spriteObject(name, { width: SPRITE_ART[name].width * (extra.scale || 1), w, d, shadow: extra.shadow !== false });
+}
+// Mô hình 3D có hình 2D thay thế thì dùng hình 2D
+export function artOrModel(model, fit, w = 1, d = 1) {
+  return art(MODEL_SPRITE[model], w, d) || make(model, fit);
 }
 // Đặt hướng nhìn cho nhân vật/thú: mô hình 3D thì xoay, hình 2D thì lật trái/phải
 export function faceDir(obj, dx, dz) {
@@ -138,7 +142,7 @@ function fieldView(o) {
 function treeView(o) {
   const T = TREES[o.t], root = new THREE.Group();
   const isPalm = !!T.palm;
-  const ripeArt = { apple: 'appletree', palm: 'palm', banana: 'bananatree' }[o.t] || null;
+  const ripeArt = TREE_SPRITE[o.t] || null;
   if (ripeArt && hasSprite(ripeArt)) {
     if (T.lush) root.add(planterBase());
     const ripe = art(ripeArt), green = hasSprite('leafytree') && !isPalm ? art('leafytree') : null;
@@ -360,8 +364,9 @@ function procDecor(kind) {
 function decorView(o) {
   const D = DECOR[o.t], root = new THREE.Group();
   if (D.proc) { root.add(procDecor(D.proc)); return { root }; }
-  const m = make(D.model, { ...D.fit, tint: D.tint, paint: D.paint }); root.add(m);
-  if (!D.pet) return { root };
+  const sp = DECOR_SPRITE[o.t] || o.t;
+  if (!D.pet) { root.add(art(sp, D.w || 1, D.d || 1) || make(D.model, { ...D.fit, tint: D.tint, paint: D.paint })); return { root }; }
+  const m = bodyOf(sp, D.model, D.fit); root.add(m);
   // thú cưng đi dạo quanh chỗ đặt
   m.userData.goal = new THREE.Vector3(); m.userData.wait = 1;
   return {
@@ -369,8 +374,8 @@ function decorView(o) {
     update(t, dt) {
       const u = m.userData; u.mixer?.update(dt);
       const d = u.goal.clone().sub(m.position);
-      if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 0.5)); m.position.add(d); m.rotation.y = Math.atan2(d.x, d.z); }
-      else { play(m, u.dance ? 'dance' : 'idle'); u.wait -= dt; if (u.wait <= 0) { u.goal.set((Math.random() - 0.5) * 2.4, 0, (Math.random() - 0.5) * 2.4); u.wait = 2 + Math.random() * 5; u.dance = Math.random() < 0.25; } }
+      if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 0.5)); m.position.add(d); faceDir(m, d.x, d.z); if (u.isArt) animateArt(m, t, 'walk', o.id); }
+      else { play(m, u.dance ? 'dance' : 'idle'); if (u.isArt) animateArt(m, t, u.dance ? 'happy' : 'idle', o.id); u.wait -= dt; if (u.wait <= 0) { u.goal.set((Math.random() - 0.5) * 2.4, 0, (Math.random() - 0.5) * 2.4); u.wait = 2 + Math.random() * 5; u.dance = Math.random() < 0.25; } }
     },
   };
 }
@@ -378,7 +383,7 @@ function decorView(o) {
 function obstacleView(o) {
   const O = OBSTACLES[o.t], root = new THREE.Group();
   let m;
-  const oa = { bush: 'bush', rock: 'rock', tree: 'leafytree' }[o.t];
+  const oa = { bush: 'bush', rock: 'rock', tree: 'leafytree', stump: 'stump', logs: 'logs' }[o.t];
   if (oa && hasSprite(oa)) { root.add(art(oa)); return { root }; }
   if (O.proc === 'bush') m = roundBush(0x4fb82e, 0x66cc3e, o.id % 3 === 0);
   else if (O.proc === 'tree') { m = lushTree({ leaf: 0x3fa82a, leaf2: 0x58c23a, n: 0 }).group; m.scale.setScalar(0.85); }
@@ -434,8 +439,8 @@ export function buildSpecials() {
   const dock = new THREE.Group();
   const p = cellToWorld(17, GRID - 1);
   for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock', { size: 1.6 }); d.position.set(0, -0.62, 1.2 + i * 1.6); dock.add(d); }
-  const bar = make('pirate/barrel', { size: 0.4 }); bar.position.set(0.5, 0.15, 1.5); dock.add(bar);
-  const crt = make('pirate/crate', { size: 0.5 }); crt.position.set(-0.5, 0.15, 2.4); dock.add(crt);
+  const bar = artOrModel('pirate/barrel', { size: 0.4 }, 0.5, 0.5); bar.position.set(0.5, 0.15, 1.5); dock.add(bar);
+  const crt = artOrModel('pirate/crate', { size: 0.5 }, 0.5, 0.5); crt.position.set(-0.5, 0.15, 2.4); dock.add(crt);
   dock.position.set(p.x, 0, p.z);
   dock.userData.oid = 'ship';
   W.farm.add(dock); W.pickables.push(dock);
@@ -452,7 +457,7 @@ export function buildSpecials() {
   // Cầu câu cá ở mép phải đảo
   const pier = new THREE.Group(), pp = cellToWorld(GRID - 1, 9);
   for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock-small', { size: 1.5 }); d.rotation.y = Math.PI / 2; d.position.set(-1.45 + i * 1.45, -0.62, 0); pier.add(d); }
-  const pb = make('pirate/barrel', { size: 0.4 }); pb.position.set(-1.3, 0.15, 0.45); pier.add(pb);
+  const pb = artOrModel('pirate/barrel', { size: 0.4 }, 0.5, 0.5); pb.position.set(-1.3, 0.15, 0.45); pier.add(pb);
   const bucket = make('survival/bucket', { size: 0.3 }); bucket.position.set(0.9, 0.15, -0.4); pier.add(bucket);
   const rod = make('pirate/tool-paddle', { h: 1.2 }); rod.position.set(1.6, 0.15, 0.3); rod.rotation.z = -0.6; pier.add(rod);
   pier.position.set(pp.x + 3.6, 0, pp.z); pier.userData.oid = 'pier';

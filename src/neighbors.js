@@ -3,8 +3,9 @@ import * as THREE from 'three';
 import { GRID, CROPS, PEOPLE, ITEMS } from './data.js';
 import { S, now, rnd, add, barnRoom, addXP, save, emit } from './state.js';
 import { W, cellToWorld, focusOn, updateCamera, slab, pickAt } from './world.js';
-import { createView, cropStage, dressUp } from './entities.js';
+import { createView, cropStage, dressUp, bodyOf, artOrModel } from './entities.js';
 import { make, play, ICONS } from './assets.js';
+import { animateArt } from './sprites.js';
 import { sfx } from './sound.js';
 import { $, coinI, gemI, xpI, esc, toast, plus, flyCoins, flyGems, flyXP, flyItem, openModal, closeModal, renderHUD } from './ui.js';
 
@@ -68,10 +69,11 @@ export function visitNeighbor(nid, h) {
   });
   // chủ nhà đứng trước cửa
   const p = PEOPLE.find(x => x.id === nid);
-  const host = make(p.model, { h: 1.15 }); dressUp(host, nid); host.position.copy(cellToWorld(12, 7)); host.rotation.y = 0.7; host.userData.oid = 'host';
+  const host = bodyOf(nid, p.model, { h: 1.15 }); if (!host.userData.isArt) { dressUp(host, nid); host.rotation.y = 0.7; }
+  host.position.copy(cellToWorld(12, 7)); host.userData.oid = 'host';
   g.add(host); pick.push(host);
   // hộp quà mỗi ngày
-  const gift = make('pirate/chest', { size: 0.6 }); gift.position.copy(cellToWorld(10, 6)); gift.userData.oid = 'gift';
+  const gift = artOrModel('pirate/chest', { size: 0.6 }); gift.position.copy(cellToWorld(10, 6)); gift.userData.oid = 'gift';
   if (!day().gift[nid]) { g.add(gift); pick.push(gift); }
   saved = { target: W.target.clone(), zoom: W.zoom };
   W.farm.visible = false; W.scene.add(g);
@@ -142,7 +144,8 @@ export function nbUpdate(t, dt) {
   if (!cur) return;
   for (const [, v] of cur.views) v.update?.(t, dt);
   cur.host.userData.mixer?.update(dt);
-  if (!cur.host.userData.cur) play(cur.host, 'idle');
+  if (cur.host.userData.isArt) animateArt(cur.host, t, 'idle');
+  else if (!cur.host.userData.cur) play(cur.host, 'idle');
 }
 
 export function openNeighbors(h) {

@@ -4,7 +4,8 @@ import { GRID, ITEMS, CROPS, PEOPLE } from './data.js';
 import { S, now, rnd, pick, have, add, addXP, producible, footprint, save, questEvent, emit } from './state.js';
 import { W, cellToWorld } from './world.js';
 import { make, play, ICONS } from './assets.js';
-import { dressUp } from './entities.js';
+import { dressUp, bodyOf, faceDir } from './entities.js';
+import { animateArt } from './sprites.js';
 import { sfx } from './sound.js';
 import { $, img, coinI, gemI, xpI, esc, toast, flyCoins, flyGems, flyXP, openModal, closeModal, renderHUD } from './ui.js';
 
@@ -44,7 +45,7 @@ function spawn() {
 
 function addView(v) {
   const p = PEOPLE.find(x => x.id === v.who);
-  const m = make(p.model, { h: 1.15 }); dressUp(m, v.who);
+  const m = bodyOf(v.who, p.model, { h: 1.15 }); if (!m.userData.isArt) dressUp(m, v.who);
   m.userData.oid = 'v:' + v.id;
   const spot = cellToWorld(v.x, v.z);
   m.position.copy(v.arrive ? DOCK() : spot);
@@ -74,9 +75,12 @@ export function visitorsUpdate(t, dt) {
   for (const [id, m] of views) {
     const u = m.userData; u.mixer?.update(dt);
     const d = u.goal.clone().sub(m.position); d.y = 0;
-    if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 1.1)); m.position.add(d); m.rotation.y = Math.atan2(d.x, d.z); }
+    if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 1.1)); m.position.add(d); faceDir(m, d.x, d.z); if (u.isArt) animateArt(m, t, 'walk', id); }
     else if (u.leaving) removeView(id);
-    else { play(m, u.happy > 0 ? 'emote-yes' : 'idle'); u.happy = (u.happy || 0) - dt; m.rotation.y += (0.6 - m.rotation.y) * dt * 2; }
+    else {
+      play(m, u.happy > 0 ? 'emote-yes' : 'idle'); u.happy = (u.happy || 0) - dt;
+      if (u.isArt) animateArt(m, t, u.happy > 0 ? 'happy' : 'idle', id); else m.rotation.y += (0.6 - m.rotation.y) * dt * 2;
+    }
   }
 }
 

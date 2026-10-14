@@ -421,3 +421,5 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 /* Màn hình tải: logo nảy nhẹ */
 .logo { animation: logo-bob 2.4s ease-in-out infinite; }
 @keyframes logo-bob { 50% { transform: rotate(-4deg) translateY(-8px) scale(1.03); } }
+
+img { object-fit: contain; }
