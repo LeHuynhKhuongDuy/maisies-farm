@@ -4,6 +4,7 @@ import { GRID, ITEMS, CROPS, PEOPLE } from './data.js';
 import { S, now, rnd, pick, have, add, addXP, producible, footprint, save, questEvent, emit } from './state.js';
 import { W, cellToWorld } from './world.js';
 import { make, play, ICONS } from './assets.js';
+import { dressUp } from './entities.js';
 import { sfx } from './sound.js';
 import { $, img, coinI, gemI, xpI, esc, toast, flyCoins, flyGems, flyXP, openModal, closeModal, renderHUD } from './ui.js';
 
@@ -43,7 +44,7 @@ function spawn() {
 
 function addView(v) {
   const p = PEOPLE.find(x => x.id === v.who);
-  const m = make(p.model, { h: 0.95 });
+  const m = make(p.model, { h: 0.95 }); dressUp(m, v.who);
   m.userData.oid = 'v:' + v.id;
   const spot = cellToWorld(v.x, v.z);
   m.position.copy(v.arrive ? DOCK() : spot);

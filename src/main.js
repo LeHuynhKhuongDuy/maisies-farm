@@ -1,6 +1,6 @@
 import './style.css';
 import { load, save, S } from './state.js';
-import { loadAll, renderIcons, iconList } from './assets.js';
+import { loadAll, renderIcons, iconList, ICONS } from './assets.js';
 import { initWorld, W, focusOn } from './world.js';
 import { VIEWS, addView, buildSpecials, updateSpecials, updateBounce, buildingIcons } from './entities.js';
 import { initInput } from './input.js';
@@ -41,7 +41,7 @@ async function boot() {
   $('#hud').hidden = false;
   document.addEventListener('pointerdown', audioUnlock, { once: true });
 
-  if (import.meta.env.DEV) window.__game = { get S() { return S; }, W };
+  if (import.meta.env.DEV) window.__game = { get S() { return S; }, W, ICONS };
   setInterval(tick, 250);
   tick();
   // Nét viền hoạt hình quanh mọi vật (tắt khi máy yếu)

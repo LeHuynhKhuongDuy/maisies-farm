@@ -120,8 +120,14 @@ function treeView(o) {
   const isPalm = !!T.palm;
   const m = make(T.model, { h: isPalm ? 2.1 : 1.8, tint: T.tint }); root.add(m);
   const fruits = new THREE.Group(); root.add(fruits);
-  const spots = isPalm ? [[0.12, 1.62, 0.05], [-0.08, 1.6, 0.1], [0.02, 1.6, -0.12]] : [[0.3, 1.05, 0.25], [-0.28, 1.2, 0.2], [0.05, 1.35, 0.35], [0.25, 1.4, -0.2]];
-  spots.forEach(([x, y, z]) => { const f = make(T.fruit, { size: isPalm ? 0.2 : 0.18 }); f.position.set(x, y, z); fruits.add(f); });
+  // quả nằm trên mặt tán lá, quay về phía camera
+  const bb = new THREE.Box3().setFromObject(m), sz = bb.getSize(new THREE.Vector3());
+  const cy = isPalm ? bb.max.y - 0.35 : bb.min.y + sz.y * 0.66, rad = Math.max(sz.x, sz.z) / 2 * (isPalm ? 0.25 : 0.92);
+  const spots = isPalm ? [[0.2, -0.05], [1.0, 0], [1.8, -0.05]] : [[0.25, 0.1], [0.85, -0.12], [1.35, 0.18], [0.6, 0.32], [1.1, -0.35]];
+  spots.forEach(([a, dy]) => {
+    const f = make(T.fruit, { size: isPalm ? 0.22 : 0.24 });
+    f.position.set(Math.cos(a) * rad, cy + dy * sz.y * 0.5, Math.sin(a) * rad); fruits.add(f);
+  });
   const star = sparkle(); root.add(star);
   return {
     root,
@@ -390,7 +396,7 @@ export function buildSpecials() {
   W.farm.add(pier); W.pickables.push(pier); SPECIAL.pier = pier;
 
   // Maisie đi dạo quanh nhà
-  const maisie = make(PEOPLE[0].model, { h: 0.95 });
+  const maisie = make(PEOPLE[0].model, { h: 0.95 }); dressUp(maisie, 'maisie');
   maisie.userData.oid = 'maisie';
   const mp = cellToWorld(12, 8); maisie.position.copy(mp);
   maisie.userData.goal = mp.clone(); maisie.userData.wait = 2;
@@ -441,5 +447,32 @@ export function buildingIcons() {
   for (const k of Object.keys(FACTORIES)) list.push(['fac:' + k, { obj: () => view({ k: 'fac', t: k, jobs: [] }), rotY: 0.2 }]);
   for (const k of Object.keys(PENS)) list.push(['pen:' + k, { obj: () => view({ k: 'pen', t: k, animals: [{ s: 0, e: 0 }, { s: 0, e: 0 }] }), rotY: 0.2 }]);
   list.push(['b:field', { obj: () => view({ k: 'field', crop: 'wheat', s: 0, e: 1 }), rotY: 0.2 }]);
+  for (const k of Object.keys(TREES)) list.push(['tree:' + k, { obj: () => { const r = view({ k: 'tree', t: k, s: 0, e: 1 }); r.children.filter(c => c.isSprite).forEach(c => c.visible = false); return r; }, rotY: 0.3 }]);
+  PEOPLE.forEach(p => list.push(['face:' + p.id, { model: p.model, rotY: 0.25, face: true, extra: m => dressUp(m, p.id) }]));
   return list;
+}
+
+// ---------- Mũ cho nhân vật (gắn vào xương đầu) ----------
+const HATS = {
+  maisie: { kind: 'straw', band: 0xff7ab8 },
+  tom: { kind: 'straw', band: 0x8b5a2b },
+  lily: { kind: 'sun', band: 0xff9ad0, color: 0xfff1c9 },
+  ben: { kind: 'cap', color: 0x3a8fe0 },
+  rosa: { kind: 'sun', band: 0x9a6cff, color: 0xf3e2b0 },
+  sam: { kind: 'captain', color: 0xffffff },
+};
+export function dressUp(model, who) {
+  const H = HATS[who]; if (!H) return;
+  const head = model.getObjectByName('head'); if (!head) return;
+  const g = new THREE.Group();
+  const m = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85 });
+  const cyl = (rt, rb, h, c, y) => { const x = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 20), m(c)); x.position.y = y; x.castShadow = true; g.add(x); return x; };
+  if (H.kind === 'straw') { cyl(0.3, 0.3, 0.025, 0xeac45e, 0); cyl(0.15, 0.17, 0.13, 0xeac45e, 0.07); cyl(0.172, 0.172, 0.035, H.band, 0.025); }
+  else if (H.kind === 'sun') { cyl(0.34, 0.34, 0.02, H.color, 0); cyl(0.15, 0.17, 0.11, H.color, 0.06); cyl(0.172, 0.172, 0.03, H.band, 0.02);
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), m(0xff5d8f)); f.position.set(0.15, 0.05, 0.06); g.add(f); }
+  else if (H.kind === 'cap') { const dome = new THREE.Mesh(new THREE.SphereGeometry(0.17, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), m(H.color)); g.add(dome);
+    const visor = cyl(0.16, 0.16, 0.02, H.color, 0); visor.scale.set(1, 1, 0.6); visor.position.z = 0.13; }
+  else if (H.kind === 'captain') { cyl(0.17, 0.16, 0.1, H.color, 0.05); cyl(0.172, 0.172, 0.03, 0x1f3f7a, 0.015); const v = cyl(0.12, 0.12, 0.015, 0x1f3f7a, 0); v.scale.z = 0.7; v.position.z = 0.12; }
+  g.position.set(0, 0.3, 0.0);
+  head.add(g);
 }

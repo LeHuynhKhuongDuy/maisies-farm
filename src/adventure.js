@@ -3,6 +3,7 @@ import { ADVENTURES, ADV_THEMES, ITEMS, CROPS, DECOR } from './data.js';
 import { S, rnd, add, barnRoom, addXP, save, questEvent, emit } from './state.js';
 import { W, pickAt, toScreen, focusOn, updateCamera, slab, roundedRect } from './world.js';
 import { make, play, ICONS } from './assets.js';
+import { dressUp } from './entities.js';
 import { sfx } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, toast, plus, flyCoins, flyGems, flyXP, flyItem, confetti, openModal, closeModal, renderHUD } from './ui.js';
 
@@ -112,7 +113,7 @@ function buildScene(A) {
     g.add(ring); cur.rings.push([i, ring]);
   });
   // Maisie đi phiêu lưu
-  const maisie = make('chars/character-female-a', { h: 0.95 });
+  const maisie = make('chars/character-female-a', { h: 0.95 }); dressUp(maisie, 'maisie');
   maisie.position.copy(cellPos(map, map.cx, A.h - 1));
   maisie.userData.goal = maisie.position.clone(); maisie.userData.oid = 'a:maisie';
   maisie.rotation.y = Math.PI;

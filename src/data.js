@@ -79,12 +79,12 @@ export const CROPS = {
 // ---------- Cây ăn quả (1x1, thu hoạch nhiều lần) ----------
 export const TREES = {
   palm:   { n: 'Cây dừa',  lv: 2, cost: 60,  t: 100, yield: 'coconut', qty: 2, xp: 2, model: 'pirate/palm-straight', fruit: 'food/coconut', palm: true },
-  apple:  { n: 'Cây táo',  lv: 3, cost: 80,  t: 120, yield: 'apple',   qty: 3, xp: 2, model: 'town/tree', fruit: 'food/apple' },
-  orange: { n: 'Cây cam',  lv: 6, cost: 120, t: 150, yield: 'orange',  qty: 3, xp: 3, model: 'town/tree-high-round', fruit: 'food/orange' },
+  apple:  { n: 'Cây táo',  lv: 3, cost: 80,  t: 120, yield: 'apple',   qty: 3, xp: 2, model: 'nature/tree_oak', fruit: 'food/apple' },
+  orange: { n: 'Cây cam',  lv: 6, cost: 120, t: 150, yield: 'orange',  qty: 3, xp: 3, model: 'nature/tree_fat', fruit: 'food/orange' },
   banana: { n: 'Cây chuối', lv: 7, cost: 140, t: 160, yield: 'banana', qty: 3, xp: 3, model: 'pirate/palm-bend', fruit: 'food/banana', palm: true },
-  lemon:  { n: 'Cây chanh', lv: 8, cost: 160, t: 170, yield: 'lemon',  qty: 3, xp: 3, model: 'town/tree', fruit: 'food/lemon' },
-  pear:   { n: 'Cây lê',    lv: 10, cost: 200, t: 190, yield: 'pear',  qty: 3, xp: 4, model: 'town/tree-high-round', fruit: 'food/pear' },
-  cherry: { n: 'Cây anh đào', lv: 12, cost: 260, t: 210, yield: 'cherry', qty: 3, xp: 4, model: 'town/tree', fruit: 'food/cherries', tint: 0xffc4d8 },
+  lemon:  { n: 'Cây chanh', lv: 8, cost: 160, t: 170, yield: 'lemon',  qty: 3, xp: 3, model: 'nature/tree_oak', fruit: 'food/lemon' },
+  pear:   { n: 'Cây lê',    lv: 10, cost: 200, t: 190, yield: 'pear',  qty: 3, xp: 4, model: 'nature/tree_fat', fruit: 'food/pear' },
+  cherry: { n: 'Cây anh đào', lv: 12, cost: 260, t: 210, yield: 'cherry', qty: 3, xp: 4, model: 'nature/tree_oak', fruit: 'food/cherries', tint: 0xffc4d8 },
 };
 
 // ---------- Chuồng thú (3x3) ----------

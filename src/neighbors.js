@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GRID, CROPS, PEOPLE, ITEMS } from './data.js';
 import { S, now, rnd, add, barnRoom, addXP, save, emit } from './state.js';
 import { W, cellToWorld, focusOn, updateCamera, slab, pickAt } from './world.js';
-import { createView, cropStage } from './entities.js';
+import { createView, cropStage, dressUp } from './entities.js';
 import { make, play, ICONS } from './assets.js';
 import { sfx } from './sound.js';
 import { $, coinI, gemI, xpI, esc, toast, plus, flyCoins, flyGems, flyXP, flyItem, openModal, closeModal, renderHUD } from './ui.js';
@@ -68,7 +68,7 @@ export function visitNeighbor(nid, h) {
   });
   // chủ nhà đứng trước cửa
   const p = PEOPLE.find(x => x.id === nid);
-  const host = make(p.model, { h: 0.95 }); host.position.copy(cellToWorld(12, 7)); host.rotation.y = 0.7; host.userData.oid = 'host';
+  const host = make(p.model, { h: 0.95 }); dressUp(host, nid); host.position.copy(cellToWorld(12, 7)); host.rotation.y = 0.7; host.userData.oid = 'host';
   g.add(host); pick.push(host);
   // hộp quà mỗi ngày
   const gift = make('pirate/chest', { size: 0.6 }); gift.position.copy(cellToWorld(10, 6)); gift.userData.oid = 'gift';
