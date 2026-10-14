@@ -1,4 +1,4 @@
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS,
+import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, STARTER_DECOR,
   xpNeed, ENERGY_MAX, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
 
 const KEY = 'maisies-farm-v1';
@@ -201,8 +201,7 @@ function freshState() {
   objs.push({ id: id(), k: 'fac', t: 'feedmill', x: 12, z: 13, r: 0, jobs: [] });
   objs.push({ id: id(), k: 'board', t: 'board', x: 8, z: 13, r: 0 });
   objs.push({ id: id(), k: 'tree', t: 'palm', x: 17, z: 14, r: 0, s: t - 100000, e: t });
-  objs.push({ id: id(), k: 'decor', t: 'flower_red', x: 10, z: 7, r: 0 });
-  objs.push({ id: id(), k: 'decor', t: 'flower_yel', x: 14, z: 7, r: 0 });
+  STARTER_DECOR.forEach(([t, x, z]) => objs.push({ id: id(), k: 'decor', t, x, z, r: 0 }));
   objs.push({ id: id(), k: 'decor', t: 'bush', x: 18, z: 6, r: 0 });
 
   // chướng ngại vật quanh mép đảo
@@ -219,6 +218,7 @@ function freshState() {
   }
 
   const st = {
+    ffsDeco: true,
     v: 1, coins: 150, gems: 10, xp: 0, level: 1, energy: ENERGY_MAX, energyAt: t,
     inv: { wheat: 4, chickenfeed: 2 }, barnLvl: 0,
     objs, nextId: objs.length + 1,
@@ -244,5 +244,16 @@ export function importSave(code) {
   const o = JSON.parse(decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))));
   if (!o || o.v !== 1 || !Array.isArray(o.objs)) throw new Error('bad');
   S = o; save();
+}
+// Nông trại cũ: thêm đường gạch, luống hoa vào chỗ còn trống (chỉ một lần)
+export function ensureStarterDecor(addView) {
+  if (S.ffsDeco) return;
+  S.ffsDeco = true;
+  for (const [t, x, z] of STARTER_DECOR) {
+    if (!isFree(x, z, 1, 1)) continue;
+    const o = { id: newId(), k: 'decor', t, x, z, r: 0 };
+    S.objs.push(o); addView(o);
+  }
+  save();
 }
 export function resetGame() { S = freshState(); S.ship = newShip(); refreshOrders(); save(); }

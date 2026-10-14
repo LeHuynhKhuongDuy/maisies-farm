@@ -68,7 +68,7 @@ export function visitNeighbor(nid, h) {
   });
   // chủ nhà đứng trước cửa
   const p = PEOPLE.find(x => x.id === nid);
-  const host = make(p.model, { h: 0.95 }); dressUp(host, nid); host.position.copy(cellToWorld(12, 7)); host.rotation.y = 0.7; host.userData.oid = 'host';
+  const host = make(p.model, { h: 1.15 }); dressUp(host, nid); host.position.copy(cellToWorld(12, 7)); host.rotation.y = 0.7; host.userData.oid = 'host';
   g.add(host); pick.push(host);
   // hộp quà mỗi ngày
   const gift = make('pirate/chest', { size: 0.6 }); gift.position.copy(cellToWorld(10, 6)); gift.userData.oid = 'gift';

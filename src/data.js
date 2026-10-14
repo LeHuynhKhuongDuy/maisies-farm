@@ -79,12 +79,12 @@ export const CROPS = {
 // ---------- Cây ăn quả (1x1, thu hoạch nhiều lần) ----------
 export const TREES = {
   palm:   { n: 'Cây dừa',  lv: 2, cost: 60,  t: 100, yield: 'coconut', qty: 2, xp: 2, model: 'pirate/palm-straight', fruit: 'food/coconut', palm: true },
-  apple:  { n: 'Cây táo',  lv: 3, cost: 80,  t: 120, yield: 'apple',   qty: 3, xp: 2, model: 'nature/tree_oak', fruit: 'food/apple' },
-  orange: { n: 'Cây cam',  lv: 6, cost: 120, t: 150, yield: 'orange',  qty: 3, xp: 3, model: 'nature/tree_fat', fruit: 'food/orange' },
+  apple:  { n: 'Cây táo',  lv: 3, cost: 80,  t: 120, yield: 'apple',   qty: 3, xp: 2, model: 'nature/tree_oak', fruit: 'food/apple', lush: { fruit: 0xe8352b } },
+  orange: { n: 'Cây cam',  lv: 6, cost: 120, t: 150, yield: 'orange',  qty: 3, xp: 3, model: 'nature/tree_fat', fruit: 'food/orange', lush: { fruit: 0xff9a1f } },
   banana: { n: 'Cây chuối', lv: 7, cost: 140, t: 160, yield: 'banana', qty: 3, xp: 3, model: 'pirate/palm-bend', fruit: 'food/banana', palm: true },
-  lemon:  { n: 'Cây chanh', lv: 8, cost: 160, t: 170, yield: 'lemon',  qty: 3, xp: 3, model: 'nature/tree_oak', fruit: 'food/lemon' },
-  pear:   { n: 'Cây lê',    lv: 10, cost: 200, t: 190, yield: 'pear',  qty: 3, xp: 4, model: 'nature/tree_fat', fruit: 'food/pear' },
-  cherry: { n: 'Cây anh đào', lv: 12, cost: 260, t: 210, yield: 'cherry', qty: 3, xp: 4, model: 'nature/tree_oak', fruit: 'food/cherries', tint: 0xffc4d8 },
+  lemon:  { n: 'Cây chanh', lv: 8, cost: 160, t: 170, yield: 'lemon',  qty: 3, xp: 3, model: 'nature/tree_oak', fruit: 'food/lemon', lush: { fruit: 0xffe23a } },
+  pear:   { n: 'Cây lê',    lv: 10, cost: 200, t: 190, yield: 'pear',  qty: 3, xp: 4, model: 'nature/tree_fat', fruit: 'food/pear', lush: { fruit: 0xc8e04a } },
+  cherry: { n: 'Cây anh đào', lv: 12, cost: 260, t: 210, yield: 'cherry', qty: 3, xp: 4, model: 'nature/tree_oak', fruit: 'food/cherries', lush: { leaf: 0xff9cc8, leaf2: 0xffc2dc, fruit: 0xd81b3c, blossom: true } },
 };
 
 // ---------- Chuồng thú (3x3) ----------
@@ -157,6 +157,9 @@ export const DECOR = {
   chest:       { n: 'Rương báu',     lv: 3, cost: 60,  model: 'pirate/chest', fit: { size: 0.65 } },
   dog:         { n: 'Cún con',       lv: 3, cost: 120, model: 'quat/Pug.fbx', pet: true, fit: { h: 0.45 } },
   well:        { n: 'Giếng nước',    lv: 2, cost: 45,  model: 'kk/buildings/blue/building_well_blue.gltf', fit: { size: 0.95 } },
+  path:        { n: 'Đường lát gạch', lv: 1, cost: 4,  proc: 'brick' },
+  flowerbed:   { n: 'Luống hoa cúc', lv: 1, cost: 12, proc: 'flowerbed' },
+  whitefence:  { n: 'Hàng rào trắng', lv: 1, cost: 6,  proc: 'fence' },
   wheelbarrow: { n: 'Xe cút kít',    lv: 2, cost: 25,  model: 'kk/decoration/props/wheelbarrow.gltf', fit: { size: 0.85 } },
   haysack:     { n: 'Bao lúa',       lv: 1, cost: 10,  model: 'kk/decoration/props/sack.gltf', fit: { size: 0.6 } },
   sheepdeco:   { n: 'Cừu non',       lv: 4, cost: 140, model: 'quat/Sheep.fbx', pet: true, fit: { h: 0.55 } },
@@ -182,10 +185,10 @@ export const DECOR = {
 
 // ---------- Chướng ngại vật (dọn bằng năng lượng) ----------
 export const OBSTACLES = {
-  bush:  { n: 'Bụi rậm',  model: 'nature/plant_bushLarge', fit: { size: 0.9 }, energy: 2, xp: 1 },
+  bush:  { n: 'Bụi rậm',  proc: 'bush', energy: 2, xp: 1 },
   rock:  { n: 'Tảng đá',  model: 'kk/decoration/nature/rock_single_B.gltf', fit: { size: 0.85 }, energy: 4, xp: 2 },
   stump: { n: 'Gốc cây',  model: 'nature/stump_round', fit: { size: 0.6 }, energy: 3, xp: 1 },
-  tree:  { n: 'Cây rừng', model: 'kk/decoration/nature/trees_A_medium.gltf', fit: { size: 0.98 }, energy: 5, xp: 2 },
+  tree:  { n: 'Cây rừng', proc: 'tree', energy: 5, xp: 2 },
   logs:  { n: 'Đống gỗ',  model: 'kk/decoration/props/resource_lumber.gltf', fit: { size: 0.8 }, energy: 3, xp: 1 },
 };
 
@@ -329,3 +332,12 @@ export const BUILDING_MODELS = {
   sweets:   { model: KK('market', 'yellow'), size: 1.9, rot: 0 },
   jammaker: { model: KK('home_B', 'yellow'), size: 1.6, rot: 0 },
 };
+
+// Đường gạch và luống hoa trang trí sẵn quanh nhà (kiểu Family Farm)
+export const STARTER_DECOR = [
+  ...[7, 8, 9, 10, 11].map(z => ['path', 12, z]),
+  ...[7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18].map(x => ['path', x, 12]),
+  ['path', 12, 12],
+  ['flowerbed', 11, 7], ['flowerbed', 13, 7], ['flowerbed', 9, 6], ['flowerbed', 10, 6],
+  ['flowerbed', 14, 7], ['flowerbed', 17, 7], ['flowerbed', 18, 8],
+];

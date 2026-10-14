@@ -44,7 +44,7 @@ function spawn() {
 
 function addView(v) {
   const p = PEOPLE.find(x => x.id === v.who);
-  const m = make(p.model, { h: 0.95 }); dressUp(m, v.who);
+  const m = make(p.model, { h: 1.15 }); dressUp(m, v.who);
   m.userData.oid = 'v:' + v.id;
   const spot = cellToWorld(v.x, v.z);
   m.position.copy(v.arrive ? DOCK() : spot);

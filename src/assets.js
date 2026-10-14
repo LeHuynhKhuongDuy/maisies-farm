@@ -27,8 +27,8 @@ export function allModelKeys() {
   Object.values(CROPS).forEach(c => { c.stages.forEach(m => s.add(m)); if (c.deco) s.add(c.deco); });
   Object.values(TREES).forEach(t => { s.add(t.model); s.add(t.fruit); });
   Object.values(PENS).forEach(p => s.add(p.animal));
-  Object.values(DECOR).forEach(d => s.add(d.model));
-  Object.values(OBSTACLES).forEach(o => s.add(o.model));
+  Object.values(DECOR).forEach(d => d.model && s.add(d.model));
+  Object.values(OBSTACLES).forEach(o => o.model && s.add(o.model));
   PEOPLE.forEach(p => s.add(p.model));
   Object.values(ADV_THEMES).forEach(t => t.obstacles.forEach(o => s.add(o[0])));
   ADVENTURES.forEach(a => s.add(a.goal.model));
@@ -180,7 +180,7 @@ export function iconList() {
   const list = Object.entries(ITEMS).map(([k, it]) => [k, { model: it.icon, tint: it.tint }]);
   Object.entries(TREES).forEach(([k, t]) => list.push(['tree:' + k, { model: t.model }]));
   Object.entries(PENS).forEach(([k, p]) => list.push(['animal:' + k, { model: p.animal, rotY: 0.4 }]));
-  Object.entries(DECOR).forEach(([k, d]) => list.push(['decor:' + k, { model: d.model, tint: d.tint, paint: d.paint, rotY: d.pet ? 0.4 : -0.5 }]));
+  Object.entries(DECOR).filter(([, d]) => !d.proc).forEach(([k, d]) => list.push(['decor:' + k, { model: d.model, tint: d.tint, paint: d.paint, rotY: d.pet ? 0.4 : -0.5 }]));
   PEOPLE.forEach(p => list.push(['face:' + p.id, { model: p.model, rotY: 0.25, face: true }]));
   list.push(['b:windmill', { model: 'town/windmill', rotY: -0.8 }]);
   list.push(['b:stall-red', { model: 'town/stall-red' }]);

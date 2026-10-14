@@ -1,5 +1,5 @@
 import './style.css';
-import { load, save, S } from './state.js';
+import { load, save, S, ensureStarterDecor } from './state.js';
 import { loadAll, renderIcons, iconList, ICONS } from './assets.js';
 import { initWorld, W, focusOn } from './world.js';
 import { VIEWS, addView, buildSpecials, updateSpecials, updateBounce, buildingIcons } from './entities.js';
@@ -7,7 +7,10 @@ import { initInput } from './input.js';
 import { initUI, tick, positionBubbles, placePendingPets } from './game.js';
 import { renderHUD, $ } from './ui.js';
 import { audioUnlock } from './sound.js';
-import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { advUpdate } from './adventure.js';
 import { initVisitors, visitorsUpdate } from './visitors.js';
 import { buildAmbient, updateAmbient } from './ambient.js';
@@ -27,6 +30,7 @@ async function boot() {
   initWorld(canvas);
   for (const o of S.objs) addView(o);
   ensureMarket(addView);
+  ensureStarterDecor(addView);
   neighborsHelpYou();
   buildSpecials();
   initVisitors();
@@ -44,16 +48,26 @@ async function boot() {
   if (import.meta.env.DEV) window.__game = { get S() { return S; }, W, ICONS };
   setInterval(tick, 250);
   tick();
-  // Nét viền hoạt hình quanh mọi vật (tắt khi máy yếu)
-  const outline = new OutlineEffect(W.renderer, { defaultThickness: 0.004, defaultColor: [0.16, 0.1, 0.06], defaultAlpha: 1 });
-  // không vẽ viền cho mây vô hình, mặt nước, hiệu ứng trong suốt và mặt đất
-  const noOutline = m => { if (m) (m.userData ||= {}).outlineParameters = { visible: false }; };
-  W.scene.traverse(o => {
-    if (!o.isMesh && !o.isSprite) return;
-    const ms = Array.isArray(o.material) ? o.material : [o.material];
-    if (o.name === 'ground' || ms.some(m => m.transparent || m.colorWrite === false) || o.geometry?.type?.includes('Plane') || o.geometry?.type?.includes('Shape')) ms.forEach(noOutline);
-  });
-  W.noOutline = noOutline;
+  // Hậu kỳ màu kiểu game di động: tươi, rực, vùng tối được nâng sáng (tắt khi máy yếu)
+  const composer = new EffectComposer(W.renderer);
+  composer.addPass(new RenderPass(W.scene, W.camera));
+  composer.addPass(new OutputPass()); // chỉnh màu sau khi đã ra không gian màu sRGB
+  composer.addPass(new ShaderPass({
+    uniforms: { tDiffuse: { value: null } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
+      void main(){
+        vec4 c = texture2D(tDiffuse, vUv);
+        float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+        c.rgb = mix(vec3(l), c.rgb, 1.32);                 // độ bão hoà
+        c.rgb = (c.rgb - 0.5) * 1.06 + 0.5;               // tương phản nhẹ
+        c.rgb += (1.0 - c.rgb) * 0.06;                    // nâng vùng tối cho trong trẻo
+        c.rgb *= vec3(1.03, 1.0, 0.97);                   // ấm hơn chút
+        gl_FragColor = vec4(clamp(c.rgb, 0.0, 1.0), c.a);
+      }`,
+  }));
+  const resizeComposer = () => { composer.setPixelRatio(W.renderer.getPixelRatio()); composer.setSize(window.innerWidth, window.innerHeight); };
+  resizeComposer(); window.addEventListener('resize', resizeComposer);
   let last = performance.now(), slow = 0, lowered = false;
   // Máy yếu: tự giảm độ nét và bóng đổ để chơi mượt hơn
   const lowerQuality = () => {
@@ -78,7 +92,7 @@ async function boot() {
     }
     W.waterTex.offset.x = (t * 0.01) % 1; W.waterTex.offset.y = (t * 0.006) % 1;
     positionBubbles();
-    if (outline && !lowered) outline.render(W.scene, W.camera); else W.renderer.render(W.scene, W.camera);
+    if (!lowered) composer.render(); else W.renderer.render(W.scene, W.camera);
     requestAnimationFrame(loop);
     if (lowered) W.renderer.shadowMap.autoUpdate = (Math.floor(t * 30) % 2) === 0; // bóng cập nhật 15 lần/giây
   };

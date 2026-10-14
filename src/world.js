@@ -7,11 +7,12 @@ export const worldToCell = (p) => [Math.floor(p.x + GRID / 2), Math.floor(p.z + 
 
 export const W = {
   renderer: null, scene: null, camera: null, target: new THREE.Vector3(0, 0, 2),
-  zoom: 1.35, clock: new THREE.Clock(), waterTex: null, pickables: [],
+  zoom: 1.7, clock: new THREE.Clock(), waterTex: null, pickables: [],
   mode: 'farm', farm: null, advPick: [], bounds: { x0: -14, x1: 14, z0: -14, z1: 18 },
 };
 
-const AZ = Math.PI / 4, EL = THREE.MathUtils.degToRad(38), DIST = 60;
+// Góc nhìn chéo 2:1 kiểu game nông trại (nâng 30°)
+const AZ = Math.PI / 4, EL = THREE.MathUtils.degToRad(30), DIST = 60;
 const VIEW = 15; // số đơn vị thế giới theo chiều ngắn của màn hình khi zoom = 1
 
 export function initWorld(canvas) {
@@ -33,13 +34,14 @@ export function initWorld(canvas) {
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 300);
   W.camera = cam;
 
-  scene.add(new THREE.HemisphereLight(0xfffaf0, 0x7a9a5a, 1.5));
-  const sun = new THREE.DirectionalLight(0xfff0d0, 2.6);
+  // Ánh sáng mềm, sáng đều: trời sáng nhiều, nắng vừa, bóng đổ nhạt
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xa8d878, 2.3));
+  const sun = new THREE.DirectionalLight(0xfff4dc, 1.7);
   sun.position.set(-14, 26, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   const sc = sun.shadow.camera; sc.left = -20; sc.right = 20; sc.top = 20; sc.bottom = -20; sc.near = 1; sc.far = 80;
-  sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02;
+  sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sun.shadow.intensity = 0.42; sun.shadow.radius = 3;
   scene.add(sun);
 
   W.farm = new THREE.Group(); scene.add(W.farm);
@@ -76,7 +78,7 @@ export function canvasTex(w, h, draw) {
 function buildIsland(scene) {
   // Biển
   W.waterTex = canvasTex(256, 256, (x, w, h) => {
-    x.fillStyle = '#3cc4d6'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#34cfe0'; x.fillRect(0, 0, w, h);
     x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 4; x.lineCap = 'round';
     for (let i = 0; i < 9; i++) {
       const px = (i * 97) % w, py = (i * 61) % h;
@@ -105,8 +107,8 @@ function buildIsland(scene) {
   // Cỏ dạng ô bàn cờ nhạt như sân cỏ
   // Cỏ vẽ tay: ô sân sáng tối xen kẽ, ngọn cỏ, hoa li ti
   const grassTex = canvasTex(256, 256, (x, w, h) => {
-    x.fillStyle = '#76c63c'; x.fillRect(0, 0, w, h);
-    x.fillStyle = '#80cf44'; x.fillRect(0, 0, w / 2, h / 2); x.fillRect(w / 2, h / 2, w / 2, h / 2);
+    x.fillStyle = '#86d94a'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#93e256'; x.fillRect(0, 0, w / 2, h / 2); x.fillRect(w / 2, h / 2, w / 2, h / 2);
     for (let i = 0; i < 900; i++) {
       const px = Math.random() * w, py = Math.random() * h, l = 3 + Math.random() * 5;
       x.strokeStyle = Math.random() < 0.5 ? 'rgba(45,110,20,.35)' : 'rgba(170,230,110,.4)'; x.lineWidth = 1.4;
@@ -114,7 +116,7 @@ function buildIsland(scene) {
     }
     for (let i = 0; i < 26; i++) { x.fillStyle = ['#fff7d6', '#ffe066', '#ffd0e8'][i % 3]; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 1.8, 0, 7); x.fill(); }
   });
-  grassTex.repeat.set(0.5, 0.5);
+  grassTex.repeat.set(0.5, 0.5); // mỗi ô lưới một ô sáng/tối -> thành hình thoi khi nhìn chéo
   const grass = slab(GRID + 0.4, 1.6, 0.5, new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }), 0);
   grass.name = 'ground';
   W.farm.add(grass);

@@ -113,7 +113,7 @@ function buildScene(A) {
     g.add(ring); cur.rings.push([i, ring]);
   });
   // Maisie đi phiêu lưu
-  const maisie = make('chars/character-female-a', { h: 0.95 }); dressUp(maisie, 'maisie');
+  const maisie = make('chars/character-female-a', { h: 1.15 }); dressUp(maisie, 'maisie');
   maisie.position.copy(cellPos(map, map.cx, A.h - 1));
   maisie.userData.goal = maisie.position.clone(); maisie.userData.oid = 'a:maisie';
   maisie.rotation.y = Math.PI;
