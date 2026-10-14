@@ -20,8 +20,9 @@ export function initWorld(canvas) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  // Neutral giữ màu tươi (ACES làm màu bị xỉn và ngả xanh)
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.0;
   W.renderer = renderer;
 
   const scene = new THREE.Scene();
@@ -32,8 +33,8 @@ export function initWorld(canvas) {
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 300);
   W.camera = cam;
 
-  scene.add(new THREE.HemisphereLight(0xfff7e6, 0x6aa0a8, 1.6));
-  const sun = new THREE.DirectionalLight(0xfff1d6, 2.4);
+  scene.add(new THREE.HemisphereLight(0xfffaf0, 0x7a9a5a, 1.5));
+  const sun = new THREE.DirectionalLight(0xfff0d0, 2.6);
   sun.position.set(-14, 26, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -102,13 +103,18 @@ function buildIsland(scene) {
   W.farm.add(slab(GRID + 4.4, 3, 0.8, W.sandMat, -0.12));
 
   // Cỏ dạng ô bàn cờ nhạt như sân cỏ
-  const grassTex = canvasTex(128, 128, (x, w, h) => {
-    x.fillStyle = '#8fd052'; x.fillRect(0, 0, w, h);
-    x.fillStyle = '#99d75c'; x.fillRect(0, 0, w / 2, h / 2); x.fillRect(w / 2, h / 2, w / 2, h / 2);
-    for (let i = 0; i < 120; i++) { x.fillStyle = 'rgba(60,120,30,.18)'; x.fillRect(Math.random() * w, Math.random() * h, 1.5, 4); }
+  // Cỏ vẽ tay: ô sân sáng tối xen kẽ, ngọn cỏ, hoa li ti
+  const grassTex = canvasTex(256, 256, (x, w, h) => {
+    x.fillStyle = '#76c63c'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#80cf44'; x.fillRect(0, 0, w / 2, h / 2); x.fillRect(w / 2, h / 2, w / 2, h / 2);
+    for (let i = 0; i < 900; i++) {
+      const px = Math.random() * w, py = Math.random() * h, l = 3 + Math.random() * 5;
+      x.strokeStyle = Math.random() < 0.5 ? 'rgba(45,110,20,.35)' : 'rgba(170,230,110,.4)'; x.lineWidth = 1.4;
+      x.beginPath(); x.moveTo(px, py); x.lineTo(px + (Math.random() - 0.5) * 3, py - l); x.stroke();
+    }
+    for (let i = 0; i < 26; i++) { x.fillStyle = ['#fff7d6', '#ffe066', '#ffd0e8'][i % 3]; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 1.8, 0, 7); x.fill(); }
   });
   grassTex.repeat.set(0.5, 0.5);
-  grassTex.magFilter = THREE.NearestFilter;
   const grass = slab(GRID + 0.4, 1.6, 0.5, new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }), 0);
   grass.name = 'ground';
   W.farm.add(grass);

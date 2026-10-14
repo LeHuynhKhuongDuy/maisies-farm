@@ -7,6 +7,7 @@ import { initInput } from './input.js';
 import { initUI, tick, positionBubbles, placePendingPets } from './game.js';
 import { renderHUD, $ } from './ui.js';
 import { audioUnlock } from './sound.js';
+import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { advUpdate } from './adventure.js';
 import { initVisitors, visitorsUpdate } from './visitors.js';
 import { buildAmbient, updateAmbient } from './ambient.js';
@@ -43,6 +44,16 @@ async function boot() {
   if (import.meta.env.DEV) window.__game = { get S() { return S; }, W };
   setInterval(tick, 250);
   tick();
+  // Nét viền hoạt hình quanh mọi vật (tắt khi máy yếu)
+  const outline = new OutlineEffect(W.renderer, { defaultThickness: 0.004, defaultColor: [0.16, 0.1, 0.06], defaultAlpha: 1 });
+  // không vẽ viền cho mây vô hình, mặt nước, hiệu ứng trong suốt và mặt đất
+  const noOutline = m => { if (m) (m.userData ||= {}).outlineParameters = { visible: false }; };
+  W.scene.traverse(o => {
+    if (!o.isMesh && !o.isSprite) return;
+    const ms = Array.isArray(o.material) ? o.material : [o.material];
+    if (o.name === 'ground' || ms.some(m => m.transparent || m.colorWrite === false) || o.geometry?.type?.includes('Plane') || o.geometry?.type?.includes('Shape')) ms.forEach(noOutline);
+  });
+  W.noOutline = noOutline;
   let last = performance.now(), slow = 0, lowered = false;
   // Máy yếu: tự giảm độ nét và bóng đổ để chơi mượt hơn
   const lowerQuality = () => {
@@ -67,7 +78,7 @@ async function boot() {
     }
     W.waterTex.offset.x = (t * 0.01) % 1; W.waterTex.offset.y = (t * 0.006) % 1;
     positionBubbles();
-    W.renderer.render(W.scene, W.camera);
+    if (outline && !lowered) outline.render(W.scene, W.camera); else W.renderer.render(W.scene, W.camera);
     requestAnimationFrame(loop);
     if (lowered) W.renderer.shadowMap.autoUpdate = (Math.floor(t * 30) % 2) === 0; // bóng cập nhật 15 lần/giây
   };

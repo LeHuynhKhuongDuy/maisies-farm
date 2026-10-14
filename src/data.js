@@ -90,8 +90,8 @@ export const TREES = {
 // ---------- Chuồng thú (3x3) ----------
 export const PENS = {
   coop:   { n: 'Chuồng gà', lv: 1, cost: 80,  animal: 'pets/animal-chick', an: 'Gà',  feed: 'chickenfeed', prod: 'egg',      t: 60,  xp: 1, max: 6, animalCost: 30 },
-  cowpen: { n: 'Chuồng bò', lv: 4, cost: 200, animal: 'pets/animal-cow',   an: 'Bò',  feed: 'cowfeed',     prod: 'milk',     t: 120, xp: 2, max: 5, animalCost: 80 },
-  pigpen: { n: 'Chuồng heo',lv: 7, cost: 320, animal: 'pets/animal-pig',   an: 'Heo', feed: 'pigfeed',     prod: 'mushroom', t: 150, xp: 3, max: 5, animalCost: 120 },
+  cowpen: { n: 'Chuồng bò', lv: 4, cost: 200, animal: 'quat/Cow.fbx',   an: 'Bò',  feed: 'cowfeed',     prod: 'milk',     t: 120, xp: 2, max: 5, animalCost: 80 },
+  pigpen: { n: 'Chuồng heo',lv: 7, cost: 320, animal: 'quat/Pig.fbx',   an: 'Heo', feed: 'pigfeed',     prod: 'mushroom', t: 150, xp: 3, max: 5, animalCost: 120 },
   beehive:{ n: 'Vườn ong',  lv: 7, cost: 280, animal: 'pets/animal-bee',   an: 'Ong', feed: 'sunflower',   prod: 'honey',    t: 120, xp: 3, max: 4, animalCost: 100, fly: true },
 };
 
@@ -155,7 +155,13 @@ export const DECOR = {
   bench:       { n: 'Ghế dài',       lv: 2, cost: 35,  model: 'town/stall-bench', fit: { size: 0.9 } },
   mushroomdeco:{ n: 'Nấm đỏ',        lv: 3, cost: 20,  model: 'nature/mushroom_red', fit: { size: 0.5 } },
   chest:       { n: 'Rương báu',     lv: 3, cost: 60,  model: 'pirate/chest', fit: { size: 0.65 } },
-  dog:         { n: 'Cún con',       lv: 3, cost: 120, model: 'pets/animal-dog', pet: true, fit: { h: 0.6 } },
+  dog:         { n: 'Cún con',       lv: 3, cost: 120, model: 'quat/Pug.fbx', pet: true, fit: { h: 0.45 } },
+  well:        { n: 'Giếng nước',    lv: 2, cost: 45,  model: 'kk/buildings/blue/building_well_blue.gltf', fit: { size: 0.95 } },
+  wheelbarrow: { n: 'Xe cút kít',    lv: 2, cost: 25,  model: 'kk/decoration/props/wheelbarrow.gltf', fit: { size: 0.85 } },
+  haysack:     { n: 'Bao lúa',       lv: 1, cost: 10,  model: 'kk/decoration/props/sack.gltf', fit: { size: 0.6 } },
+  sheepdeco:   { n: 'Cừu non',       lv: 4, cost: 140, model: 'quat/Sheep.fbx', pet: true, fit: { h: 0.55 } },
+  horse:       { n: 'Ngựa con',      lv: 6, cost: 260, model: 'quat/Horse.fbx', pet: true, fit: { h: 0.95 } },
+  llama:       { n: 'Lạc đà Alpaca', lv: 8, cost: 300, model: 'quat/Llama.fbx', pet: true, fit: { h: 0.9 } },
   cat:         { n: 'Mèo con',       lv: 3, cost: 120, model: 'pets/animal-cat', pet: true, fit: { h: 0.6 } },
   bunny:       { n: 'Thỏ trắng',     lv: 4, cost: 150, model: 'pets/animal-bunny', pet: true, fit: { h: 0.65 } },
   parrot:      { n: 'Vẹt',           lv: 5, cost: 180, model: 'pets/animal-parrot', pet: true, fit: { h: 0.6 } },
@@ -177,10 +183,10 @@ export const DECOR = {
 // ---------- Chướng ngại vật (dọn bằng năng lượng) ----------
 export const OBSTACLES = {
   bush:  { n: 'Bụi rậm',  model: 'nature/plant_bushLarge', fit: { size: 0.9 }, energy: 2, xp: 1 },
-  rock:  { n: 'Tảng đá',  model: 'nature/rock_largeA', fit: { size: 0.95 }, energy: 4, xp: 2 },
-  stump: { n: 'Gốc cây',  model: 'nature/stump_old', fit: { size: 0.65 }, energy: 3, xp: 1 },
-  tree:  { n: 'Cây rừng', model: 'nature/tree_fat', fit: { h: 1.7 }, energy: 5, xp: 2 },
-  logs:  { n: 'Đống gỗ',  model: 'nature/log_stack', fit: { size: 0.85 }, energy: 3, xp: 1 },
+  rock:  { n: 'Tảng đá',  model: 'kk/decoration/nature/rock_single_B.gltf', fit: { size: 0.85 }, energy: 4, xp: 2 },
+  stump: { n: 'Gốc cây',  model: 'nature/stump_round', fit: { size: 0.6 }, energy: 3, xp: 1 },
+  tree:  { n: 'Cây rừng', model: 'kk/decoration/nature/trees_A_medium.gltf', fit: { size: 0.98 }, energy: 5, xp: 2 },
+  logs:  { n: 'Đống gỗ',  model: 'kk/decoration/props/resource_lumber.gltf', fit: { size: 0.8 }, energy: 3, xp: 1 },
 };
 
 // Giá mua ô ruộng thứ n (n tính từ 0)
@@ -247,7 +253,7 @@ export const ADV_THEMES = {
     ground: 0x9ed65e, ground2: 0x8cc951, edge: 0x6aa83c,
     obstacles: [
       ['nature/plant_bushLarge', { size: 0.95 }, 1, 4], ['nature/tree_palmTall', { h: 1.8 }, 3, 2],
-      ['nature/tree_fat', { h: 1.7 }, 3, 2], ['nature/rock_largeA', { size: 0.95 }, 2, 2],
+      ['kk/decoration/nature/trees_A_medium.gltf', { size: 0.98 }, 3, 2], ['kk/decoration/nature/rock_single_B.gltf', { size: 0.85 }, 2, 2],
       ['nature/stump_old', { size: 0.65 }, 1, 2], ['nature/log_stack', { size: 0.85 }, 2, 2],
       ['nature/mushroom_red', { size: 0.5 }, 1, 1],
     ],
@@ -306,4 +312,20 @@ export const EVENT = {
     { at: 20, coins: 80 }, { at: 50, gems: 3 }, { at: 90, coins: 200 },
     { at: 140, decor: 'sandcastle' }, { at: 200, gems: 10 }, { at: 280, decor: 'goldboat' },
   ],
+};
+
+// Nhà và nhà máy dùng bộ KayKit Medieval Hexagon (CC0)
+const KK = (b, c) => `kk/buildings/${c}/building_${b}_${c}.gltf`;
+export const BUILDING_MODELS = {
+  house:    { model: KK('home_B', 'blue'), size: 2.5, rot: 0 },
+  barn:     { model: KK('home_A', 'red'), size: 1.75, rot: 0 },
+  market:   { model: KK('market', 'red'), size: 1.9, rot: 0 },
+  feedmill: { model: KK('windmill', 'yellow'), size: 2.1, rot: 0, spin: 'fan', axis: 'z' },
+  bakery:   { model: KK('blacksmith', 'red'), size: 1.85, rot: 0 },
+  dairy:    { model: KK('watermill', 'blue'), size: 1.75, rot: 0, spin: 'wheel', axis: 'x' },
+  juicebar: { model: KK('tavern', 'green'), size: 1.75, rot: 0 },
+  seafood:  { model: KK('home_A', 'blue'), size: 1.6, rot: 0 },
+  kitchen:  { model: KK('home_A', 'green'), size: 1.6, rot: 0 },
+  sweets:   { model: KK('market', 'yellow'), size: 1.9, rot: 0 },
+  jammaker: { model: KK('home_B', 'yellow'), size: 1.6, rot: 0 },
 };

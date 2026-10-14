@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { make, play } from './assets.js';
 import { W, cellToWorld } from './world.js';
 import { S, footprint, now, rnd } from './state.js';
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE } from './data.js';
+import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS } from './data.js';
 
 export const VIEWS = new Map();
 const mats = {};
@@ -154,7 +154,7 @@ function penView(o) {
   const herd = [];
   const sync = () => {
     while (herd.length < o.animals.length) {
-      const a = make(P.animal, { h: o.t === 'coop' ? 0.5 : o.t === 'beehive' ? 0.35 : 0.7 });
+      const a = make(P.animal, { h: o.t === 'coop' ? 0.5 : o.t === 'beehive' ? 0.35 : o.t === 'cowpen' ? 0.85 : 0.6 });
       a.position.set((Math.random() - 0.5) * 1.6, 0.03, (Math.random() - 0.5) * 1.4 + 0.2);
       a.userData.goal = a.position.clone(); a.userData.wait = Math.random() * 3;
       root.add(a); herd.push(a);
@@ -186,96 +186,77 @@ function penView(o) {
   };
 }
 
+// Nhà KayKit: trả về mô hình + bộ phận quay (cánh quạt, bánh xe) nếu có
+function kkBuilding(key) {
+  const B = BUILDING_MODELS[key];
+  const m = make(B.model, { size: B.size });
+  m.rotation.y = B.rot || 0;
+  let spin = null;
+  if (B.spin) m.traverse(o => { if (!spin && o.name.includes(B.spin)) spin = o; });
+  return { m, spin, axis: B.axis };
+}
+function prop(root, key, opts, x, z, ry = 0) { const p = make(key, opts); p.position.set(x, 0, z); p.rotation.y = ry; root.add(p); return p; }
+
+const FAC_PROPS = {
+  feedmill: r => { prop(r, 'kk/decoration/props/sack.gltf', { size: 0.4 }, 0.7, 0.75); prop(r, 'kk/decoration/props/sack.gltf', { size: 0.35 }, 0.35, 0.85, 1); },
+  bakery: r => { prop(r, 'food/loaf', { size: 0.3 }, 0.75, 0.8); },
+  dairy: r => { prop(r, 'kk/decoration/props/bucket_water.gltf', { size: 0.3 }, -0.75, 0.8); prop(r, 'food/carton', { h: 0.3 }, -0.45, 0.85); },
+  juicebar: r => { prop(r, 'kk/decoration/props/crate_open.gltf', { size: 0.4 }, 0.75, 0.8); prop(r, 'food/orange', { size: 0.15 }, 0.75, 0.8).position.y = 0.2; },
+  seafood: r => { prop(r, 'survival/campfire-pit', { size: 0.45 }, 0.7, 0.75); prop(r, 'food/fish', { size: 0.3 }, -0.65, 0.8); },
+  kitchen: r => { prop(r, 'survival/campfire-pit', { size: 0.45 }, 0.7, 0.75); prop(r, 'survival/workbench', { size: 0.5 }, -0.65, 0.75); },
+  sweets: r => { prop(r, 'food/cupcake', { size: 0.3 }, 0.75, 0.85); prop(r, 'food/donut-sprinkles', { size: 0.28 }, -0.7, 0.85); },
+  jammaker: r => { prop(r, 'food/honey', { size: 0.28, tint: 0xff7a7a }, 0.7, 0.8); prop(r, 'kk/decoration/props/barrel.gltf', { size: 0.4 }, -0.7, 0.75); },
+};
+const SMOKE_AT = { bakery: [0.35, 1.7, -0.35], kitchen: [0.7, 0.3, 0.75], seafood: [0.7, 0.3, 0.75], sweets: [0, 1.5, 0], jammaker: [-0.3, 1.9, -0.3] };
+
 function facView(o) {
   const root = new THREE.Group();
-  let spin = null, puff = null;
-  const base = box(1.9, 0.06, 1.9, 0xd8c39a); root.add(base);
-  switch (o.t) {
-    case 'feedmill': {
-      const h = house(1, 1, { stone: true, floors: 2, roof: 'town/roof-point', roofH: 1, roofTint: 0xf08a3c });
-      h.scale.set(1.25, 1, 1.25); root.add(h);
-      spin = spinner('town/windmill', 2.6); spin.position.set(0.82, 1.7, 0); root.add(spin);
-      const sack = make('food/bag', { size: 0.35, tint: 0xf2c84b }); sack.position.set(0.3, 0, 0.75); root.add(sack);
-      break;
-    }
-    case 'bakery': {
-      const h = house(2, 2, { roofTint: 0xe8604c }); h.scale.setScalar(0.85); root.add(h);
-      const ch = make('town/chimney', { s: 1 }); ch.position.set(-0.6, 1.4, -0.3); ch.scale.setScalar(0.8); root.add(ch);
-      puff = smoke(); puff.position.set(-0.45, 2.3, -0.3); root.add(puff);
-      const loaf = make('food/loaf', { size: 0.35 }); loaf.position.set(0.6, 0, 0.85); root.add(loaf);
-      break;
-    }
-    case 'dairy': {
-      const h = house(2, 2, { stone: true, roofTint: 0x4f9fe8 }); h.scale.setScalar(0.85); root.add(h);
-      spin = spinner('town/watermill', 1.5); spin.position.set(0.95, 0.75, 0.2); root.add(spin);
-      const milk = make('food/carton', { h: 0.35 }); milk.position.set(-0.6, 0, 0.85); root.add(milk);
-      break;
-    }
-    case 'juicebar': {
-      const st = make('town/stall-green', { size: 1.5 }); root.add(st);
-      const b1 = make('pirate/barrel', { size: 0.45 }); b1.position.set(-0.7, 0, 0.65); root.add(b1);
-      const cr = make('pirate/crate', { size: 0.5 }); cr.position.set(0.65, 0, 0.7); root.add(cr);
-      const fr = make('food/orange', { size: 0.16 }); fr.position.set(0.65, 0.42, 0.7); root.add(fr);
-      break;
-    }
-    case 'seafood': {
-      const h = house(2, 2, { roofTint: 0x2fb8b0 }); h.scale.setScalar(0.85); root.add(h);
-      const fire = make('survival/campfire-pit', { size: 0.5 }); fire.position.set(0.65, 0, 0.8); root.add(fire);
-      const f = make('food/fish', { size: 0.35 }); f.position.set(-0.6, 0, 0.85); root.add(f);
-      puff = smoke(); puff.position.set(0.65, 0.25, 0.8); root.add(puff);
-      break;
-    }
-    case 'sweets': {
-      const h = house(2, 2, { roofTint: 0xff8ad8 }); h.scale.setScalar(0.85); root.add(h);
-      const ck = make('food/cupcake', { size: 0.35 }); ck.position.set(0.6, 0, 0.85); root.add(ck);
-      const dn = make('food/donut-sprinkles', { size: 0.3 }); dn.position.set(-0.6, 0, 0.85); root.add(dn);
-      puff = smoke(); puff.position.set(-0.45, 2.1, -0.3); root.add(puff);
-      break;
-    }
-    case 'jammaker': {
-      const h = house(2, 2, { stone: true, roofTint: 0x9a6cff }); h.scale.setScalar(0.85); root.add(h);
-      const j = make('food/honey', { size: 0.3, tint: 0xff7a7a }); j.position.set(0.6, 0, 0.85); root.add(j);
-      const b = make('pirate/barrel', { size: 0.45 }); b.position.set(-0.65, 0, 0.75); root.add(b);
-      break;
-    }
-    case 'kitchen': {
-      const st = make('town/stall-red', { size: 1.4 }); st.position.set(-0.2, 0, -0.2); root.add(st);
-      const fire = make('survival/campfire-pit', { size: 0.6 }); fire.position.set(0.6, 0, 0.6); root.add(fire);
-      const wb = make('survival/workbench', { size: 0.7 }); wb.position.set(-0.6, 0, 0.65); root.add(wb);
-      puff = smoke(); puff.position.set(0.6, 0.3, 0.6); root.add(puff);
-      break;
-    }
-  }
+  root.add(yardPatch(1.9));
+  const { m, spin, axis } = kkBuilding(o.t); root.add(m);
+  FAC_PROPS[o.t]?.(root);
+  let puff = null;
+  if (SMOKE_AT[o.t]) { puff = smoke(); puff.position.set(...SMOKE_AT[o.t]); root.add(puff); }
   return {
     root,
     refresh(t) { if (puff) puff.visible = o.jobs.some(j => t < j.e && t >= j.s); },
     update(t, dt) {
       const working = o.jobs.some(j => t < j.e && t >= j.s);
-      if (spin) spin.rotation.x += dt * (working ? 1.6 : 0.15);
+      if (spin) spin.rotation[axis] += dt * (working ? 2.2 : 0.3);
       if (puff?.visible) puff.userData.tick(t);
     },
   };
 }
 
+// Sân đất nện dưới chân công trình
+let yardTex = null;
+function yardPatch(size) {
+  if (!yardTex) {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    x.fillStyle = '#d9b57a'; x.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 220; i++) { x.fillStyle = `rgba(${120 + Math.random() * 60},${80 + Math.random() * 40},40,.25)`; x.beginPath(); x.arc(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 2.5, 0, 7); x.fill(); }
+    yardTex = new THREE.CanvasTexture(c); yardTex.colorSpace = THREE.SRGBColorSpace;
+  }
+  const g = new THREE.Mesh(new THREE.CylinderGeometry(size * 0.62, size * 0.66, 0.06, 28), new THREE.MeshStandardMaterial({ map: yardTex, roughness: 1 }));
+  g.position.y = 0.0; g.scale.z = 0.92; g.receiveShadow = true;
+  return g;
+}
+
 function mainHouseView() {
   const root = new THREE.Group();
-  const yard = box(2.95, 0.05, 2.95, 0xd8c39a); root.add(yard);
-  const h = house(3, 2, { stone: true, floors: 1, roofTint: 0x3f9be0, roofH: 1.5 }); h.position.z = -0.45; root.add(h);
-  const up = house(2, 1, { floors: 1, roof: 'town/roof-gable', roofH: 1, roofTint: 0x3f9be0 }); up.scale.setScalar(0.8); up.position.set(-0.4, 1.3, -0.45); root.add(up);
-  const ch = make('town/chimney', { s: 1 }); ch.position.set(0.7, 1.2, -0.9); root.add(ch);
-  const l1 = make('town/lantern', { h: 0.9 }); l1.position.set(-1.2, 0, 1.05); root.add(l1);
-  const l2 = make('town/lantern', { h: 0.9 }); l2.position.set(1.2, 0, 1.05); root.add(l2);
-  const fl = make('nature/flower_redA', { size: 0.35 }); fl.position.set(-0.6, 0, 1.0); root.add(fl);
-  const fy = make('nature/flower_yellowA', { size: 0.35 }); fy.position.set(0.6, 0, 1.0); root.add(fy);
+  root.add(yardPatch(2.9));
+  const { m } = kkBuilding('house'); m.position.z = -0.2; root.add(m);
+  const l1 = make('town/lantern', { h: 0.9 }); l1.position.set(-1.25, 0, 1.1); root.add(l1);
+  const l2 = make('town/lantern', { h: 0.9 }); l2.position.set(1.25, 0, 1.1); root.add(l2);
+  [[-0.8, 1.15, 'nature/flower_redA'], [0.8, 1.15, 'nature/flower_yellowA'], [-1.2, -0.9, 'nature/plant_bushLarge'], [1.25, -0.8, 'nature/flower_purpleA']].forEach(([x, z, k]) => prop(root, k, { size: 0.4 }, x, z));
   return { root };
 }
 
 function barnView() {
   const root = new THREE.Group();
-  const yard = box(1.95, 0.05, 1.95, 0xd8c39a); root.add(yard);
-  const h = house(2, 2, { wallTint: 0xff8a7a, roofTint: 0xfff3e0, roofH: 1.3 }); h.scale.setScalar(0.9); root.add(h);
-  const hay = make('survival/resource-wood', { size: 0.45 }); hay.position.set(0.7, 0, 0.8); root.add(hay);
-  const cr = make('pirate/crate', { size: 0.45 }); cr.position.set(-0.7, 0, 0.8); root.add(cr);
+  root.add(yardPatch(1.95));
+  const { m } = kkBuilding('barn'); m.position.z = -0.1; root.add(m);
+  prop(root, 'kk/decoration/props/sack.gltf', { size: 0.4 }, 0.72, 0.78);
+  prop(root, 'kk/decoration/props/crate_A_big.gltf', { size: 0.38 }, -0.72, 0.78, 0.4);
   return { root };
 }
 
@@ -294,11 +275,11 @@ function boardView() {
 // Quầy chợ: hàng đang bày hiện lên mặt sạp
 function marketView(o) {
   const root = new THREE.Group();
-  const base = box(1.9, 0.05, 1.9, 0xd8c39a); root.add(base);
-  const st = make('town/stall-red', { size: 1.5 }); st.position.set(0, 0, -0.15); root.add(st);
-  const c1 = make('pirate/crate', { size: 0.45 }); c1.position.set(-0.7, 0, 0.7); root.add(c1);
-  const b1 = make('pirate/barrel', { size: 0.4 }); b1.position.set(0.72, 0, 0.7); root.add(b1);
-  const goods = new THREE.Group(); goods.position.set(0, 0.72, 0.15); root.add(goods);
+  root.add(yardPatch(1.9));
+  const { m } = kkBuilding('market'); root.add(m);
+  const c1 = make('kk/decoration/props/crate_A_big.gltf', { size: 0.35 }); c1.position.set(-0.75, 0, 0.8); root.add(c1);
+  const b1 = make('kk/decoration/props/barrel.gltf', { size: 0.32 }); b1.position.set(0.78, 0, 0.8); root.add(b1);
+  const goods = new THREE.Group(); goods.position.set(0, 0.62, 0.55); root.add(goods);
   let sig = '';
   return {
     root,

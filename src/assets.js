@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE, ADV_THEMES, ADVENTURES, COLLECTIONS, EVENT } from './data.js';
+import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE, ADV_THEMES, ADVENTURES, COLLECTIONS, EVENT, BUILDING_MODELS } from './data.js';
 
 const BASE = import.meta.env.BASE_URL + 'models/';
 const cache = new Map(); // key -> gltf
@@ -17,7 +18,7 @@ const PARTS = [
   'pirate/structure-platform-dock', 'pirate/structure-platform-dock-small', 'pirate/ship-small', 'pirate/crate',
   'pirate/barrel', 'pirate/palm-straight', 'pirate/rocks-sand-a', 'pirate/flag',
   'survival/campfire-pit', 'survival/workbench', 'survival/barrel', 'survival/box-large', 'survival/bucket',
-  'survival/resource-wood', 'survival/tool-axe', 'pirate/tool-paddle', 'pirate/structure-platform-dock-small',
+  'survival/resource-wood', 'survival/tool-axe', 'nature/stump_round', 'pirate/tool-paddle', 'pirate/structure-platform-dock-small',
 ];
 
 export function allModelKeys() {
@@ -33,23 +34,48 @@ export function allModelKeys() {
   ADVENTURES.forEach(a => s.add(a.goal.model));
   COLLECTIONS.forEach(c => c.pieces.forEach(p => s.add(p[2])));
   s.add(EVENT.icon);
+  Object.values(BUILDING_MODELS).forEach(b => s.add(b.model));
+  ['kk/decoration/props/sack.gltf', 'kk/decoration/props/crate_A_big.gltf', 'kk/decoration/props/barrel.gltf', 'kk/decoration/props/crate_open.gltf', 'kk/decoration/props/bucket_water.gltf', 'kk/decoration/nature/trees_A_small.gltf', 'kk/decoration/nature/rock_single_D.gltf'].forEach(k => s.add(k));
   return [...s];
+}
+
+// Bộ Nature của Kenney có lá màu xanh ngọc; đổi sang xanh lá tươi cho giống game nông trại
+const hsl = {};
+function greener(m) {
+  m.color.getHSL(hsl);
+  if (hsl.h > 0.36 && hsl.h < 0.56 && hsl.s > 0.15) m.color.setHSL(0.27 + (hsl.h - 0.46) * 0.3, Math.min(1, hsl.s * 1.15), hsl.l * 0.92);
+}
+// Đổi vật liệu Phong (FBX) sang Standard để ánh sáng giống phần còn lại
+function toStandard(m) {
+  if (!m.isMeshPhongMaterial) return m;
+  return new THREE.MeshStandardMaterial({ color: m.color, map: m.map, roughness: 0.85, metalness: 0 });
 }
 
 export async function loadAll(onProgress) {
   const keys = allModelKeys();
-  const loader = new GLTFLoader();
+  const gl = new GLTFLoader(), fbx = new FBXLoader();
   let done = 0;
-  await Promise.all(keys.map(k => new Promise(res => {
-    loader.load(BASE + k + '.glb', g => {
-      g.scene.traverse(o => {
-        if (!o.isMesh) return;
-        o.castShadow = true; o.receiveShadow = true;
+  const finish = (k, g) => {
+    g.scene.traverse(o => {
+      if (!o.isMesh) return;
+      o.castShadow = true; o.receiveShadow = true;
+      if (o.isSkinnedMesh) o.frustumCulled = false;
+      const mats = (Array.isArray(o.material) ? o.material : [o.material]).map(toStandard);
+      mats.forEach(m => {
         // nhiều mô hình không ghi độ kim loại -> mặc định là kim loại và bị tối; chuyển về vật liệu thường
-        (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.metalness = 0; m.roughness = Math.max(m.roughness ?? 1, 0.75); });
+        m.metalness = 0; m.roughness = Math.max(m.roughness ?? 1, 0.75); m.transparent = false; m.opacity = 1;
+        if (k.startsWith('nature/')) greener(m);
       });
-      cache.set(k, g); done++; onProgress?.(done / keys.length); res();
-    }, undefined, err => { console.warn('Không tải được', k, err); done++; onProgress?.(done / keys.length); res(); });
+      o.material = Array.isArray(o.material) ? mats : mats[0];
+    });
+    // tên hoạt ảnh "Armature|Walk" -> "walk"
+    g.animations.forEach(a => { a.name = a.name.split('|').pop().toLowerCase(); });
+    cache.set(k, g); done++; onProgress?.(done / keys.length);
+  };
+  await Promise.all(keys.map(k => new Promise(res => {
+    const fail = err => { console.warn('Không tải được', k, err); done++; onProgress?.(done / keys.length); res(); };
+    if (k.endsWith('.fbx')) fbx.load(BASE + k, o => { finish(k, { scene: o, animations: o.animations }); res(); }, undefined, fail);
+    else gl.load(BASE + k + (/\.gltf$/.test(k) ? '' : '.glb'), g => { finish(k, g); res(); }, undefined, fail);
   })));
 }
 
@@ -84,9 +110,13 @@ export function make(key, opts = {}) {
   return holder;
 }
 
-export function play(holder, name, fade = 0.2) {
+const ALIAS = { dance: ['dance', 'jump', 'idle'], eat: ['eat', 'idle'], walk: ['walk', 'walkslow', 'run', 'idle'],
+  'emote-yes': ['emote-yes', 'jump', 'idle'], 'interact-right': ['interact-right', 'idle'] };
+export function play(holder, want, fade = 0.2) {
   const { mixer, clips } = holder.userData;
-  if (!mixer || !clips[name] || holder.userData.cur === name) return;
+  if (!mixer) return;
+  const name = (ALIAS[want] || [want, 'idle']).find(n => clips[n]);
+  if (!name || holder.userData.cur === name) return;
   const next = mixer.clipAction(clips[name]);
   const prev = holder.userData.curAction;
   next.reset().play();
