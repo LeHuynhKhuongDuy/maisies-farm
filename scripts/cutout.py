@@ -39,6 +39,22 @@ while q:
         if 0 <= ny < h and 0 <= nx < w and not bg[ny, nx] and bgish[ny, nx]:
             bg[ny, nx] = True; q.append((ny, nx))
 
+# Tuỳ chọn 'holes': xoá cả khe trắng bị bao kín (vd. giữa các nhánh cây) nếu đủ lớn và rất trắng
+if 'holes' in sys.argv[5:]:
+    white = (mn > 240) & ((mx - mn) < 12) & ~bg
+    seen = np.zeros((h, w), bool)
+    for sy, sx in zip(*np.nonzero(white)):
+        if seen[sy, sx]: continue
+        comp = []; dq = deque([(sy, sx)]); seen[sy, sx] = True
+        while dq:
+            y, x = dq.popleft(); comp.append((y, x))
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < h and 0 <= nx < w and white[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True; dq.append((ny, nx))
+        if len(comp) > 250:
+            for y, x in comp: bg[y, x] = True
+
 alpha = np.where(bg, 0, 255).astype(np.uint8)
 # Mép mềm: làm mờ nhẹ kênh alpha rồi siết lại để không lem viền trắng
 am = Image.fromarray(alpha).filter(ImageFilter.GaussianBlur(1.2))
