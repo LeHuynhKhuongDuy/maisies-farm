@@ -206,7 +206,7 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 }
 
 /* ---------- Hộp thoại ---------- */
-#modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: calc(var(--st) + 10px) 10px calc(var(--sb) + 10px); }
+#modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: calc(var(--st) + 18px) 10px calc(var(--sb) + 10px); }
 .scrim { position: absolute; inset: 0; background: rgba(20,40,60,.5); }
 .sheet { position: relative; width: min(640px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: 30px; background: var(--cream);
   border: 5px solid var(--white); box-shadow: 0 6px 0 var(--edge-d), 0 20px 50px rgba(0,0,0,.35); animation: pop-in .22s ease-out; }
@@ -342,8 +342,10 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
   .giftbtn { left: calc(var(--sl) + 150px); bottom: calc(var(--sb) + 12px); width: 56px; height: 56px; font-size: 32px; }
   .rbtn { width: 58px; height: 58px; }
   .rbtn.big { width: 70px; height: 70px; }
-  .sheet { max-height: 100%; }
   .sheet-head h2 { font-size: 22px; }
+  /* màn thấp: 4 thẻ cửa hàng trên một hàng để còn chỗ cho vật phẩm */
+  .tabs { flex-wrap: nowrap; margin-bottom: 8px; }
+  .tab { flex: 1 1 auto; padding: 6px 8px; font-size: 14px; }
 }
 
 /* =========================================================
@@ -359,6 +361,7 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
   border: 6px solid var(--wood-l);
   box-shadow: 0 0 0 5px var(--wood-d), inset 0 0 0 3px #fff, 0 12px 0 4px rgba(90,50,20,.45), 0 24px 50px rgba(0,0,0,.35);
   border-radius: 32px; overflow: visible; margin-top: 18px;
+  max-height: calc(100% - 18px); /* chừa chỗ cho ruy băng tiêu đề và nút ✕ nhô lên trên, không bị đẩy ra ngoài mép */
 }
 .sheet-head { padding: 0 60px 6px; margin-top: -26px; }
 .sheet-head h2 {
