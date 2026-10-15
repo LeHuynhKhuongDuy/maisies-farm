@@ -2,7 +2,7 @@
 """Tách nền trắng của ảnh AI vẽ -> PNG nền trong suốt, cắt sát hình, thu nhỏ.
 
 Cách dùng: python3 scripts/cutout.py <ảnh vào hoặc URL> <tên ra> [cạnh tối đa] [ngưỡng] [holes]
-Kết quả: public/sprites/<tên ra>.png
+Kết quả: public/sprites/<tên ra>.webp
 """
 import io, sys, urllib.request
 from collections import deque
@@ -67,8 +67,9 @@ def save(out, name, max_side=512, folder='sprites', square=False):
     if square:  # biểu tượng: đặt giữa khung vuông trong suốt
         s = max(out.size); sq = Image.new('RGBA', (s, s), (0, 0, 0, 0))
         sq.alpha_composite(out, ((s - out.width) // 2, (s - out.height) // 2)); out = sq
-    dst = f'public/{folder}/{name}.png'
-    out.save(dst, optimize=True)
+    dst = f'public/{folder}/{name}.webp'
+    # WebP nén có kênh trong suốt giữ nguyên: nhẹ hơn PNG ~6 lần, nhìn không khác
+    out.save(dst, 'WEBP', quality=88, alpha_quality=100, method=6)
     print(dst, out.size)
 
 

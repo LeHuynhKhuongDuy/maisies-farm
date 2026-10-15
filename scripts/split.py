@@ -3,7 +3,7 @@
 
 Cách dùng: python3 scripts/split.py <ảnh vào> <tên1,tên2,...> [cạnh tối đa] [ngưỡng] [holes]
 Tên xếp theo thứ tự đọc (trái sang phải, trên xuống dưới); dùng '-' để bỏ qua một món.
-Mỗi món lưu thành public/sprites/<tên>.png; thêm 'icons' để lưu biểu tượng vuông vào public/items/
+Mỗi món lưu thành public/sprites/<tên>.webp; thêm 'icons' để lưu biểu tượng vuông vào public/items/
 """
 import os, sys
 import numpy as np

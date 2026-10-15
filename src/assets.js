@@ -1,44 +1,17 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ITEMS, CROPS, TREES, PENS, DECOR, OBSTACLES, PEOPLE, ADV_THEMES, ADVENTURES, COLLECTIONS, EVENT, BUILDING_MODELS, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE } from './data.js';
+import { ITEMS, TREES, PENS, DECOR, PEOPLE, COLLECTIONS, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE } from './data.js';
 import { hasSprite, spriteUrl } from './sprites.js';
 
 const BASE = import.meta.env.BASE_URL + 'models/';
 const cache = new Map(); // key -> gltf
 
-// Các mô hình dùng để ghép nhà, chuồng, bến tàu
-const PARTS = [
-  'town/wall-wood', 'town/wall-wood-door', 'town/wall-wood-window-shutters', 'town/wall-wood-window-glass',
-  'town/wall', 'town/wall-door', 'town/wall-window-shutters', 'town/roof-gable', 'town/roof-point', 'town/roof-high',
-  'town/chimney', 'town/windmill', 'town/watermill', 'town/stall-red', 'town/stall-green', 'town/cart', 'town/banner-red',
-  'town/banner-green', 'town/lantern', 'town/planks', 'town/hedge',
-  'nature/fence_simple', 'nature/fence_gate', 'nature/crops_dirtDoubleRow', 'nature/grass', 'nature/grass_large',
-  'nature/tree_palmTall', 'nature/tree_palmShort', 'nature/rock_largeB', 'nature/rock_smallA', 'nature/sign',
-  'pirate/structure-platform-dock', 'pirate/structure-platform-dock-small', 'pirate/ship-small', 'pirate/crate',
-  'pirate/barrel', 'pirate/palm-straight', 'pirate/rocks-sand-a', 'pirate/flag',
-  'survival/campfire-pit', 'survival/workbench', 'survival/barrel', 'survival/box-large', 'survival/bucket',
-  'survival/resource-wood', 'survival/tool-axe', 'nature/stump_round', 'pirate/tool-paddle', 'pirate/structure-platform-dock-small',
+// Hầu hết vật thể đã có hình 2D vẽ tay (public/sprites); chỉ tải những mô hình 3D còn hiện trong game.
+// Danh sách chi tiết + nơi xuất hiện: art-in/con-lai-3d.txt. Vẽ tay xong món nào thì bỏ khỏi đây và xoá file .glb.
+const STILL_3D = [
+  'nature/flower_yellowB', 'nature/flower_redB', // hoa trồng trong vườn ong (entities.js penView)
 ];
-
-export function allModelKeys() {
-  const s = new Set(PARTS);
-  Object.values(ITEMS).forEach(i => s.add(i.icon));
-  Object.values(CROPS).forEach(c => { c.stages.forEach(m => s.add(m)); if (c.deco) s.add(c.deco); });
-  Object.values(TREES).forEach(t => { s.add(t.model); s.add(t.fruit); });
-  Object.values(PENS).forEach(p => s.add(p.animal));
-  Object.values(DECOR).forEach(d => d.model && s.add(d.model));
-  Object.values(OBSTACLES).forEach(o => o.model && s.add(o.model));
-  PEOPLE.forEach(p => s.add(p.model));
-  Object.values(ADV_THEMES).forEach(t => t.obstacles.forEach(o => s.add(o[0])));
-  ADVENTURES.forEach(a => s.add(a.goal.model));
-  COLLECTIONS.forEach(c => c.pieces.forEach(p => s.add(p[2])));
-  s.add(EVENT.icon);
-  Object.values(BUILDING_MODELS).forEach(b => s.add(b.model));
-  ['kk/decoration/props/sack.gltf', 'kk/decoration/props/crate_A_big.gltf', 'kk/decoration/props/barrel.gltf', 'kk/decoration/props/crate_open.gltf', 'kk/decoration/props/bucket_water.gltf', 'kk/decoration/nature/trees_A_small.gltf', 'kk/decoration/nature/rock_single_D.gltf'].forEach(k => s.add(k));
-  return [...s];
-}
 
 // Bộ Nature của Kenney có lá màu xanh ngọc; đổi sang xanh lá tươi cho giống game nông trại
 const hsl = {};
@@ -46,22 +19,17 @@ function greener(m) {
   m.color.getHSL(hsl);
   if (hsl.h > 0.36 && hsl.h < 0.56 && hsl.s > 0.15) m.color.setHSL(0.27 + (hsl.h - 0.46) * 0.3, Math.min(1, hsl.s * 1.15), hsl.l * 0.92);
 }
-// Đổi vật liệu Phong (FBX) sang Standard để ánh sáng giống phần còn lại
-function toStandard(m) {
-  if (!m.isMeshPhongMaterial) return m;
-  return new THREE.MeshStandardMaterial({ color: m.color, map: m.map, roughness: 0.85, metalness: 0 });
-}
 
 export async function loadAll(onProgress) {
-  const keys = allModelKeys();
-  const gl = new GLTFLoader(), fbx = new FBXLoader();
+  const keys = STILL_3D;
+  const gl = new GLTFLoader();
   let done = 0;
   const finish = (k, g) => {
     g.scene.traverse(o => {
       if (!o.isMesh) return;
       o.castShadow = true; o.receiveShadow = true;
       if (o.isSkinnedMesh) o.frustumCulled = false;
-      const mats = (Array.isArray(o.material) ? o.material : [o.material]).map(toStandard);
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
       mats.forEach(m => {
         // nhiều mô hình không ghi độ kim loại -> mặc định là kim loại và bị tối; chuyển về vật liệu thường
         m.metalness = 0; m.roughness = Math.max(m.roughness ?? 1, 0.75); m.transparent = false; m.opacity = 1;
@@ -75,17 +43,18 @@ export async function loadAll(onProgress) {
   };
   await Promise.all(keys.map(k => new Promise(res => {
     const fail = err => { console.warn('Không tải được', k, err); done++; onProgress?.(done / keys.length); res(); };
-    if (k.endsWith('.fbx')) fbx.load(BASE + k, o => { finish(k, { scene: o, animations: o.animations }); res(); }, undefined, fail);
-    else gl.load(BASE + k + (/\.gltf$/.test(k) ? '' : '.glb'), g => { finish(k, g); res(); }, undefined, fail);
+    gl.load(BASE + k + (/\.gltf$/.test(k) ? '' : '.glb'), g => { finish(k, g); res(); }, undefined, fail);
   })));
 }
 
+const warned = new Set();
 // Tạo một bản sao mô hình. Trả về Group đã căn giữa, đặt đáy chạm y=0.
 // opts.size: thu phóng để cạnh lớn nhất theo mặt đất bằng size; opts.h: theo chiều cao; opts.s: hệ số cố định
 export function make(key, opts = {}) {
   const g = cache.get(key);
   const holder = new THREE.Group();
-  if (!g) { // dự phòng khi thiếu mô hình
+  if (!g) { // dự phòng khi thiếu mô hình (chưa có hình vẽ tay mà mô hình không nằm trong STILL_3D)
+    if (!warned.has(key)) { warned.add(key); console.warn('Thiếu mô hình 3D', key); }
     const m = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0xff00ff }));
     m.position.y = 0.25; holder.add(m); return holder;
   }
@@ -149,24 +118,24 @@ const B_ICON = { windmill: 'feedmill', 'stall-red': 'market', 'stall-green': 'ju
 const ITEM_DIR = import.meta.env.BASE_URL + 'items/';
 const sp = name => (name && hasSprite(name) ? spriteUrl(name) : null);
 function paintedIcon(id) {
-  if (ITEMS[id]) return ITEM_DIR + id + '.png';
+  if (ITEMS[id]) return ITEM_DIR + id + '.webp';
   const [kind, key] = id.split(':');
   switch (kind) {
-    case 'ev': return key === 'token' ? ITEM_DIR + 'shell.png' : null;
-    case 'face': return PEOPLE.some(p => p.id === key) && hasSprite(key) ? ITEM_DIR + 'face-' + key + '.png' : null;
-    case 'decor': return key === 'path' ? import.meta.env.BASE_URL + 'textures/brick.jpg' : sp(DECOR_SPRITE[key] || key);
+    case 'ev': return key === 'token' ? ITEM_DIR + 'shell.webp' : null;
+    case 'face': return PEOPLE.some(p => p.id === key) && hasSprite(key) ? ITEM_DIR + 'face-' + key + '.webp' : null;
+    case 'decor': return key === 'path' ? import.meta.env.BASE_URL + 'textures/brick.webp' : sp(DECOR_SPRITE[key] || key);
     case 'tree': return sp(TREE_SPRITE[key]);
     case 'animal': return sp(PEN_SPRITE[key]);
     case 'fac': return sp(key);
     case 'pen': return sp(key === 'coop' || key === 'beehive' ? key : PEN_SPRITE[key]);
-    case 'col': return COLLECTIONS.some(c => c.pieces.some(p => p[0] === key)) ? ITEM_DIR + key + '.png' : null;
+    case 'col': return COLLECTIONS.some(c => c.pieces.some(p => p[0] === key)) ? ITEM_DIR + key + '.webp' : null;
     case 'b': return sp(B_ICON[key]);
   }
   return null;
 }
 // Xu, kim cương, năng lượng, sao kinh nghiệm trên thanh trạng thái
 function paintedHudIcons() {
-  const u = n => `url(${ITEM_DIR}${n}.png)`;
+  const u = n => `url(${ITEM_DIR}${n}.webp)`;
   const st = document.createElement('style');
   st.textContent = `.ico.coin{background-image:${u('coin')}}.ico.gem{background-image:${u('gem')}}.ico.bolt{background-image:${u('energy')}}
 .xp{background:${u('star')} center/contain no-repeat;clip-path:none}`;
@@ -176,6 +145,7 @@ function paintedHudIcons() {
 export async function renderIcons(list) {
   paintedHudIcons();
   list = list.filter(([id]) => { const u = paintedIcon(id); if (u) ICONS[id] = u; return !u; });
+  if (!list.length) return; // đã đủ biểu tượng vẽ tay, khỏi tạo thêm WebGL
   const SIZE = 160;
   const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   r.setSize(SIZE, SIZE); r.setPixelRatio(1);

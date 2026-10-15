@@ -10,7 +10,7 @@ const TEX = {}; // tên -> { tex, aspect }
 export async function loadSprites() {
   const loader = new THREE.TextureLoader();
   await Promise.all(Object.keys(SPRITE_ART).map(name => new Promise(res => {
-    loader.load(BASE + name + '.png', t => {
+    loader.load(BASE + name + '.webp', t => {
       t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
       TEX[name] = { tex: t, aspect: t.image.height / t.image.width };
       res();
@@ -18,7 +18,7 @@ export async function loadSprites() {
   })));
 }
 export const hasSprite = name => !!TEX[name];
-export const spriteUrl = name => TEX[name] ? BASE + name + '.png' : null;
+export const spriteUrl = name => TEX[name] ? BASE + name + '.webp' : null;
 
 // Hướng camera cố định: tấm ảnh nghiêng ra sau đúng bằng góc nhìn
 const faceQuat = (() => {

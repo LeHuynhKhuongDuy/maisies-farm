@@ -127,7 +127,7 @@ function buildIsland(scene) {
     for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 === 0) x.fillRect(i * 256, j * 256, 256, 256);
     grassTex.repeat.set(0.25, 0.25); grassTex.dispose(); grassTex.needsUpdate = true;
   };
-  gi.src = import.meta.env.BASE_URL + 'textures/grass.jpg';
+  gi.src = import.meta.env.BASE_URL + 'textures/grass.webp';
   const grass = slab(GRID + 0.4, 1.6, 0.5, new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }), 0);
   grass.name = 'ground';
   W.farm.add(grass);

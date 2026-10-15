@@ -3,9 +3,20 @@ const CACHE = 'maisies-farm-__VERSION__';
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
     const list = await fetch('precache.json', { cache: 'no-store' }).then(r => r.json());
-    await cache.addAll(list.files);
+    const cache = await caches.open(CACHE);
+    // Bản đã lưu lần trước: file nào mã băm không đổi thì chép sang, khỏi tải lại qua mạng
+    const oldKey = (await caches.keys()).filter(k => k.startsWith('maisies-farm-') && k !== CACHE).pop();
+    const old = oldKey && await caches.open(oldKey);
+    const oldHash = (old && await old.match('precache.json').then(r => r?.json()).catch(() => null))?.hash || {};
+    await Promise.all(list.files.map(async f => {
+      const prev = list.hash?.[f] && list.hash[f] === oldHash[f] && await old.match(f);
+      if (prev) return cache.put(f, prev);
+      const res = await fetch(f);
+      if (!res.ok) throw new Error('Không tải được ' + f);
+      return cache.put(f, res);
+    }));
+    await cache.put('precache.json', new Response(JSON.stringify(list), { headers: { 'Content-Type': 'application/json' } }));
   })());
 });
 self.addEventListener('activate', e => {

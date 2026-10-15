@@ -30,4 +30,4 @@ npm run dev
 Đăng bản mới lên GitHub Pages: `npm run deploy` (build rồi đẩy thư mục `dist` lên nhánh `gh-pages`).
 
 ## Ghi công
-Hình 3D từ [Kenney.nl](https://kenney.nl) (giấy phép CC0): Nature Kit, Fantasy Town Kit, Pirate Kit, Food Kit, Cube Pets, Mini Characters, Survival Kit.
+Hình 2D vẽ tay (AI vẽ, ảnh WebP trong `public/sprites` và `public/items`). Hai khóm hoa 3D còn lại trong vườn ong lấy từ [Kenney.nl](https://kenney.nl) Nature Kit (giấy phép CC0); các bộ 3D Kenney/KayKit dùng trước đây vẫn còn trong lịch sử git.

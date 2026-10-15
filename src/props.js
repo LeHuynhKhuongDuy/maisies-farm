@@ -45,7 +45,7 @@ const brickMats = new Map();
 // cx, cz: ô lưới -> dịch mặt gạch để các ô cạnh nhau nối liền hàng gạch
 export function brickTile(cx = 0, cz = 0) {
   if (brickImg === null) {
-    brickImg = new THREE.TextureLoader().load(import.meta.env.BASE_URL + 'textures/brick.jpg');
+    brickImg = new THREE.TextureLoader().load(import.meta.env.BASE_URL + 'textures/brick.webp');
     brickImg.colorSpace = THREE.SRGBColorSpace; brickImg.wrapS = brickImg.wrapT = THREE.RepeatWrapping; brickImg.anisotropy = 4;
   }
   const key = (cx & 1) + ':' + (cz & 1);
