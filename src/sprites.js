@@ -40,6 +40,38 @@ function blobShadow(rx, rz) {
   return m;
 }
 
+// Mặt nạ độ trong suốt (thu nhỏ) để chạm chỉ trúng phần có hình, không trúng nền trong suốt
+const MASK_W = 96;
+function alphaMask(T) {
+  if (T.mask !== undefined) return T.mask;
+  T.mask = null;
+  try {
+    const im = T.tex.image, w = MASK_W, h = Math.max(1, Math.round(MASK_W * T.aspect));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, w, h);
+    const px = x.getImageData(0, 0, w, h).data, a = new Uint8Array(w * h);
+    for (let i = 0; i < a.length; i++) a[i] = px[i * 4 + 3];
+    T.mask = { w, h, a };
+  } catch (e) { } // không đọc được ảnh thì chạm theo cả khung như cũ
+  return T.mask;
+}
+// Có hình tại toạ độ uv không (nới thêm 1 điểm ảnh quanh đó cho dễ chạm)
+function opaqueAt(T, uv) {
+  const m = alphaMask(T); if (!m) return true;
+  const cx = Math.floor(uv.x * m.w), cy = Math.floor((1 - uv.y) * m.h);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const x = cx + dx, y = cy + dy;
+    if (x >= 0 && y >= 0 && x < m.w && y < m.h && m.a[y * m.w + x] > 90) return true;
+  }
+  return false;
+}
+const tmpHits = [];
+function spriteRaycast(mesh, T, raycaster, intersects) {
+  tmpHits.length = 0;
+  THREE.Mesh.prototype.raycast.call(mesh, raycaster, tmpHits);
+  for (const h of tmpHits) if (!h.uv || opaqueAt(T, h.uv)) intersects.push(h);
+}
+
 const planeCache = new Map();
 // Trả về Group: gốc ở tâm ô đất; ảnh đặt ở góc trước của ô (w x d), rộng `width` đơn vị
 export function spriteObject(name, { width = 1.4, w = 1, d = 1, lift = 0, shadow = true } = {}) {
@@ -58,6 +90,7 @@ export function spriteObject(name, { width = 1.4, w = 1, d = 1, lift = 0, shadow
   pivot.position.copy(new THREE.Vector3(w / 2, 0, d / 2).projectOnVector(fwd));
   pivot.position.y = lift;
   p.userData.sprite = true;
+  p.raycast = (rc, out) => spriteRaycast(p, T, rc, out);
   pivot.add(p); g.add(pivot); g.userData.plane = p;
   if (shadow) g.add(blobShadow(w * 0.62, d * 0.62));
   return g;

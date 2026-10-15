@@ -24,6 +24,8 @@ function openModal(type, title, html, extra) {
 }
 
 const byId = id => S.objs.find(o => o.id === id);
+// ô ruộng được ưu tiên khi bị vật khác che (đang cầm hạt giống hoặc kéo gieo/thu hoạch)
+const isField = oid => typeof oid === 'number' && byId(oid)?.k === 'field';
 const nameOf = k => ITEMS[k].n;
 const speedCost = ms => Math.max(1, Math.ceil(ms / 120000));
 
@@ -33,7 +35,7 @@ export function onTap(sx, sy) {
   if (W.mode === 'adv') { advTap(sx, sy); renderHUD(); return; }
   if (W.mode === 'nb') { nbTap(sx, sy); renderHUD(); return; }
   if (placing) { const p = groundAt(sx, sy); if (p) moveGhost(p); return; }
-  const oid = pickAt(sx, sy);
+  const oid = pickAt(sx, sy, tray === 'seed' ? isField : null);
   closeTimer();
   if (oid == null) { if (tray === 'seed') closeTray(); return; }
   tapObject(oid, sx, sy);
@@ -110,7 +112,7 @@ function drawSeedTray() {
     return `<button class="seed ${S.seed === k ? 'on' : ''} ${lock ? 'lock' : ''}" data-act="seed" data-k="${k}" aria-label="${nameOf(k)}">
       ${lock ? `<span class="lk">Cấp ${c.lv}</span>` : ''}${img(k)}<small>${coinI}${c.cost}</small></button>`;
   }).join('');
-  const t = $('#tray');
+  const t = $('#tray'); t.className = '';
   t.innerHTML = `<div class="seeds">${cards}</div><button class="traybtn no" data-act="closetray" aria-label="Đóng">✕</button>`;
   t.hidden = false;
 }
@@ -267,8 +269,9 @@ function openEnergy() {
   const foods = Object.entries(ITEMS).filter(([k, it]) => it.energy && have(k) > 0);
   const list = foods.length ? `<div class="inv">${foods.map(([k, it]) => `<div class="it">${img(k)}<span class="q">${have(k)}</span><small>${it.n}<br>+${it.energy} năng lượng</small><div class="acts"><button class="btn small" data-act="eat" data-k="${k}">Ăn</button></div></div>`).join('')}</div>`
     : '<p class="hint">Bếp nấu làm được món ăn hồi năng lượng (mở ở cấp 6).</p>';
-  openModal('energy', 'Hết năng lượng', `<p class="hint">Dọn dẹp cần năng lượng <span class="ico bolt sm"></span>. Năng lượng tự hồi: ${energyHint()}.</p>${list}
-    <div class="row" style="justify-content:center;margin-top:14px"><button class="btn blue" data-act="buyenergy">Nạp đầy ${gemI}5</button></div>`);
+  const full = S.energy >= ENERGY_MAX;
+  openModal('energy', S.energy > 0 ? 'Năng lượng' : 'Hết năng lượng', `<p class="hint">Dọn dẹp cần năng lượng <span class="ico bolt sm"></span>. Năng lượng tự hồi: ${energyHint()}.</p>${list}
+    <div class="row" style="justify-content:center;margin-top:14px">${full ? '<button class="btn gray" data-close>Năng lượng đang đầy</button>' : `<button class="btn blue" data-act="buyenergy">Nạp đầy ${gemI}5</button>`}</div>`);
 }
 
 // ============ Đơn hàng ============
@@ -413,7 +416,7 @@ function openShop(tab = shopTab) {
 }
 function buy(id) {
   const it = shopItems(shopTab).find(x => x.id === id); if (!it) return;
-  if (it.stored) { const t = id.split(':')[1]; S.store[t]--; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t; return; }
+  if (it.stored) { const t = id.split(':')[1]; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t; return; }
   if (S.level < it.lv) { toast(`Mở ở cấp ${it.lv}`); sfx('no'); return; }
   if (it.max) { toast(it.note); sfx('no'); return; }
   if (S.coins < it.cost) { toast(`Cần thêm ${it.cost - S.coins} xu nữa`); sfx('no'); return; }
@@ -451,16 +454,27 @@ function startPlace(obj, isNew, cost = 0) {
     obj.x = spot[0]; obj.z = spot[1]; obj.id = 'ghost';
     placing = { obj, isNew, cost, view: addView(obj) };
   } else {
-    placing = { obj, isNew, cost: 0, view: VIEWS.get(obj.id), orig: { x: obj.x, z: obj.z, r: obj.r } };
+    // kéo trên bản sao: bản lưu tự động giữa chừng không ghi vị trí đang dở (có thể chồng lên vật khác)
+    placing = { obj: { ...obj }, real: obj, isNew, cost: 0, view: VIEWS.get(obj.id) };
   }
   if (!marker) {
-    marker = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x62c43f, transparent: true, opacity: 0.65, depthWrite: false }));
-    marker.rotation.x = -Math.PI / 2; marker.renderOrder = 2;
+    // ô đánh dấu vẽ đè lên vật xung quanh (để thấy chỗ vướng), nhưng dưới chính vật đang đặt
+    marker = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x62c43f, transparent: true, opacity: 0.65, depthWrite: false, depthTest: false }));
+    marker.rotation.x = -Math.PI / 2; marker.renderOrder = 8;
   }
   W.scene.add(marker);
   updateGhost();
   focusOn(placing.view.root.position);
   drawPlaceTray();
+}
+// Vật đang đặt: vẽ sau ô đánh dấu và không bị vật đứng trước che; chỗ vướng thì hình 2D ửng đỏ
+function ghostLook(v, on, ok = true) {
+  v.root.traverse(m => {
+    if (!m.isMesh) return;
+    if (m.userData.ro === undefined) m.userData.ro = m.renderOrder;
+    m.renderOrder = on ? 9 : m.userData.ro;
+    if (m.userData.sprite) { m.material.depthTest = !on; m.material.color.set(on && !ok ? 0xff8f8f : 0xffffff); }
+  });
 }
 function placeOk() {
   const o = placing.obj, [w, d] = footprint(o);
@@ -473,6 +487,7 @@ function updateGhost() {
   marker.position.copy(cellToWorld(o.x, o.z, w, d)); marker.position.y = 0.03;
   const ok = placeOk();
   marker.material.color.set(ok ? 0x62c43f : 0xff5d5d);
+  ghostLook(v, true, ok);
   const b = $('#tray [data-act="placeok"]'); if (b) b.disabled = !ok;
 }
 function moveGhost(p) {
@@ -483,6 +498,7 @@ function moveGhost(p) {
 }
 function drawPlaceTray() {
   const o = placing.obj, rot = o.k === 'decor';
+  $('#tray').className = rot && !placing.isNew ? 'many' : ''; // 4 nút: chữ lên hàng riêng cho vừa màn hình hẹp
   $('#tray').innerHTML = `<button class="traybtn no" data-act="placeno" aria-label="Huỷ">✕</button>
     <div class="traytxt">${placing.isNew ? 'Kéo để chọn chỗ' : 'Kéo để chuyển chỗ'}<small>${placing.cost ? 'Giá ' + placing.cost + ' xu' : 'Chạm ✓ để xong'}</small></div>
     ${rot ? '<button class="traybtn rot" data-act="placerot" aria-label="Xoay">↻</button>' : ''}
@@ -494,17 +510,18 @@ function drawPlaceTray() {
 function placeConfirm() {
   if (!placing) return;
   if (!placeOk()) { toast('Chỗ này bị vướng rồi'); sfx('no'); return; }
-  const { obj, isNew, cost, view } = placing;
+  const { obj, real, isNew, cost, view, fromStore } = placing;
   if (isNew) {
     if (S.coins < cost) { toast('Không đủ xu'); return; }
     S.coins -= cost;
+    if (fromStore) S.store[fromStore]--;
     removeView('ghost');
     obj.id = newId(); S.objs.push(obj);
     addView(obj);
     if (obj.k === 'decor') questEvent('buydecor');
     if (obj.k === 'tree') questEvent('buytree');
     sfx('build');
-  } else { view.root.position.y = 0; sfx('build'); }
+  } else { Object.assign(real, { x: obj.x, z: obj.z, r: obj.r }); view.root.position.y = 0; ghostLook(view, false); sfx('build'); }
   W.scene.remove(marker);
   const wasField = isNew && obj.k === 'field';
   placing = null; closeTray(); save();
@@ -516,10 +533,9 @@ function placeConfirm() {
 }
 function placeCancel() {
   if (!placing) return;
-  const { obj, isNew, view, orig } = placing;
-  if (placing.fromStore) S.store[placing.fromStore]++;
+  const { isNew, view, real } = placing;
   if (isNew) removeView('ghost');
-  else { Object.assign(obj, orig); place(view, obj); view.root.position.y = 0; }
+  else { place(view, real); view.root.position.y = 0; ghostLook(view, false); }
   W.scene.remove(marker);
   placing = null; closeTray();
 }
@@ -541,7 +557,7 @@ export function beginDrag(sx, sy) {
     if (oid === 'ghost' || oid === placing.obj.id) { drag = { mode: 'ghost' }; return true; }
     return false;
   }
-  const oid = pickAt(sx, sy), o = typeof oid === 'number' ? byId(oid) : null;
+  const oid = pickAt(sx, sy, isField), o = typeof oid === 'number' ? byId(oid) : null;
   if (!o || o.k !== 'field') return false;
   const st = cropStage(o, now());
   if (st === 3) { drag = { mode: 'harvest', done: new Set() }; return true; }
@@ -551,7 +567,7 @@ export function beginDrag(sx, sy) {
 export function dragMove(sx, sy) {
   if (!drag) return;
   if (drag.mode === 'ghost') { const p = groundAt(sx, sy); if (p) moveGhost(p); return; }
-  const oid = pickAt(sx, sy), o = typeof oid === 'number' ? byId(oid) : null;
+  const oid = pickAt(sx, sy, isField), o = typeof oid === 'number' ? byId(oid) : null;
   if (!o || o.k !== 'field' || drag.done.has(o.id)) return;
   drag.done.add(o.id);
   const st = cropStage(o, now());
@@ -673,7 +689,7 @@ function openSettings(confirmReset) {
     <div class="setting">Chuyển sang máy khác <span class="row" style="gap:6px"><button class="btn small blue" data-act="backup">Lấy mã</button><button class="btn small" data-act="restore">Nhập mã</button></span></div>
     <div class="setting">${confirmReset ? 'Chắc chắn chơi lại từ đầu?' : 'Chơi lại từ đầu'}
       <button class="btn small red" data-act="${confirmReset ? 'resetyes' : 'reset'}">${confirmReset ? 'Xoá hết' : 'Chơi lại'}</button></div>
-    <p class="hint" style="font-size:13px;margin-top:10px">Hình 3D: Kenney.nl (CC0). Maisie's Farm · làm tặng bé Maisie.</p>`);
+    <p class="hint" style="font-size:13px;margin-top:10px">Hình 2D vẽ tay (AI vẽ). Vài mô hình 3D còn lại: Kenney.nl (CC0). Maisie's Farm · làm tặng bé Maisie.</p>`);
 }
 
 // ============ Xử lý nút bấm trong bảng & khay ============
@@ -692,14 +708,14 @@ const ACT = {
   placeok() { placeConfirm(); }, placeno() { placeCancel(); },
   placerot() { placing.obj.r = ((placing.obj.r || 0) + 1) % 4; updateGhost(); },
   placestore() {
-    const o = placing.obj; W.scene.remove(marker); removeView(o.id);
+    const o = placing.real; W.scene.remove(marker); removeView(o.id);
     S.objs.splice(S.objs.indexOf(o), 1); (S.store ||= {})[o.t] = (S.store[o.t] || 0) + 1;
     placing = null; closeTray(); sfx('collect'); toast(`Đã cất ${DECOR[o.t].n.toLowerCase()} vào túi. Đặt lại trong Cửa hàng → Trang trí`);
   },
   claimdaily(b, x, y) { claimDaily(x, y); },
   placestored(b) {
     const t = b.dataset.k; if (!(S.store?.[t] > 0)) return;
-    S.store[t]--; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t;
+    startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t;
   },
   make(b, x, y) { makeRecipe(byId(+b.dataset.oid), +b.dataset.i, x, y); },
   collectfac(b, x, y) { collectJobs(byId(+b.dataset.oid), x, y); redrawModal(); },
@@ -728,7 +744,7 @@ const ACT = {
     add(k, -1); S.energy += ITEMS[k].energy; plus(x, y - 20, `+${ITEMS[k].energy}⚡`); sfx('collect');
     if (M.type === 'energy') closeModal(); else redrawModal();
   },
-  buyenergy() { if (S.gems < 5) { toast('Cần 5 kim cương'); sfx('no'); return; } S.gems -= 5; S.energy = Math.max(S.energy, ENERGY_MAX); sfx('collect'); closeModal(); },
+  buyenergy() { if (S.energy >= ENERGY_MAX) { toast('Năng lượng đang đầy rồi'); closeModal(); return; } if (S.gems < 5) { toast('Cần 5 kim cương'); sfx('no'); return; } S.gems -= 5; S.energy = Math.max(S.energy, ENERGY_MAX); sfx('collect'); closeModal(); },
   upbarn() {
     const c = barnUpgradeCost(S.barnLvl);
     if (S.coins < c) { toast(`Cần thêm ${c - S.coins} xu nữa`); sfx('no'); return; }

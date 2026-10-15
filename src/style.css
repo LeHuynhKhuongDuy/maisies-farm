@@ -200,9 +200,13 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 .traybtn[disabled] { opacity: .45; }
 .traytxt { flex: 1; min-width: 130px; font-weight: 800; padding: 0 6px; line-height: 1.15; }
 .traytxt small { display: block; color: var(--ink-soft); font-weight: 700; }
+@media (max-width: 480px) {
+  #tray.many { width: calc(100% - 20px); flex-wrap: wrap; justify-content: center; row-gap: 6px; }
+  #tray.many .traytxt { order: -1; flex: 1 1 100%; min-width: 0; text-align: center; }
+}
 
 /* ---------- Hộp thoại ---------- */
-#modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: calc(var(--st) + 10px) 10px calc(var(--sb) + 10px); }
+#modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: calc(var(--st) + 18px) 10px calc(var(--sb) + 10px); }
 .scrim { position: absolute; inset: 0; background: rgba(20,40,60,.5); }
 .sheet { position: relative; width: min(640px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: 30px; background: var(--cream);
   border: 5px solid var(--white); box-shadow: 0 6px 0 var(--edge-d), 0 20px 50px rgba(0,0,0,.35); animation: pop-in .22s ease-out; }
@@ -298,6 +302,7 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 .prog i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#9be15d, var(--green)); }
 .prog span { position: relative; display: block; text-align: center; font-weight: 800; line-height: 26px; }
 .celebrate { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.celebrate > img { width: 132px; height: 132px; max-height: 30vh; object-fit: contain; }
 .bigstar { width: 130px; height: 130px; display: grid; place-items: center; padding-top: 14px; background: var(--gold); clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); animation: pop-in .5s ease-out; }
 .bigstar b { font-size: 44px; font-weight: 800; color: var(--white); paint-order: stroke fill; -webkit-text-stroke: 6px var(--orange-d); }
 .unlocks { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
@@ -337,8 +342,10 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
   .giftbtn { left: calc(var(--sl) + 150px); bottom: calc(var(--sb) + 12px); width: 56px; height: 56px; font-size: 32px; }
   .rbtn { width: 58px; height: 58px; }
   .rbtn.big { width: 70px; height: 70px; }
-  .sheet { max-height: 100%; }
   .sheet-head h2 { font-size: 22px; }
+  /* màn thấp: 4 thẻ cửa hàng trên một hàng để còn chỗ cho vật phẩm */
+  .tabs { flex-wrap: nowrap; margin-bottom: 8px; }
+  .tab { flex: 1 1 auto; padding: 6px 8px; font-size: 14px; }
 }
 
 /* =========================================================
@@ -354,6 +361,7 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
   border: 6px solid var(--wood-l);
   box-shadow: 0 0 0 5px var(--wood-d), inset 0 0 0 3px #fff, 0 12px 0 4px rgba(90,50,20,.45), 0 24px 50px rgba(0,0,0,.35);
   border-radius: 32px; overflow: visible; margin-top: 18px;
+  max-height: calc(100% - 18px); /* chừa chỗ cho ruy băng tiêu đề và nút ✕ nhô lên trên, không bị đẩy ra ngoài mép */
 }
 .sheet-head { padding: 0 60px 6px; margin-top: -26px; }
 .sheet-head h2 {
@@ -414,6 +422,12 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 .advtitle { background: linear-gradient(#e8a868, var(--wood)); border: 4px solid #ffe08a; box-shadow: 0 5px 0 var(--wood-d); }
 .advtitle b { color: #fff; -webkit-text-stroke: 4px var(--wood-d); paint-order: stroke fill; font-size: 21px; }
 .advtitle span { color: #fff3d6; }
+/* Màn hình hẹp: giữa thanh XP và ô xu không đủ chỗ nên treo bảng tên xuống dưới cột xu/kim cương/năng lượng */
+@media (max-width: 520px) {
+  .advtitle { top: calc(var(--st) + 132px); max-width: calc(100vw - 32px); padding: 4px 16px 6px; border-radius: 18px; }
+  .advtitle b { font-size: 19px; }
+  .advtitle span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
 
 /* Thông báo dạng bong bóng gỗ */
 #toast { background: linear-gradient(rgba(120,65,25,.95), rgba(90,45,15,.95)); border: 3px solid #ffe08a; border-radius: 20px; }
