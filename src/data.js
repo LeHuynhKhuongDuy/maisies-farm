@@ -345,7 +345,7 @@ export const STARTER_DECOR = [
 // Hình 2D vẽ tay (AI vẽ, ảnh trong public/sprites). width: bề rộng ảnh tính theo ô đất.
 export const SPRITE_ART = {
   house: { width: 3.7 }, barn: { width: 2.7 }, feedmill: { width: 2.9 }, bakery: { width: 2.6 },
-  market: { width: 2.7 }, board: { width: 2.0 }, coop: { width: 1.25 },
+  market: { width: 2.7 }, board: { width: 2.0 }, coop: { width: 1.25 }, cowshed: { width: 1.7 }, pigsty: { width: 1.6 },
   chicken: { width: 0.55 }, cow: { width: 1.05 }, pig: { width: 0.85 },
   wheat: { width: 1.3 }, corn: { width: 1.3 }, carrot: { width: 1.3 }, sprout: { width: 1.2 },
   appletree: { width: 1.7 }, leafytree: { width: 1.6 }, palm: { width: 1.7 },

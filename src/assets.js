@@ -1,51 +1,14 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { ITEMS, TREES, PENS, DECOR, PEOPLE, COLLECTIONS, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE } from './data.js';
 import { hasSprite, spriteUrl } from './sprites.js';
 
-const BASE = import.meta.env.BASE_URL + 'models/';
-const cache = new Map(); // key -> gltf
+const cache = new Map(); // key -> gltf (để trống: game không còn tải mô hình 3D nào)
 
-// Hầu hết vật thể đã có hình 2D vẽ tay (public/sprites); chỉ tải những mô hình 3D còn hiện trong game.
-// Danh sách chi tiết + nơi xuất hiện: art-in/con-lai-3d.txt. Vẽ tay xong món nào thì bỏ khỏi đây và xoá file .glb.
-const STILL_3D = [
-  'nature/flower_yellowB', 'nature/flower_redB', // hoa trồng trong vườn ong (entities.js penView)
-];
-
-// Bộ Nature của Kenney có lá màu xanh ngọc; đổi sang xanh lá tươi cho giống game nông trại
-const hsl = {};
-function greener(m) {
-  m.color.getHSL(hsl);
-  if (hsl.h > 0.36 && hsl.h < 0.56 && hsl.s > 0.15) m.color.setHSL(0.27 + (hsl.h - 0.46) * 0.3, Math.min(1, hsl.s * 1.15), hsl.l * 0.92);
-}
-
-export async function loadAll(onProgress) {
-  const keys = STILL_3D;
-  const gl = new GLTFLoader();
-  let done = 0;
-  const finish = (k, g) => {
-    g.scene.traverse(o => {
-      if (!o.isMesh) return;
-      o.castShadow = true; o.receiveShadow = true;
-      if (o.isSkinnedMesh) o.frustumCulled = false;
-      const mats = Array.isArray(o.material) ? o.material : [o.material];
-      mats.forEach(m => {
-        // nhiều mô hình không ghi độ kim loại -> mặc định là kim loại và bị tối; chuyển về vật liệu thường
-        m.metalness = 0; m.roughness = Math.max(m.roughness ?? 1, 0.75); m.transparent = false; m.opacity = 1;
-        if (k.startsWith('nature/')) greener(m);
-      });
-      o.material = Array.isArray(o.material) ? mats : mats[0];
-    });
-    // tên hoạt ảnh "Armature|Walk" -> "walk"
-    g.animations.forEach(a => { a.name = a.name.split('|').pop().toLowerCase(); });
-    cache.set(k, g); done++; onProgress?.(done / keys.length);
-  };
-  await Promise.all(keys.map(k => new Promise(res => {
-    const fail = err => { console.warn('Không tải được', k, err); done++; onProgress?.(done / keys.length); res(); };
-    gl.load(BASE + k + (/\.gltf$/.test(k) ? '' : '.glb'), g => { finish(k, g); res(); }, undefined, fail);
-  })));
-}
+// Mọi vật thể đã có hình 2D vẽ tay (public/sprites) nên không tải mô hình 3D nữa.
+// Món mới chưa có hình sẽ hiện khối hồng + cảnh báo "Thiếu mô hình 3D" (xem make()).
+// Muốn dùng lại mô hình 3D: lấy bộ nạp GLTF cũ (STILL_3D) ở git show 443f08b:src/assets.js.
+export async function loadAll(onProgress) { onProgress?.(1); }
 
 const warned = new Set();
 // Tạo một bản sao mô hình. Trả về Group đã căn giữa, đặt đáy chạm y=0.
@@ -53,7 +16,7 @@ const warned = new Set();
 export function make(key, opts = {}) {
   const g = cache.get(key);
   const holder = new THREE.Group();
-  if (!g) { // dự phòng khi thiếu mô hình (chưa có hình vẽ tay mà mô hình không nằm trong STILL_3D)
+  if (!g) { // dự phòng khi thiếu mô hình (món chưa có hình vẽ tay)
     if (!warned.has(key)) { warned.add(key); console.warn('Thiếu mô hình 3D', key); }
     const m = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0xff00ff }));
     m.position.y = 0.25; holder.add(m); return holder;

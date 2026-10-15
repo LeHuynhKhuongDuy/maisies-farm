@@ -1,5 +1,5 @@
 // Các chi tiết kiểu Family Farm dựng bằng code: hàng rào gỗ trắng, đường lát gạch,
-// luống hoa cúc, bồn cây viền xanh, luống đất nổi, cây ăn quả tán tròn trĩu quả.
+// luống hoa cúc, gò đất dưới cây ăn quả, luống đất nổi, cây ăn quả tán tròn trĩu quả.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
@@ -92,11 +92,20 @@ export function flowerBed(palette = [0xffffff, 0xffd1e6, 0xffffff, 0xff9ec7]) {
   return g;
 }
 
-// ---------- Bồn cây viền xanh nhạt ----------
+// ---------- Gò đất nện dưới gốc cây ăn quả (hợp với hình vẽ tay) ----------
+let moundMat = null, moundTopMat = null;
 export function planterBase() {
+  if (!moundMat) {
+    const speckle = base => tex(128, 128, (x, w, h) => {
+      x.fillStyle = base; x.fillRect(0, 0, w, h);
+      for (let i = 0; i < 260; i++) { x.fillStyle = `rgba(${90 + Math.random() * 70},${55 + Math.random() * 40},25,.3)`; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 2.5, 0, 7); x.fill(); }
+    });
+    moundMat = new THREE.MeshStandardMaterial({ map: speckle('#a8723f'), roughness: 1 });
+    moundTopMat = new THREE.MeshStandardMaterial({ map: speckle('#8a5a30'), roughness: 1 });
+  }
   const g = new THREE.Group();
-  const rim = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.16, 0.98), soft(0x9fe3f0)); rim.position.y = 0.08; shadowy(rim); g.add(rim);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.02, 0.8), soft(0x6dbf3f)); top.position.y = 0.165; g.add(top);
+  const mound = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.15, 24), [moundMat, moundTopMat, moundMat]);
+  mound.position.y = 0.075; mound.receiveShadow = true; g.add(mound);
   return g;
 }
 

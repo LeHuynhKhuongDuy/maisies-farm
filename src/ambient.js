@@ -47,9 +47,9 @@ export function buildAmbient() {
     g.add(b); A.birds.push(b);
   }
 
-  // Thuyền buồm chạy vòng ngoài khơi
+  // Thuyền chèo chạy vòng ngoài khơi (không dùng hình tàu hàng để khỏi nhầm là tàu thứ hai)
   for (let i = 0; i < 2; i++) {
-    const s = art(i ? 'boat' : 'ship', 1, 1, { scale: i ? 0.7 : 0.8, shadow: false }) || make(i ? 'pirate/boat-row-large' : 'pirate/ship-small', { h: i ? 0.9 : 3 });
+    const s = art('boat', 1, 1, { scale: i ? 0.6 : 0.75, shadow: false }) || make('pirate/boat-row-large', { h: 0.9 });
     Object.assign(s.userData, { r: 24 + i * 7, sp: (i ? -1 : 1) * (0.025 + i * 0.01), ph: i * 3 });
     g.add(s); A.boats.push(s);
   }
@@ -72,24 +72,29 @@ export function buildAmbient() {
     g.add(f); A.flies.push(f);
   }
 
-  // Biển gỗ "Maisie's Farm" ở đầu bến
-  const c = document.createElement('canvas'); c.width = 512; c.height = 200;
-  const x = c.getContext('2d');
-  x.fillStyle = '#c98d52'; x.beginPath(); x.roundRect(8, 8, 496, 184, 36); x.fill();
-  x.strokeStyle = '#93603a'; x.lineWidth = 10; x.stroke();
-  x.fillStyle = '#fff8e7'; x.font = '800 86px "Baloo 2", system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.strokeStyle = '#93603a'; x.lineWidth = 12; x.strokeText("Maisie's Farm", 256, 104); x.fillText("Maisie's Farm", 256, 104);
-  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-  const sign = new THREE.Group();
-  const board = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.33), new THREE.MeshStandardMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
-  board.position.y = 1.55; board.castShadow = true; sign.add(board);
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
-  for (const sx of [-1.3, 1.3]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.7, 0.14), postMat); p.position.set(sx, 0.85, -0.03); p.castShadow = true; sign.add(p); }
-  const pos = cellToWorld(14, GRID - 1); sign.position.set(pos.x, 0, pos.z + 0.9); sign.rotation.y = Math.PI / 4;
-  g.add(sign);
-  // vẽ lại chữ khi phông chữ đã tải xong
-  document.fonts?.ready.then(() => { x.clearRect(0, 0, 512, 200); x.fillStyle = '#c98d52'; x.beginPath(); x.roundRect(8, 8, 496, 184, 36); x.fill(); x.strokeStyle = '#93603a'; x.lineWidth = 10; x.stroke();
-    x.fillStyle = '#fff8e7'; x.strokeStyle = '#93603a'; x.lineWidth = 12; x.strokeText("Maisie's Farm", 256, 104); x.fillText("Maisie's Farm", 256, 104); tex.needsUpdate = true; });
+  // Biển gỗ "Maisie's Farm" ở đầu bến: hình vẽ tay, chữ viết nghiêng theo mặt bảng
+  const sign = art('signboard', 1, 1, { scale: 2.6 });
+  if (sign) {
+    const mat = sign.userData.plane.material, img = mat.map.image;
+    const c = document.createElement('canvas'); c.width = img.width * 2; c.height = img.height * 2;
+    const x = c.getContext('2d');
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    // mặt bảng trong ảnh gốc (338x356): hai cặp ván, mép trên dốc lên sang phải ~0.27
+    const draw = () => {
+      x.setTransform(2, 0, 0, 2, 0, 0); x.clearRect(0, 0, img.width, img.height); x.drawImage(img, 0, 0);
+      x.fillStyle = '#fff8e7'; x.strokeStyle = '#6e4322'; x.lineJoin = 'round'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      [["Maisie's", 112], ['Farm', 196]].forEach(([t, y]) => {
+        let px = 62; x.font = `800 ${px}px "Baloo 2", system-ui, sans-serif`;
+        while (x.measureText(t).width > 250 && px > 30) x.font = `800 ${--px}px "Baloo 2", system-ui, sans-serif`;
+        x.setTransform(2, -0.54, 0, 2, 170 * 2, y * 2); x.lineWidth = 9; x.strokeText(t, 0, 2); x.fillText(t, 0, 2);
+      });
+      tex.needsUpdate = true;
+    };
+    draw(); mat.map = tex;
+    const pos = cellToWorld(14, GRID - 1); sign.position.set(pos.x, 0, pos.z + 0.9);
+    g.add(sign);
+    document.fonts?.ready.then(draw); // vẽ lại chữ khi phông chữ đã tải xong
+  }
 }
 
 export function updateAmbient(t, dt) {

@@ -154,7 +154,7 @@ function treeView(o) {
       update(t) { if (star.visible) { star.position.set(0, 2.2 + Math.sin(t * 3 + o.id) * 0.08, 0); star.material.rotation = t; } },
     };
   }
-  if (T.lush) { // cây tán tròn trong bồn viền xanh, kiểu Family Farm
+  if (T.lush) { // cây tán tròn trên gò đất, kiểu Family Farm
     root.add(planterBase());
     const { group: m, fruits } = lushTree(T.lush); m.position.y = 0.15; root.add(m);
     const star = sparkle(); root.add(star);
@@ -183,6 +183,7 @@ function treeView(o) {
 }
 
 const PEN_GROUND = { coop: 0xe9d27f, cowpen: 0xa6dc72, pigpen: 0xb88a5c, beehive: 0xc6e89a };
+const PEN_HUT = { cowpen: 'cowshed', pigpen: 'pigsty' };
 function penView(o) {
   const P = PENS[o.t], root = new THREE.Group();
   const ground = box(2.9, 0.05, 2.9, PEN_GROUND[o.t]); ground.position.y = 0.0; root.add(ground);
@@ -192,20 +193,25 @@ function penView(o) {
     const hive = art('beehive');
     if (hive) { hive.position.set(-0.85, 0, -0.85); root.add(hive); }
     else for (let i = 0; i < 2; i++) { const hv = make('survival/box-large', { size: 0.55, tint: 0xffd23f }); hv.position.set(-0.95 + i * 0.6, 0, -0.95); root.add(hv); }
-    [[0.6, -0.7], [0.9, 0.3], [-0.8, 0.5], [0.1, 0.8], [-0.2, -0.3]].forEach(([x, z], i) => { const f = make(i % 2 ? 'nature/flower_yellowB' : 'nature/flower_redB', { size: 0.35 }); f.position.set(x, 0, z); root.add(f); });
+    [[0.6, -0.7], [0.9, 0.3], [-0.8, 0.5], [0.1, 0.8], [-0.2, -0.3]].forEach(([x, z], i) => { const f = art(i % 2 ? 'flower_yel' : 'flower_red', 0.4, 0.4, { scale: 0.75, shadow: false }); if (f) { f.position.set(x, 0, z); root.add(f); } });
   } else if (o.t === 'coop' && hasSprite('coop')) {
     const hut = art('coop'); hut.position.set(-0.85, 0, -0.85); root.add(hut);
   } else if (o.t === 'coop') {
     const hut = house(1, 1, { roof: 'town/roof-point', roofH: 0.7, roofTint: 0xe8604c }); hut.scale.setScalar(0.75); hut.position.set(-0.85, 0, -0.85); root.add(hut);
+  } else if (hasSprite(PEN_HUT[o.t])) { // chòi vẽ tay ở góc sau bên trái; chòi heo đã có máng trong hình
+    const hut = art(PEN_HUT[o.t]); hut.position.set(-0.8, 0, -0.85); root.add(hut);
+    if (o.t === 'cowpen') { const tr = art('trough', 1, 1, { scale: 0.8 }); if (tr) { tr.position.set(0.55, 0, -0.95); root.add(tr); } }
   } else {
     const tr = artOrModel('survival/box-large', { size: 0.8 }); tr.position.set(-0.9, 0, -0.9); root.add(tr);
     const bk = artOrModel('survival/bucket', { size: 0.3 }, 0.4, 0.4); bk.position.set(-0.3, 0, -1.05); root.add(bk);
   }
   const herd = [];
+  // bò/heo không đứng lấp chòi ở góc sau bên trái: điểm rơi vào góc đó thì lật sang góc đối diện
+  const clearOfHut = v => { if (PEN_HUT[o.t] && v.x + v.z < -0.5) { v.x = -v.x; v.z = -v.z; } return v; };
   const sync = () => {
     while (herd.length < o.animals.length) {
       const a = bodyOf(PEN_SPRITE[o.t], P.animal, { h: o.t === 'coop' ? 0.5 : o.t === 'beehive' ? 0.35 : o.t === 'cowpen' ? 0.85 : 0.6 });
-      a.position.set((Math.random() - 0.5) * 1.6, 0.03, (Math.random() - 0.5) * 1.4 + 0.2);
+      clearOfHut(a.position.set((Math.random() - 0.5) * 1.6, 0.03, (Math.random() - 0.5) * 1.4 + 0.2));
       a.userData.goal = a.position.clone(); a.userData.wait = Math.random() * 3;
       root.add(a); herd.push(a);
     }
@@ -230,7 +236,7 @@ function penView(o) {
         } else {
           play(a, busy ? 'eat' : 'idle'); if (u.isArt) animateArt(a, t, busy ? 'eat' : 'idle', i);
           u.wait -= dt;
-          if (u.wait <= 0) { u.goal.set((Math.random() - 0.5) * 1.8, 0.03, (Math.random() - 0.5) * 1.6 + 0.15); u.wait = 2 + Math.random() * 4; }
+          if (u.wait <= 0) { clearOfHut(u.goal.set((Math.random() - 0.5) * 1.8, 0.03, (Math.random() - 0.5) * 1.6 + 0.15)); u.wait = 2 + Math.random() * 4; }
         }
       });
     },
