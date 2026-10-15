@@ -24,6 +24,8 @@ function openModal(type, title, html, extra) {
 }
 
 const byId = id => S.objs.find(o => o.id === id);
+// ô ruộng được ưu tiên khi bị vật khác che (đang cầm hạt giống hoặc kéo gieo/thu hoạch)
+const isField = oid => typeof oid === 'number' && byId(oid)?.k === 'field';
 const nameOf = k => ITEMS[k].n;
 const speedCost = ms => Math.max(1, Math.ceil(ms / 120000));
 
@@ -33,7 +35,7 @@ export function onTap(sx, sy) {
   if (W.mode === 'adv') { advTap(sx, sy); renderHUD(); return; }
   if (W.mode === 'nb') { nbTap(sx, sy); renderHUD(); return; }
   if (placing) { const p = groundAt(sx, sy); if (p) moveGhost(p); return; }
-  const oid = pickAt(sx, sy);
+  const oid = pickAt(sx, sy, tray === 'seed' ? isField : null);
   closeTimer();
   if (oid == null) { if (tray === 'seed') closeTray(); return; }
   tapObject(oid, sx, sy);
@@ -541,7 +543,7 @@ export function beginDrag(sx, sy) {
     if (oid === 'ghost' || oid === placing.obj.id) { drag = { mode: 'ghost' }; return true; }
     return false;
   }
-  const oid = pickAt(sx, sy), o = typeof oid === 'number' ? byId(oid) : null;
+  const oid = pickAt(sx, sy, isField), o = typeof oid === 'number' ? byId(oid) : null;
   if (!o || o.k !== 'field') return false;
   const st = cropStage(o, now());
   if (st === 3) { drag = { mode: 'harvest', done: new Set() }; return true; }
@@ -551,7 +553,7 @@ export function beginDrag(sx, sy) {
 export function dragMove(sx, sy) {
   if (!drag) return;
   if (drag.mode === 'ghost') { const p = groundAt(sx, sy); if (p) moveGhost(p); return; }
-  const oid = pickAt(sx, sy), o = typeof oid === 'number' ? byId(oid) : null;
+  const oid = pickAt(sx, sy, isField), o = typeof oid === 'number' ? byId(oid) : null;
   if (!o || o.k !== 'field' || drag.done.has(o.id)) return;
   drag.done.add(o.id);
   const st = cropStage(o, now());

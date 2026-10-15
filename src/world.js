@@ -180,16 +180,21 @@ export function groundAt(sx, sy) {
   const p = new THREE.Vector3();
   return ray.ray.intersectPlane(plane, p) ? p : null;
 }
-// Trả về đối tượng (root có userData.oid) dưới ngón tay
-export function pickAt(sx, sy) {
+// Trả về đối tượng (root có userData.oid) dưới ngón tay.
+// `prefer(oid)`: nếu có vật thoả điều kiện nằm dưới ngón tay (kể cả bị vật khác che) thì chọn nó trước
+export function pickAt(sx, sy, prefer) {
   setRay(sx, sy);
   const hits = ray.intersectObjects(W.mode === 'farm' ? W.pickables : W.advPick, true);
+  let first = null;
   for (const h of hits) {
     let o = h.object;
     while (o && o.userData.oid === undefined) o = o.parent;
-    if (o) return o.userData.oid;
+    if (!o) continue;
+    if (!prefer) return o.userData.oid;
+    if (prefer(o.userData.oid)) return o.userData.oid;
+    if (first === null) first = o.userData.oid;
   }
-  return null;
+  return first;
 }
 
 const tmp = new THREE.Vector3();
