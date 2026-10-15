@@ -457,13 +457,23 @@ function startPlace(obj, isNew, cost = 0) {
     placing = { obj, isNew, cost: 0, view: VIEWS.get(obj.id), orig: { x: obj.x, z: obj.z, r: obj.r } };
   }
   if (!marker) {
-    marker = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x62c43f, transparent: true, opacity: 0.65, depthWrite: false }));
-    marker.rotation.x = -Math.PI / 2; marker.renderOrder = 2;
+    // ô đánh dấu vẽ đè lên vật xung quanh (để thấy chỗ vướng), nhưng dưới chính vật đang đặt
+    marker = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x62c43f, transparent: true, opacity: 0.65, depthWrite: false, depthTest: false }));
+    marker.rotation.x = -Math.PI / 2; marker.renderOrder = 8;
   }
   W.scene.add(marker);
   updateGhost();
   focusOn(placing.view.root.position);
   drawPlaceTray();
+}
+// Vật đang đặt: vẽ sau ô đánh dấu và không bị vật đứng trước che; chỗ vướng thì hình 2D ửng đỏ
+function ghostLook(v, on, ok = true) {
+  v.root.traverse(m => {
+    if (!m.isMesh) return;
+    if (m.userData.ro === undefined) m.userData.ro = m.renderOrder;
+    m.renderOrder = on ? 9 : m.userData.ro;
+    if (m.userData.sprite) { m.material.depthTest = !on; m.material.color.set(on && !ok ? 0xff8f8f : 0xffffff); }
+  });
 }
 function placeOk() {
   const o = placing.obj, [w, d] = footprint(o);
@@ -476,6 +486,7 @@ function updateGhost() {
   marker.position.copy(cellToWorld(o.x, o.z, w, d)); marker.position.y = 0.03;
   const ok = placeOk();
   marker.material.color.set(ok ? 0x62c43f : 0xff5d5d);
+  ghostLook(v, true, ok);
   const b = $('#tray [data-act="placeok"]'); if (b) b.disabled = !ok;
 }
 function moveGhost(p) {
@@ -508,7 +519,7 @@ function placeConfirm() {
     if (obj.k === 'decor') questEvent('buydecor');
     if (obj.k === 'tree') questEvent('buytree');
     sfx('build');
-  } else { view.root.position.y = 0; sfx('build'); }
+  } else { view.root.position.y = 0; ghostLook(view, false); sfx('build'); }
   W.scene.remove(marker);
   const wasField = isNew && obj.k === 'field';
   placing = null; closeTray(); save();
@@ -523,7 +534,7 @@ function placeCancel() {
   const { obj, isNew, view, orig } = placing;
   if (placing.fromStore) S.store[placing.fromStore]++;
   if (isNew) removeView('ghost');
-  else { Object.assign(obj, orig); place(view, obj); view.root.position.y = 0; }
+  else { Object.assign(obj, orig); place(view, obj); view.root.position.y = 0; ghostLook(view, false); }
   W.scene.remove(marker);
   placing = null; closeTray();
 }
