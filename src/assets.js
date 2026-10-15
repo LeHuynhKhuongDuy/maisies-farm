@@ -142,6 +142,9 @@ export function tint(obj, color) {
 
 // ---------- Biểu tượng vật phẩm (vẽ mô hình 3D thành ảnh) ----------
 export const ICONS = {};
+// Biểu tượng nút/menu -> hình vẽ tay
+const B_ICON = { windmill: 'feedmill', 'stall-red': 'market', 'stall-green': 'juicebar', watermill: 'dairy', campfire: 'campfire',
+  field: 'soil', fence: 'fence', ship: 'ship', crate: 'crate', axe: 'axe' };
 // Biểu tượng vẽ tay (nếu có) thay cho ảnh chụp mô hình 3D
 const ITEM_DIR = import.meta.env.BASE_URL + 'items/';
 const sp = name => (name && hasSprite(name) ? spriteUrl(name) : null);
@@ -151,11 +154,13 @@ function paintedIcon(id) {
   switch (kind) {
     case 'ev': return key === 'token' ? ITEM_DIR + 'shell.png' : null;
     case 'face': return PEOPLE.some(p => p.id === key) && hasSprite(key) ? ITEM_DIR + 'face-' + key + '.png' : null;
-    case 'decor': return sp(DECOR_SPRITE[key] || key);
+    case 'decor': return key === 'path' ? import.meta.env.BASE_URL + 'textures/brick.jpg' : sp(DECOR_SPRITE[key] || key);
     case 'tree': return sp(TREE_SPRITE[key]);
     case 'animal': return sp(PEN_SPRITE[key]);
     case 'fac': return sp(key);
     case 'pen': return sp(key === 'coop' || key === 'beehive' ? key : PEN_SPRITE[key]);
+    case 'col': return COLLECTIONS.some(c => c.pieces.some(p => p[0] === key)) ? ITEM_DIR + key + '.png' : null;
+    case 'b': return sp(B_ICON[key]);
   }
   return null;
 }

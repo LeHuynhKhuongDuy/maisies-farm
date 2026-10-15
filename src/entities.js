@@ -198,8 +198,8 @@ function penView(o) {
   } else if (o.t === 'coop') {
     const hut = house(1, 1, { roof: 'town/roof-point', roofH: 0.7, roofTint: 0xe8604c }); hut.scale.setScalar(0.75); hut.position.set(-0.85, 0, -0.85); root.add(hut);
   } else {
-    const tr = make('survival/box-large', { size: 0.8 }); tr.position.set(-0.9, 0, -0.9); root.add(tr);
-    const bk = make('survival/bucket', { size: 0.3 }); bk.position.set(-0.3, 0, -1.05); root.add(bk);
+    const tr = artOrModel('survival/box-large', { size: 0.8 }); tr.position.set(-0.9, 0, -0.9); root.add(tr);
+    const bk = artOrModel('survival/bucket', { size: 0.3 }, 0.4, 0.4); bk.position.set(-0.3, 0, -1.05); root.add(bk);
   }
   const herd = [];
   const sync = () => {
@@ -356,14 +356,18 @@ function marketView(o) {
   };
 }
 
-function procDecor(kind) {
-  if (kind === 'brick') return brickTile();
-  if (kind === 'flowerbed') return flowerBed();
-  if (kind === 'fence') return picketFence(1);
+function procDecor(kind, o = { x: 0, z: 0 }) {
+  if (kind === 'brick') return brickTile(o.x, o.z);
+  if (kind === 'flowerbed') return art('daisies') || flowerBed();
+  if (kind === 'fence') {
+    const f = art('fence', 1, 1, { shadow: false });
+    if (f) { f.userData.plane.userData.flip = -1; return f; } // hình vẽ hàng rào chạy dọc trục z, mặc định quay theo trục x
+    return picketFence(1);
+  }
 }
 function decorView(o) {
   const D = DECOR[o.t], root = new THREE.Group();
-  if (D.proc) { root.add(procDecor(D.proc)); return { root }; }
+  if (D.proc) { root.add(procDecor(D.proc, o)); return { root }; }
   const sp = DECOR_SPRITE[o.t] || o.t;
   if (!D.pet) { root.add(art(sp, D.w || 1, D.d || 1) || make(D.model, { ...D.fit, tint: D.tint, paint: D.paint })); return { root }; }
   const m = bodyOf(sp, D.model, D.fit); root.add(m);
@@ -411,7 +415,11 @@ export function createView(o) {
 export function place(v, o) {
   const [w, d] = footprint(o);
   v.root.position.copy(cellToWorld(o.x, o.z, w, d));
-  if (o.k === 'decor') v.root.rotation.y = -(o.r || 0) * Math.PI / 2;
+  if (o.k !== 'decor') return;
+  // hình 2D luôn quay về camera: xoay = lật trái/phải; mô hình 3D thì xoay thật
+  let isArt = false;
+  v.root.traverse(c => { if (c.userData.sprite) { isArt = true; c.scale.x = Math.abs(c.scale.x) * ((o.r || 0) % 2 ? -1 : 1) * (c.userData.flip || 1); } });
+  v.root.rotation.y = isArt ? 0 : -(o.r || 0) * Math.PI / 2;
 }
 
 export function addView(o) {
@@ -434,11 +442,14 @@ export function rebuildView(o) { removeView(o.id); return addView(o); }
 
 // ---------- Bến tàu, tàu hàng, Maisie ----------
 export const SPECIAL = {};
+const PIER_LIFT = -0.55; // chân cột cầu chìm dưới mặt nước
 export function buildSpecials() {
   // Bến gỗ nhô ra biển ở mép trước đảo
   const dock = new THREE.Group();
   const p = cellToWorld(17, GRID - 1);
-  for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock', { size: 1.6 }); d.position.set(0, -0.62, 1.2 + i * 1.6); dock.add(d); }
+  if (hasSprite('pier')) { // cầu gỗ vẽ tay chạy từ bờ ra biển (dọc trục z)
+    const pr = spriteObject('pier', { width: 5.1, w: 1.6, d: 5.6, lift: PIER_LIFT, shadow: false }); pr.position.z = 3.2; dock.add(pr);
+  } else for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock', { size: 1.6 }); d.position.set(0, -0.62, 1.2 + i * 1.6); dock.add(d); }
   const bar = artOrModel('pirate/barrel', { size: 0.4 }, 0.5, 0.5); bar.position.set(0.5, 0.15, 1.5); dock.add(bar);
   const crt = artOrModel('pirate/crate', { size: 0.5 }, 0.5, 0.5); crt.position.set(-0.5, 0.15, 2.4); dock.add(crt);
   dock.position.set(p.x, 0, p.z);
@@ -456,10 +467,12 @@ export function buildSpecials() {
 
   // Cầu câu cá ở mép phải đảo
   const pier = new THREE.Group(), pp = cellToWorld(GRID - 1, 9);
-  for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock-small', { size: 1.5 }); d.rotation.y = Math.PI / 2; d.position.set(-1.45 + i * 1.45, -0.62, 0); pier.add(d); }
-  const pb = artOrModel('pirate/barrel', { size: 0.4 }, 0.5, 0.5); pb.position.set(-1.3, 0.15, 0.45); pier.add(pb);
-  const bucket = make('survival/bucket', { size: 0.3 }); bucket.position.set(0.9, 0.15, -0.4); pier.add(bucket);
-  const rod = make('pirate/tool-paddle', { h: 1.2 }); rod.position.set(1.6, 0.15, 0.3); rod.rotation.z = -0.6; pier.add(rod);
+  if (hasSprite('pier')) { // cùng hình cầu gỗ, lật ngang để chạy dọc trục x
+    const pr = spriteObject('pier', { width: 4.2, w: 4.35, d: 1.5, lift: PIER_LIFT, shadow: false }); pr.userData.plane.scale.x = -1; pier.add(pr);
+  } else for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock-small', { size: 1.5 }); d.rotation.y = Math.PI / 2; d.position.set(-1.45 + i * 1.45, -0.62, 0); pier.add(d); }
+  const pb = artOrModel('pirate/barrel', { size: 0.4 }, 0.5, 0.5); pb.position.set(-1.3, 0.15, 0.45); if (!pb.userData.plane) pier.add(pb); // cầu vẽ tay đã đủ cột, dây
+  const bucket = artOrModel('survival/bucket', { size: 0.3 }, 0.4, 0.4); bucket.position.set(0.9, 0.15, -0.4); pier.add(bucket);
+  const rod = artOrModel('pirate/tool-paddle', { h: 1.2 }); rod.position.set(1.6, 0.15, 0.3); if (!rod.userData.plane) rod.rotation.z = -0.6; pier.add(rod);
   pier.position.set(pp.x + 3.6, 0, pp.z); pier.userData.oid = 'pier';
   W.farm.add(pier); W.pickables.push(pier); SPECIAL.pier = pier;
 

@@ -117,6 +117,17 @@ function buildIsland(scene) {
     for (let i = 0; i < 26; i++) { x.fillStyle = ['#fff7d6', '#ffe066', '#ffd0e8'][i % 3]; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 1.8, 0, 7); x.fill(); }
   });
   grassTex.repeat.set(0.5, 0.5); // mỗi ô lưới một ô sáng/tối -> thành hình thoi khi nhìn chéo
+  // Có ảnh cỏ vẽ tay thì thay vào: 1 ảnh phủ 4x4 ô, phủ thêm ô sáng/tối xen kẽ thật nhẹ
+  const gi = new Image();
+  gi.onload = () => {
+    const c = grassTex.image; c.width = c.height = 1024;
+    const x = c.getContext('2d'); x.drawImage(gi, 0, 0, 1024, 1024);
+    x.fillStyle = 'rgba(255,255,230,.10)'; x.fillRect(0, 0, 1024, 1024); // dịu màu cho hợp nền cũ
+    x.fillStyle = 'rgba(255,255,255,.07)';
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 === 0) x.fillRect(i * 256, j * 256, 256, 256);
+    grassTex.repeat.set(0.25, 0.25); grassTex.dispose(); grassTex.needsUpdate = true;
+  };
+  gi.src = import.meta.env.BASE_URL + 'textures/grass.jpg';
   const grass = slab(GRID + 0.4, 1.6, 0.5, new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }), 0);
   grass.name = 'ground';
   W.farm.add(grass);

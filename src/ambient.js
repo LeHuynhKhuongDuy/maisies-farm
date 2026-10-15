@@ -26,6 +26,12 @@ export function buildAmbient() {
   // Hải âu: thân + 2 cánh vỗ
   const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 }), grey = new THREE.MeshStandardMaterial({ color: 0x9aa7b0 });
   for (let i = 0; i < 4; i++) {
+    const up = art('gull1', 1, 1, { shadow: false }), down = art('gull2', 1, 1, { shadow: false });
+    if (up && down) { // hình vẽ tay: đổi qua lại 2 tư thế cánh
+      const b = new THREE.Group(); b.add(up, down);
+      b.userData = { r: 16 + i * 4, h: 5 + i * 0.8, sp: 0.12 + i * 0.03, ph: i * 1.7, frames: [up, down] };
+      g.add(b); A.birds.push(b); continue;
+    }
     const b = new THREE.Group();
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.14, 0.5), white); b.add(body);
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.14), white); head.position.set(0, 0.06, 0.3); b.add(head);
@@ -91,6 +97,14 @@ export function updateAmbient(t, dt) {
   for (const b of A.birds) {
     const u = b.userData, a = t * u.sp + u.ph;
     b.position.set(Math.cos(a) * u.r, u.h + Math.sin(t * 0.7 + u.ph) * 0.6, Math.sin(a) * u.r);
+    if (u.frames) {
+      const [up, down] = u.frames, flapUp = Math.sin(t * 7 + u.ph) > 0;
+      up.visible = flapUp; down.visible = !flapUp;
+      // bay theo vòng tròn: lật hình theo hướng bay trên màn hình (hình gốc quay mặt sang trái)
+      const dx = -Math.sin(a) * u.sp, dz = Math.cos(a) * u.sp, sx = (dx - dz) > 0 ? -1 : 1;
+      up.userData.plane.scale.x = down.userData.plane.scale.x = sx;
+      continue;
+    }
     b.rotation.y = -a; b.rotation.z = 0.25;
     const flap = Math.sin(t * 9 + u.ph) * 0.5;
     b.children.forEach(ch => { if (ch.userData.side) ch.rotation.z = ch.userData.side * flap; });

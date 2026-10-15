@@ -40,8 +40,25 @@ export function fenceRing(w, d, gate = true) {
 }
 
 // ---------- Đường lát gạch hồng ----------
-let brickMat = null;
-export function brickTile() {
+let brickMat = null, brickImg = null;
+const brickMats = new Map();
+// cx, cz: ô lưới -> dịch mặt gạch để các ô cạnh nhau nối liền hàng gạch
+export function brickTile(cx = 0, cz = 0) {
+  if (brickImg === null) {
+    brickImg = new THREE.TextureLoader().load(import.meta.env.BASE_URL + 'textures/brick.jpg');
+    brickImg.colorSpace = THREE.SRGBColorSpace; brickImg.wrapS = brickImg.wrapT = THREE.RepeatWrapping; brickImg.anisotropy = 4;
+  }
+  const key = (cx & 1) + ':' + (cz & 1);
+  if (!brickMats.has(key)) {
+    const t = brickImg.clone(); t.repeat.set(0.5, 0.5); t.offset.set((cx & 1) * 0.5, (cz & 1) * 0.5);
+    brickMats.set(key, new THREE.MeshStandardMaterial({ roughness: 0.9, map: t }));
+  }
+  const tile = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 1), brickMats.get(key));
+  tile.position.y = 0.02; tile.receiveShadow = true;
+  return tile;
+}
+// mặt gạch vẽ bằng code (dùng khi chưa có ảnh)
+export function brickTileDrawn() {
   if (!brickMat) brickMat = new THREE.MeshStandardMaterial({ roughness: 0.9, map: tex(128, 128, (x, w, h) => {
     x.fillStyle = '#c99a86'; x.fillRect(0, 0, w, h);
     const rows = 4, bh = h / rows;

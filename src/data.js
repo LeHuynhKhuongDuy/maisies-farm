@@ -362,13 +362,16 @@ export const SPRITE_ART = {
   haysack: { width: 0.55 }, campfire: { width: 0.75 }, hedge: { width: 0.95 }, flag: { width: 0.7 },
   stump: { width: 0.7 }, logs: { width: 0.85 }, bee: { width: 0.3 }, bench: { width: 0.9 }, wheelbarrow: { width: 0.85 },
   tom: { width: 0.72 }, lily: { width: 0.68 }, ben: { width: 0.75 }, rosa: { width: 0.62 }, sam: { width: 0.75 },
+  gull1: { width: 0.9 }, gull2: { width: 0.9 }, pier: { width: 4.6 }, grasstuft: { width: 0.6 }, daisies: { width: 0.85 },
+  fence: { width: 1.05 }, axe: { width: 0.5 }, signboard: { width: 1 }, bucket: { width: 0.4 }, fishingrod: { width: 0.9 },
+  soil: { width: 1.3 }, trough: { width: 0.8 },
   dog: { width: 0.62 }, cat: { width: 0.58 }, bunny: { width: 0.52 }, parrot: { width: 0.6 }, penguin: { width: 0.56 },
   sheepdeco: { width: 0.7 }, horse: { width: 0.85 }, llama: { width: 0.6 }, crab: { width: 0.6 },
 };
 export const PEN_SPRITE = { coop: 'chicken', cowpen: 'cow', pigpen: 'pig', beehive: 'bee' };
 export const TREE_SPRITE = { apple: 'appletree', palm: 'palm', banana: 'bananatree', orange: 'orangetree', lemon: 'lemontree', pear: 'peartree', cherry: 'cherrytree' };
 // Đồ trang trí: tên hình 2D (mặc định trùng tên món)
-export const DECOR_SPRITE = { palmdeco: 'palm' };
+export const DECOR_SPRITE = { palmdeco: 'palm', flowerbed: 'daisies', whitefence: 'fence' };
 // Mô hình 3D -> hình 2D thay thế (dùng ở màn phiêu lưu và bến tàu)
 export const MODEL_SPRITE = {
   'nature/plant_bushLarge': 'bush', 'pirate/crate': 'crate', 'pirate/crate-bottles': 'crate', 'pirate/barrel': 'barrel',
@@ -376,6 +379,7 @@ export const MODEL_SPRITE = {
   'pirate/palm-straight': 'palm', 'pirate/palm-bend': 'palm', 'nature/tree_palmTall': 'palm',
   'kk/decoration/nature/trees_A_medium.gltf': 'leafytree', 'nature/stump_old': 'stump', 'nature/log_stack': 'logs',
   'nature/mushroom_red': 'mushroomdeco', 'pirate/chest': 'chest', 'pirate/boat-row-small': 'boat',
+  'nature/grass_large': 'grasstuft', 'survival/bucket': 'bucket', 'pirate/tool-paddle': 'fishingrod', 'survival/box-large': 'trough',
   'pets/animal-crab': 'crab', 'pets/animal-parrot': 'parrot', 'pets/animal-penguin': 'penguin',
 };
 // Biểu tượng vẽ tay trong public/items/ (ngoài các món trong ITEMS)

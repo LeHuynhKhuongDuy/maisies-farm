@@ -32,6 +32,9 @@ comps = [[sl[1].start, sl[0].start, sl[1].stop, sl[0].stop, a] for sl, a in zip(
 # mảng quá nhỏ (dây câu, giọt nước, tia lấp lánh) gộp vào món gần nhất
 big = max(c[4] for c in comps)
 main = [c for c in comps if c[4] >= big * 0.04]
+# mảng nằm trọn trong khung của món khác (vd. phần cùi trắng giữa nửa trái dừa) là một phần của món đó
+inside = lambda c, m: c is not m and m[0] <= c[0] and m[1] <= c[1] and c[2] <= m[2] and c[3] <= m[3]
+main = [c for c in main if not any(inside(c, m) for m in main)]
 for c in comps:
     if c in main: continue
     cx, cy = (c[0] + c[2]) / 2, (c[1] + c[3]) / 2
