@@ -91,8 +91,9 @@ function buildScene(A) {
   if (!boat.userData.plane) boat.rotation.y = Math.PI / 2; boat.userData.oid = 'a:boat';
   g.add(boat); cur.pick.push(boat); cur.boat = boat;
 
-  const ringGeo = new THREE.RingGeometry(0.4, 0.49, 28);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.85, depthWrite: false });
+  // vòng vàng vẽ đè lên trên (không bị hình 2D đứng trên ô che mất)
+  const ringGeo = new THREE.RingGeometry(0.36, 0.5, 28);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false });
   map.cells.forEach((c, i) => {
     if (c.k === 'water' || c.k === 'open' || isOpen(c)) return;
     let v;
@@ -109,7 +110,7 @@ function buildScene(A) {
     v.position.copy(cellPos(map, c.x, c.z));
     v.userData.oid = 'a:' + i;
     g.add(v); cur.pick.push(v); cur.views.set(i, v);
-    const ring = new THREE.Mesh(ringGeo, ringMat); ring.rotation.x = -Math.PI / 2; ring.position.copy(v.position); ring.position.y = 0.04; ring.visible = false;
+    const ring = new THREE.Mesh(ringGeo, ringMat); ring.rotation.x = -Math.PI / 2; ring.position.copy(v.position); ring.position.y = 0.04; ring.visible = false; ring.renderOrder = 5;
     g.add(ring); cur.rings.push([i, ring]);
   });
   // Maisie đi phiêu lưu
@@ -125,7 +126,10 @@ function buildScene(A) {
 // Chỗ chưa tới được thì tối màu (như sương mù), chỗ dọn được thì sáng và nhún nhảy
 const darkCache = new Map();
 function darkOf(m) {
-  if (!darkCache.has(m)) { const d = m.clone(); d.color = m.color.clone().multiplyScalar(0.55).lerp(new THREE.Color(0x4a6278), 0.3); darkCache.set(m, d); }
+  if (!darkCache.has(m)) {
+    const d = m.clone(), k = m.isMeshBasicMaterial ? 0.3 : 0.55; // hình 2D không chịu ánh sáng nên làm tối mạnh hơn mới thấy rõ
+    d.color = m.color.clone().multiplyScalar(k).lerp(new THREE.Color(0x4a6278), 0.3); darkCache.set(m, d);
+  }
   return darkCache.get(m);
 }
 function setDim(v, dim) {
