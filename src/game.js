@@ -269,8 +269,9 @@ function openEnergy() {
   const foods = Object.entries(ITEMS).filter(([k, it]) => it.energy && have(k) > 0);
   const list = foods.length ? `<div class="inv">${foods.map(([k, it]) => `<div class="it">${img(k)}<span class="q">${have(k)}</span><small>${it.n}<br>+${it.energy} năng lượng</small><div class="acts"><button class="btn small" data-act="eat" data-k="${k}">Ăn</button></div></div>`).join('')}</div>`
     : '<p class="hint">Bếp nấu làm được món ăn hồi năng lượng (mở ở cấp 6).</p>';
-  openModal('energy', 'Hết năng lượng', `<p class="hint">Dọn dẹp cần năng lượng <span class="ico bolt sm"></span>. Năng lượng tự hồi: ${energyHint()}.</p>${list}
-    <div class="row" style="justify-content:center;margin-top:14px"><button class="btn blue" data-act="buyenergy">Nạp đầy ${gemI}5</button></div>`);
+  const full = S.energy >= ENERGY_MAX;
+  openModal('energy', S.energy > 0 ? 'Năng lượng' : 'Hết năng lượng', `<p class="hint">Dọn dẹp cần năng lượng <span class="ico bolt sm"></span>. Năng lượng tự hồi: ${energyHint()}.</p>${list}
+    <div class="row" style="justify-content:center;margin-top:14px">${full ? '<button class="btn gray" data-close>Năng lượng đang đầy</button>' : `<button class="btn blue" data-act="buyenergy">Nạp đầy ${gemI}5</button>`}</div>`);
 }
 
 // ============ Đơn hàng ============
@@ -731,7 +732,7 @@ const ACT = {
     add(k, -1); S.energy += ITEMS[k].energy; plus(x, y - 20, `+${ITEMS[k].energy}⚡`); sfx('collect');
     if (M.type === 'energy') closeModal(); else redrawModal();
   },
-  buyenergy() { if (S.gems < 5) { toast('Cần 5 kim cương'); sfx('no'); return; } S.gems -= 5; S.energy = Math.max(S.energy, ENERGY_MAX); sfx('collect'); closeModal(); },
+  buyenergy() { if (S.energy >= ENERGY_MAX) { toast('Năng lượng đang đầy rồi'); closeModal(); return; } if (S.gems < 5) { toast('Cần 5 kim cương'); sfx('no'); return; } S.gems -= 5; S.energy = Math.max(S.energy, ENERGY_MAX); sfx('collect'); closeModal(); },
   upbarn() {
     const c = barnUpgradeCost(S.barnLvl);
     if (S.coins < c) { toast(`Cần thêm ${c - S.coins} xu nữa`); sfx('no'); return; }
