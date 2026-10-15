@@ -689,7 +689,7 @@ function openSettings(confirmReset) {
     <div class="setting">Chuyển sang máy khác <span class="row" style="gap:6px"><button class="btn small blue" data-act="backup">Lấy mã</button><button class="btn small" data-act="restore">Nhập mã</button></span></div>
     <div class="setting">${confirmReset ? 'Chắc chắn chơi lại từ đầu?' : 'Chơi lại từ đầu'}
       <button class="btn small red" data-act="${confirmReset ? 'resetyes' : 'reset'}">${confirmReset ? 'Xoá hết' : 'Chơi lại'}</button></div>
-    <p class="hint" style="font-size:13px;margin-top:10px">Hình 3D: Kenney.nl (CC0). Maisie's Farm · làm tặng bé Maisie.</p>`);
+    <p class="hint" style="font-size:13px;margin-top:10px">Hình 2D vẽ tay (AI vẽ). Vài mô hình 3D còn lại: Kenney.nl (CC0). Maisie's Farm · làm tặng bé Maisie.</p>`);
 }
 
 // ============ Xử lý nút bấm trong bảng & khay ============
