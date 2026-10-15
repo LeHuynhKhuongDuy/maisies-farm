@@ -416,7 +416,7 @@ function openShop(tab = shopTab) {
 }
 function buy(id) {
   const it = shopItems(shopTab).find(x => x.id === id); if (!it) return;
-  if (it.stored) { const t = id.split(':')[1]; S.store[t]--; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t; return; }
+  if (it.stored) { const t = id.split(':')[1]; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t; return; }
   if (S.level < it.lv) { toast(`Mở ở cấp ${it.lv}`); sfx('no'); return; }
   if (it.max) { toast(it.note); sfx('no'); return; }
   if (S.coins < it.cost) { toast(`Cần thêm ${it.cost - S.coins} xu nữa`); sfx('no'); return; }
@@ -454,7 +454,8 @@ function startPlace(obj, isNew, cost = 0) {
     obj.x = spot[0]; obj.z = spot[1]; obj.id = 'ghost';
     placing = { obj, isNew, cost, view: addView(obj) };
   } else {
-    placing = { obj, isNew, cost: 0, view: VIEWS.get(obj.id), orig: { x: obj.x, z: obj.z, r: obj.r } };
+    // kéo trên bản sao: bản lưu tự động giữa chừng không ghi vị trí đang dở (có thể chồng lên vật khác)
+    placing = { obj: { ...obj }, real: obj, isNew, cost: 0, view: VIEWS.get(obj.id) };
   }
   if (!marker) {
     // ô đánh dấu vẽ đè lên vật xung quanh (để thấy chỗ vướng), nhưng dưới chính vật đang đặt
@@ -509,17 +510,18 @@ function drawPlaceTray() {
 function placeConfirm() {
   if (!placing) return;
   if (!placeOk()) { toast('Chỗ này bị vướng rồi'); sfx('no'); return; }
-  const { obj, isNew, cost, view } = placing;
+  const { obj, real, isNew, cost, view, fromStore } = placing;
   if (isNew) {
     if (S.coins < cost) { toast('Không đủ xu'); return; }
     S.coins -= cost;
+    if (fromStore) S.store[fromStore]--;
     removeView('ghost');
     obj.id = newId(); S.objs.push(obj);
     addView(obj);
     if (obj.k === 'decor') questEvent('buydecor');
     if (obj.k === 'tree') questEvent('buytree');
     sfx('build');
-  } else { view.root.position.y = 0; ghostLook(view, false); sfx('build'); }
+  } else { Object.assign(real, { x: obj.x, z: obj.z, r: obj.r }); view.root.position.y = 0; ghostLook(view, false); sfx('build'); }
   W.scene.remove(marker);
   const wasField = isNew && obj.k === 'field';
   placing = null; closeTray(); save();
@@ -531,10 +533,9 @@ function placeConfirm() {
 }
 function placeCancel() {
   if (!placing) return;
-  const { obj, isNew, view, orig } = placing;
-  if (placing.fromStore) S.store[placing.fromStore]++;
+  const { isNew, view, real } = placing;
   if (isNew) removeView('ghost');
-  else { Object.assign(obj, orig); place(view, obj); view.root.position.y = 0; ghostLook(view, false); }
+  else { place(view, real); view.root.position.y = 0; ghostLook(view, false); }
   W.scene.remove(marker);
   placing = null; closeTray();
 }
@@ -707,14 +708,14 @@ const ACT = {
   placeok() { placeConfirm(); }, placeno() { placeCancel(); },
   placerot() { placing.obj.r = ((placing.obj.r || 0) + 1) % 4; updateGhost(); },
   placestore() {
-    const o = placing.obj; W.scene.remove(marker); removeView(o.id);
+    const o = placing.real; W.scene.remove(marker); removeView(o.id);
     S.objs.splice(S.objs.indexOf(o), 1); (S.store ||= {})[o.t] = (S.store[o.t] || 0) + 1;
     placing = null; closeTray(); sfx('collect'); toast(`Đã cất ${DECOR[o.t].n.toLowerCase()} vào túi. Đặt lại trong Cửa hàng → Trang trí`);
   },
   claimdaily(b, x, y) { claimDaily(x, y); },
   placestored(b) {
     const t = b.dataset.k; if (!(S.store?.[t] > 0)) return;
-    S.store[t]--; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t;
+    startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t;
   },
   make(b, x, y) { makeRecipe(byId(+b.dataset.oid), +b.dataset.i, x, y); },
   collectfac(b, x, y) { collectJobs(byId(+b.dataset.oid), x, y); redrawModal(); },
