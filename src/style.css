@@ -200,6 +200,10 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 .traybtn[disabled] { opacity: .45; }
 .traytxt { flex: 1; min-width: 130px; font-weight: 800; padding: 0 6px; line-height: 1.15; }
 .traytxt small { display: block; color: var(--ink-soft); font-weight: 700; }
+@media (max-width: 480px) {
+  #tray.many { width: calc(100% - 20px); flex-wrap: wrap; justify-content: center; row-gap: 6px; }
+  #tray.many .traytxt { order: -1; flex: 1 1 100%; min-width: 0; text-align: center; }
+}
 
 /* ---------- Hộp thoại ---------- */
 #modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: calc(var(--st) + 10px) 10px calc(var(--sb) + 10px); }

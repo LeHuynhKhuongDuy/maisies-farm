@@ -112,7 +112,7 @@ function drawSeedTray() {
     return `<button class="seed ${S.seed === k ? 'on' : ''} ${lock ? 'lock' : ''}" data-act="seed" data-k="${k}" aria-label="${nameOf(k)}">
       ${lock ? `<span class="lk">Cấp ${c.lv}</span>` : ''}${img(k)}<small>${coinI}${c.cost}</small></button>`;
   }).join('');
-  const t = $('#tray');
+  const t = $('#tray'); t.className = '';
   t.innerHTML = `<div class="seeds">${cards}</div><button class="traybtn no" data-act="closetray" aria-label="Đóng">✕</button>`;
   t.hidden = false;
 }
@@ -485,6 +485,7 @@ function moveGhost(p) {
 }
 function drawPlaceTray() {
   const o = placing.obj, rot = o.k === 'decor';
+  $('#tray').className = rot && !placing.isNew ? 'many' : ''; // 4 nút: chữ lên hàng riêng cho vừa màn hình hẹp
   $('#tray').innerHTML = `<button class="traybtn no" data-act="placeno" aria-label="Huỷ">✕</button>
     <div class="traytxt">${placing.isNew ? 'Kéo để chọn chỗ' : 'Kéo để chuyển chỗ'}<small>${placing.cost ? 'Giá ' + placing.cost + ' xu' : 'Chạm ✓ để xong'}</small></div>
     ${rot ? '<button class="traybtn rot" data-act="placerot" aria-label="Xoay">↻</button>' : ''}
