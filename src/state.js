@@ -58,7 +58,7 @@ export function findFree(w, d, nearX = OFF + CORE / 2, nearZ = OFF + CORE / 2) {
 // ---------- Kho ----------
 export const have = k => S.inv[k] || 0;
 export const barnCap = () => BARN_BASE + S.barnLvl * BARN_STEP;
-export const barnUsed = () => Object.values(S.inv).reduce((a, b) => a + b, 0);
+export const barnUsed = () => Object.entries(S.inv).reduce((a, [k, n]) => a + (ITEMS[k]?.mat ? 0 : n), 0); // vật liệu không chiếm chỗ Kho
 export const barnRoom = () => barnCap() - barnUsed();
 export function add(k, n) {
   S.inv[k] = (S.inv[k] || 0) + n;

@@ -7,6 +7,7 @@ import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, a
 import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn } from './world.js';
 import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce } from './entities.js';
 import { ICONS } from './assets.js';
+import { hitObstacle } from './clearing.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
 import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
@@ -242,12 +243,14 @@ function makeRecipe(o, i, sx, sy) {
 }
 
 // ============ Dọn chướng ngại vật ============
-function clearObstacle(o, sx, sy) {
-  const O = OBSTACLES[o.t];
-  if (S.energy < O.energy) { openEnergy(); return; }
-  S.energy -= O.energy;
+function clearObstacle(o, sx, sy) { // tạm: mỗi chạm là một nhát (Task 3 sẽ làm giữ-để-chặt có hoạt ảnh)
+  const r = hitObstacle(o);
+  if (!r) { openEnergy(); return; }
   sfx('chop');
-  plus(sx, sy - 30, `-${O.energy}⚡`);
+  plus(sx, sy - 30, '-1⚡');
+  flyXP(sx, sy);
+  for (const [k, n] of Object.entries(r.drops)) flyItem(sx, sy, k, n);
+  if (!r.done) return;
   const v = VIEWS.get(o.id);
   // thu nhỏ rồi biến mất
   const t0 = performance.now();
@@ -257,12 +260,7 @@ function clearObstacle(o, sx, sy) {
     else removeView(o.id);
   };
   shrink();
-  S.objs.splice(S.objs.indexOf(o), 1);
-  addXP(O.xp); flyXP(sx, sy);
-  const r = Math.random();
-  if (r < 0.5) { const c = 3 + rnd(6); S.coins += c; flyCoins(sx, sy, c); }
-  else if (r < 0.8) { const k = pick(['wheat', 'corn', 'carrot'].filter(k => CROPS[k].lv <= S.level)); if (barnRoom() > 0) { add(k, 1); flyItem(sx, sy, k, 1); } }
-  else if (r < 0.9) { S.gems += 1; flyGems(sx, sy); }
+  if (r.chest) { flyCoins(sx, sy, r.chest.coins); toast(`Rương! +${r.chest.energy}⚡`); }
   questEvent('clear');
 }
 function openEnergy() {

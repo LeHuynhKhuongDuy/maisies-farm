@@ -34,8 +34,8 @@ export const ITEMS = {
   cowfeed:    { n: 'Thức ăn bò',    icon: 'food/bag', tint: 0x7cc46a, v: 3 },
   pigfeed:    { n: 'Thức ăn heo',   icon: 'food/bag', tint: 0xd98a5a, v: 4 },
 
-  bread:      { n: 'Bánh mì',       icon: 'food/loaf', v: 10 },
-  cookie:     { n: 'Bánh quy',      icon: 'food/cookie', v: 14 },
+  bread:      { n: 'Bánh mì',       icon: 'food/loaf', v: 10, energy: 4 },
+  cookie:     { n: 'Bánh quy',      icon: 'food/cookie', v: 14, energy: 5 },
   cake:       { n: 'Bánh kem',      icon: 'food/cake', v: 30 },
   applepie:   { n: 'Bánh táo',      icon: 'food/pie', v: 24 },
   cheese:     { n: 'Phô mai',       icon: 'food/cheese', v: 20 },
@@ -68,6 +68,20 @@ export const ITEMS = {
   bigfish:    { n: 'Cá vàng to',    icon: 'food/fish', tint: 0xffa040, v: 16 },
   grilledfish:{ n: 'Cá xiên nướng', icon: 'food/skewer', v: 30, energy: 8 },
   sushi:      { n: 'Sushi',         icon: 'food/sushi-salmon', v: 34, energy: 9 },
+  // Vật liệu: mat 1 = thô (chặt vật cản mà có), mat 2 = bậc 2 (làm ở xưởng). Không tính vào sức chứa Kho
+  wood:       { n: 'Gỗ',            v: 2, mat: 1 },
+  stone:      { n: 'Đá',            v: 2, mat: 1 },
+  bamboo:     { n: 'Tre',           v: 2, mat: 1 },
+  palmleaf:   { n: 'Lá cọ',         v: 1, mat: 1 },
+  clay:       { n: 'Đất sét',       v: 2, mat: 1 },
+  liana:      { n: 'Dây leo',       v: 2, mat: 1 },
+  planks:     { n: 'Ván gỗ',        v: 6, mat: 2 },
+  rack:       { n: 'Giá gỗ',        v: 8, mat: 2 },
+  firewood:   { n: 'Củi',           v: 4, mat: 2 },
+  basket:     { n: 'Giỏ đan',       v: 8, mat: 2 },
+  reedmat:    { n: 'Chiếu',         v: 8, mat: 2 },
+  rope:       { n: 'Dây thừng',     v: 6, mat: 2 },
+  torch:      { n: 'Đuốc',          v: 10, mat: 2 },
 };
 
 // ---------- Cây trồng (ruộng 1x1) ----------
@@ -192,18 +206,27 @@ export const DECOR = {
   lighthouse:  { n: 'Ngọn hải đăng', lv: 10, cost: 600, model: 'pirate/tower-complete-small', fit: { size: 1.9 }, w: 2, d: 2 },
 };
 
-// ---------- Chướng ngại vật (dọn bằng năng lượng) ----------
+// ---------- Chướng ngại vật (chặt nhiều nhát, mỗi nhát tốn 1 năng lượng) ----------
+// hp: số nhát; drop: vật liệu rơi mỗi nhát {món: [min, max]}; rare: xác suất rơi thêm mỗi nhát;
+// chest: xác suất ra rương khi chặt xong; regrow: mọc lại sau khi bị chặt.
+// Hình (proc/model/fit) chỉ có ở 5 loại cũ; loại mới dùng hình tạm trong entities.js
 export const OBSTACLES = {
-  bush:  { n: 'Bụi rậm',  proc: 'bush', energy: 2, xp: 1 },
-  rock:  { n: 'Tảng đá',  model: 'kk/decoration/nature/rock_single_B.gltf', fit: { size: 0.85 }, energy: 4, xp: 2 },
-  stump: { n: 'Gốc cây',  model: 'nature/stump_round', fit: { size: 0.6 }, energy: 3, xp: 1 },
-  tree:  { n: 'Cây rừng', proc: 'tree', energy: 5, xp: 2 },
-  logs:  { n: 'Đống gỗ',  model: 'kk/decoration/props/resource_lumber.gltf', fit: { size: 0.8 }, energy: 3, xp: 1 },
+  grass:     { n: 'Bụi cỏ',     hp: 2,  drop: { palmleaf: [1, 1] }, chest: 0,    regrow: true },
+  bush:      { n: 'Bụi rậm',    hp: 2,  drop: { palmleaf: [1, 1] }, chest: 0.05, regrow: true, proc: 'bush' },
+  bamboo:    { n: 'Bụi tre',    hp: 3,  drop: { bamboo: [1, 1] },   chest: 0.05, regrow: true },
+  stump:     { n: 'Gốc cây',    hp: 3,  drop: { wood: [1, 1] },     chest: 0.1,  model: 'nature/stump_round', fit: { size: 0.6 } },
+  logs:      { n: 'Đống gỗ',    hp: 3,  drop: { wood: [1, 2] },     chest: 0.1,  model: 'kk/decoration/props/resource_lumber.gltf', fit: { size: 0.8 } },
+  rock:      { n: 'Tảng đá',    hp: 4,  drop: { stone: [1, 1] },    chest: 0.15, model: 'kk/decoration/nature/rock_single_B.gltf', fit: { size: 0.85 } },
+  claymound: { n: 'Gò đất sét', hp: 4,  drop: { clay: [1, 1] },     chest: 0.15 },
+  tree:      { n: 'Cây rừng',   hp: 6,  drop: { wood: [1, 1] },     rare: { liana: 0.25 }, chest: 0.3, proc: 'tree' },
+  bigtree:   { n: 'Cây cổ thụ', hp: 12, drop: { wood: [1, 2] },     rare: { liana: 0.3 },  chest: 0.6 },
+  bigrock:   { n: 'Tảng đá lớn', hp: 12, drop: { stone: [1, 2] },   chest: 0.6 },
 };
 
 // Loại vật cản mọc ở từng vùng (lặp lại một loại = tỉ lệ cao hơn)
-const OLD_MIX = ['bush', 'rock', 'stump', 'tree', 'logs'];
-export const JUNGLE_MIX = { core: OLD_MIX, west: OLD_MIX, north: OLD_MIX, old: OLD_MIX };
+const MIX_LOW = ['grass', 'bush', 'bamboo', 'stump', 'logs', 'rock', 'claymound', 'tree'];
+const MIX_HIGH = [...MIX_LOW, 'bigtree', 'bigrock'];
+export const JUNGLE_MIX = { core: MIX_LOW, west: MIX_LOW, north: MIX_HIGH, old: MIX_HIGH };
 
 // Giá mua ô ruộng thứ n (n tính từ 0)
 export const fieldCost = n => (n < 6 ? 0 : 10 + (n - 6) * 6);

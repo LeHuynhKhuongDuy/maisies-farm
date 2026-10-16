@@ -393,8 +393,11 @@ function decorView(o) {
 function obstacleView(o) {
   const O = OBSTACLES[o.t], root = new THREE.Group();
   let m;
-  const oa = { bush: 'bush', rock: 'rock', tree: 'leafytree', stump: 'stump', logs: 'logs' }[o.t];
-  if (oa && hasSprite(oa)) { root.add(art(oa)); return { root }; }
+  // loại mới dùng tạm hình của loại gần nghĩa (Giai đoạn A task 3 sẽ vẽ riêng)
+  const oa = { bush: 'bush', rock: 'rock', tree: 'leafytree', stump: 'stump', logs: 'logs',
+    grass: 'grasstuft', bamboo: 'bush', claymound: 'rock', bigtree: 'leafytree', bigrock: 'rock' }[o.t];
+  if (oa && hasSprite(oa)) { root.add(art(oa)); if (o.t.startsWith('big')) root.scale.setScalar(1.5); return { root }; }
+  if (!O.proc && !O.model) { m = roundBush(0x4fb82e, 0x66cc3e, false); root.add(m); return { root }; }
   if (O.proc === 'bush') m = roundBush(0x4fb82e, 0x66cc3e, o.id % 3 === 0);
   else if (O.proc === 'tree') { m = lushTree({ leaf: 0x3fa82a, leaf2: 0x58c23a, n: 0 }).group; m.scale.setScalar(0.85); }
   else m = make(O.model, O.fit);
