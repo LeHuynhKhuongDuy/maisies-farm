@@ -65,10 +65,10 @@ export const flyCoins = (x, y, n) => { for (let i = 0; i < Math.min(5, Math.ceil
 export const flyGems = (x, y) => flyTo(x, y, '#gemPill', gemI);
 export const flyXP = (x, y) => flyTo(x, y, '#lvlBox', xpI);
 
-export function confetti() {
+export function confetti(n = 50) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const cols = ['#ff6b5b', '#ffd23f', '#3aa7e8', '#62c43f', '#ff8ad8', '#a06cff'];
-  for (let j = 0; j < 50; j++) {
+  for (let j = 0; j < n; j++) {
     const s = document.createElement('span'); s.className = 'conf';
     s.style.left = Math.random() * 100 + 'vw'; s.style.background = cols[j % cols.length];
     s.style.animationDuration = (1.6 + Math.random() * 1.6) + 's'; s.style.animationDelay = Math.random() * 0.4 + 's';

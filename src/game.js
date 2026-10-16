@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES,
+import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES,
   fieldCost, xpNeed, ENERGY_MAX, barnUpgradeCost } from './data.js';
 import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
@@ -9,6 +9,7 @@ import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bou
 import { ICONS } from './assets.js';
 import { hitObstacle, openChest, regrowTick } from './clearing.js';
 import { isOpenCell } from './island.js';
+import { startSite, siteReq, contribute, tryAdvance, stageCount, matHint } from './build.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
 import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
@@ -50,6 +51,7 @@ export function tapObject(oid, sx, sy) {
   if (oid === 'pier') { bounce('pier'); sfx('tap'); return openFishing({ openEnergy }); }
   const o = byId(oid); if (!o) return;
   bounce(oid);
+  if (o.site) { sfx('tap'); return openSite(o); } // đang xây: chỉ mở bảng góp vật liệu
   switch (o.k) {
     case 'field': return tapField(o, sx, sy);
     case 'tree': return tapTree(o, sx, sy);
@@ -242,6 +244,47 @@ function makeRecipe(o, i, sx, sy) {
   o.jobs.push({ r: i, s, e: s + r.t * 1000 });
   sfx('build'); VIEWS.get(o.id).refresh(t);
   redrawModal();
+}
+
+// ============ Công trường ============
+function siteName(o) {
+  if (o.k === 'fac') return FACTORIES[o.t].n;
+  if (o.k === 'pen') return PENS[o.t].n;
+  if (o.k === 'gate') return 'Đường tới ' + (ZONES.find(z => z.gate === o.t)?.n || 'vùng mới');
+  return 'Công trình';
+}
+function openSite(o) {
+  closeTray(); closeTimer();
+  M_draw = () => {
+    if (!o.site) return '<p class="hint">Đã xây xong!</p>';
+    const req = siteReq(o), n = stageCount(o);
+    const icon = ICONS[o.k + ':' + o.t] ? `<img class="sitepic" src="${ICONS[o.k + ':' + o.t]}" alt="">` : '';
+    const rows = Object.entries(req).map(([k, r]) => {
+      const done = r.got >= r.need, h = have(k);
+      return `<div class="mat ${done ? 'ok' : 'lack'}">${img(k)}<b>${nameOf(k)}</b><span class="q">${r.got}/${r.need}</span>
+        ${done ? '<span class="t">✓ Đủ rồi</span>'
+          : `<button class="btn small ${h ? '' : 'gray'}" data-act="give" data-oid="${o.id}" data-k="${k}">Góp</button>
+             <small>${h ? `Đang có ${h}` : esc(matHint(k))}</small>`}</div>`;
+    }).join('');
+    return `<div class="sitehead">${icon}<span class="stage">Giai đoạn ${o.site.stage + 1}/${n}</span></div>
+      <p class="hint">Góp đủ vật liệu để xây ${esc(siteName(o).toLowerCase())} nhé!</p><div class="mats">${rows}</div>`;
+  };
+  M_sig = () => JSON.stringify(o.site || null) + JSON.stringify(S.inv);
+  openModal('site', siteName(o), M_draw(), { sig: M_sig(), oid: o.id });
+}
+function giveSite(o, k, x, y) {
+  if (!o?.site) return;
+  const n = contribute(o, k);
+  if (!n) { const h = matHint(k); toast(`Chưa có ${nameOf(k).toLowerCase()}.${h ? ' ' + h + ' nhé!' : ''}`); sfx('no'); return; }
+  bounce(o.id);
+  const stage = o.site.stage, r = tryAdvance(o);
+  if (r === 'none') { plus(x, y - 24, '+' + n); sfx('tap'); redrawModal(); return; }
+  // xong một giai đoạn: lấp lánh, xp bay lên, giàn giáo cao thêm (hoặc công trình thật hiện ra)
+  confetti(18); flyXP(x, y); plus(x, y - 50, `+${10 * (stage + 1)} xp`);
+  rebuildView(o); bounce(o.id); save();
+  if (r === 'stage') { sfx('build'); toast(`Xong giai đoạn ${stage + 1}! Cố lên nào`); redrawModal(); return; }
+  sfx('level'); closeModal(); toast(`${siteName(o)} đã xây xong!`);
+  focusOn(VIEWS.get(o.id).root.position);
 }
 
 // ============ Dọn chướng ngại vật ============
@@ -437,13 +480,14 @@ function shopItems(tab) {
     for (const [k, P] of Object.entries(PENS)) {
       const pens = S.objs.filter(o => o.k === 'pen' && o.t === k);
       out.push({ id: 'pen:' + k, icon: 'pen:' + k, n: P.n, cost: P.cost, lv: P.lv, note: `Đang có ${pens.length}/2`, max: pens.length >= 2 });
-      const room = pens.some(p => p.animals.length < P.max);
-      out.push({ id: 'animal:' + k, icon: 'animal:' + k, n: P.an, cost: P.animalCost, lv: P.lv, note: pens.length ? (room ? `Cho ${nameOf(P.prod).toLowerCase()}` : 'Chuồng đã đầy') : `Cần ${P.n.toLowerCase()}`, max: !room });
+      const built = pens.filter(p => !p.site), room = built.some(p => p.animals.length < P.max);
+      const building = !room && pens.some(p => p.site); // hết chỗ, còn chuồng đang xây: để buyAnimal nhắc góp vật liệu
+      out.push({ id: 'animal:' + k, icon: 'animal:' + k, n: P.an, cost: P.animalCost, lv: P.lv, note: !pens.length ? `Cần ${P.n.toLowerCase()}` : building ? 'Chuồng đang xây' : room ? `Cho ${nameOf(P.prod).toLowerCase()}` : 'Chuồng đã đầy', max: !room && !building });
     }
   } else if (tab === 'factory') {
     for (const [k, F] of Object.entries(FACTORIES)) {
-      const owned = S.objs.some(o => o.k === 'fac' && o.t === k);
-      out.push({ id: 'fac:' + k, icon: 'fac:' + k, n: F.n, cost: F.cost, lv: F.lv, note: owned ? 'Đã có' : F.rec.map(r => nameOf(r.out)).slice(0, 2).join(', '), max: owned });
+      const owned = S.objs.find(o => o.k === 'fac' && o.t === k);
+      out.push({ id: 'fac:' + k, icon: 'fac:' + k, n: F.n, cost: F.cost, lv: F.lv, note: owned ? (owned.site ? 'Đang xây' : 'Đã có') : F.rec.map(r => nameOf(r.out)).slice(0, 2).join(', '), max: !!owned });
     }
   } else {
     for (const [k, n] of Object.entries(S.store || {})) if (n > 0) out.push({ id: 'stored:' + k, icon: 'decor:' + k, n: DECOR[k].n, cost: 0, lv: 1, note: `Đã cất · có ${n}`, stored: true });
@@ -487,8 +531,10 @@ function buy(id) {
 }
 function buyAnimal(t, penId) {
   const P = PENS[t];
-  const pen = penId ? byId(penId) : S.objs.find(o => o.k === 'pen' && o.t === t && o.animals.length < P.max);
+  const pens = S.objs.filter(o => o.k === 'pen' && o.t === t);
+  const pen = penId ? byId(penId) : pens.find(o => !o.site && o.animals.length < P.max) || pens.find(o => o.site);
   if (!pen) { toast(`Cần mua ${P.n.toLowerCase()} trước`); sfx('no'); return; }
+  if (pen.site) { toast('Chuồng đang xây, góp đủ vật liệu trước nhé!'); sfx('no'); return; }
   if (pen.animals.length >= P.max) { toast('Chuồng đã đầy'); return; }
   if (S.coins < P.animalCost) { toast(`Cần thêm ${P.animalCost - S.coins} xu nữa`); sfx('no'); return; }
   S.coins -= P.animalCost; pen.animals.push({ s: 0, e: 0 });
@@ -571,7 +617,9 @@ function placeConfirm() {
     if (fromStore) S.store[fromStore]--;
     removeView('ghost');
     obj.id = newId(); S.objs.push(obj);
+    startSite(obj); // nhà máy, chuồng: thành công trường, góp vật liệu để xây
     addView(obj);
+    if (obj.site) toast('Chạm vào công trường để góp vật liệu nhé!');
     if (obj.k === 'decor') questEvent('buydecor');
     if (obj.k === 'tree') questEvent('buytree');
     sfx('build');
@@ -774,6 +822,7 @@ const ACT = {
     startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t;
   },
   make(b, x, y) { makeRecipe(byId(+b.dataset.oid), +b.dataset.i, x, y); },
+  give(b, x, y) { giveSite(byId(+b.dataset.oid), b.dataset.k, x, y); },
   collectfac(b, x, y) { collectJobs(byId(+b.dataset.oid), x, y); redrawModal(); },
   speedjob(b) {
     const o = byId(+b.dataset.oid), t = now(), j = o.jobs.find(j => t < j.e && t >= j.s); if (!j) return;
@@ -892,6 +941,10 @@ function buildBubbles() {
   const t = now(), list = [];
   for (const o of S.objs) {
     const v = VIEWS.get(o.id); if (!v) continue;
+    if (o.site) { // công trường: búa khi bé đang có món góp được
+      if (Object.entries(siteReq(o)).some(([k, r]) => r.got < r.need && have(k) > 0)) list.push({ oid: o.id, y: 1.6, mark: '🔨', cls: 'sitemark' });
+      continue;
+    }
     if (o.k === 'pen') {
       const P = PENS[o.t], ready = o.animals.filter(a => a.e && t >= a.e).length, hungry = o.animals.filter(a => !a.e).length;
       if (ready) list.push({ oid: o.id, y: 1.4, icon: P.prod, n: ready });

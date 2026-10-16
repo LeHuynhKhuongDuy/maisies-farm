@@ -255,6 +255,20 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 .recipe b { font-size: 15px; line-height: 1.1; text-align: center; }
 .recipe .t { font-size: 13px; color: var(--ink-soft); font-weight: 700; }
 .recipe.lock { opacity: .5; }
+/* công trường: bảng góp vật liệu */
+.sitehead { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; }
+.sitepic { width: 64px; height: 64px; }
+.sitehead .stage { padding: 4px 14px; border-radius: 14px; background: var(--gold); color: var(--ink); font-weight: 800; font-size: 17px; }
+.mats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.mat { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border-radius: 20px; background: var(--white); box-shadow: 0 4px 0 var(--cream-d); border: 3px solid transparent; }
+.mat img { width: 52px; height: 52px; }
+.mat b { font-size: 15px; line-height: 1.1; text-align: center; }
+.mat .q { font-weight: 800; font-size: 20px; font-variant-numeric: tabular-nums; }
+.mat.lack { border-color: #ffc9c0; } .mat.lack .q { color: var(--red-d); }
+.mat.ok { background: #e9f8dd; } .mat.ok .q, .mat .t { color: var(--green-d); font-weight: 800; }
+.mat small { font-size: 12px; font-weight: 700; color: var(--ink-soft); line-height: 1.15; text-align: center; }
+.bub.mark.sitemark { background: #ffe6b8; font-size: 20px; -webkit-text-stroke: 0; }
+.bub.mark.sitemark::after { border-top-color: #ffe6b8; }
 .queue { display: flex; gap: 10px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
 .slot { position: relative; width: 82px; height: 82px; border-radius: 18px; background: var(--white); border: 3px dashed var(--cream-d); display: grid; place-items: center; }
 .slot img { width: 56px; height: 56px; }

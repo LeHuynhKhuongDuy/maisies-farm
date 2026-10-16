@@ -177,6 +177,32 @@ export const FACTORIES = {
   ]},
 };
 
+// ---------- Công trường: vật liệu cần góp theo từng giai đoạn ----------
+// key '<k>:<t>' (xem keyOf trong build.js). Giai đoạn 1 chỉ dùng thứ lấy được ở cấp mở công trình (có test)
+const FAC_LATE = [{ planks: 10, stone: 10 }, { rope: 3, basket: 4 }, { torch: 4, reedmat: 4 }];
+export const BUILD = {
+  'fac:carpentry': [{ wood: 6, stone: 3 }],
+  'fac:feedmill':  [{ wood: 6, palmleaf: 4 }],
+  'fac:bakery':    [{ wood: 8, stone: 6 }, { planks: 4, palmleaf: 6 }],
+  'fac:weaving':   [{ wood: 10, bamboo: 6 }, { planks: 6, palmleaf: 8 }],
+  'fac:dairy':     [{ planks: 6, stone: 10 }, { reedmat: 3, firewood: 6 }],
+  'fac:juicebar':  [{ planks: 8, bamboo: 8 }, { basket: 4, rope: 2 }],
+  'fac:kitchen':   [{ stone: 14, planks: 8 }, { firewood: 8, clay: 6 }, { torch: 3, reedmat: 3 }],
+  'fac:seafood':   FAC_LATE, 'fac:sweets': FAC_LATE, 'fac:jammaker': FAC_LATE,
+  'pen:coop':      [{ wood: 6, palmleaf: 6 }],
+  'pen:cowpen':    [{ wood: 12, planks: 4 }, { rope: 2, palmleaf: 10 }],
+  'pen:pigpen':    [{ wood: 12, stone: 8 }, { planks: 6, rope: 3 }],
+  'pen:beehive':   [{ planks: 6, basket: 3 }],
+  'gate:bridge_w':   [{ wood: 10, bamboo: 8 }, { planks: 6, rope: 2 }],
+  'gate:bridge_n':   [{ planks: 12, rope: 4 }, { stone: 20, torch: 3 }],
+  'gate:stairs_old': [{ stone: 30, planks: 15 }, { rope: 6, torch: 6 }, { reedmat: 6, rack: 4 }],
+  'ruin:house':  [{ wood: 4, palmleaf: 4 }],
+  'ruin:bakery': [{ wood: 4, stone: 3 }],
+  'ruin:boat':   [{ planks: 3, palmleaf: 5 }],
+};
+// nhà máy chưa có trong bảng thì dùng giai đoạn của quán hải sản
+for (const t of Object.keys(FACTORIES)) BUILD['fac:' + t] ||= FAC_LATE;
+
 // ---------- Trang trí ----------
 // fit: cách thu phóng mô hình ({size}: bề ngang, {h}: chiều cao)
 export const DECOR = {

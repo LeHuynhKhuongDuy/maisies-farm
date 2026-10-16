@@ -95,6 +95,7 @@ export function producible() {
   const L = S.level, set = new Set();
   for (const [k, c] of Object.entries(CROPS)) if (c.lv <= L) set.add(k);
   for (const o of S.objs) {
+    if (o.site) continue; // công trường chưa xây xong chưa làm ra gì
     if (o.k === 'tree') set.add(TREES[o.t].yield);
     if (o.k === 'pen' && o.animals.length) set.add(PENS[o.t].prod);
     if (o.k === 'fac') for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed')) set.add(r.out);
@@ -157,9 +158,9 @@ function genQuest() {
   const c = pick(crops), n = 4 + rnd(6);
   opts.push({ text: `Mình cần ${n} ${ITEMS[c].n.toLowerCase()} cho bữa tiệc. Bạn thu hoạch giúp nhé!`, ev: 'harvest', key: c, n });
   const made = [];
-  for (const o of S.objs) if (o.k === 'fac') for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed') && !ITEMS[r.out].mat) made.push(r.out);
+  for (const o of S.objs) if (o.k === 'fac' && !o.site) for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed') && !ITEMS[r.out].mat) made.push(r.out);
   if (made.length) { const m = pick(made), k = 1 + rnd(3); opts.push({ text: `Làm giúp mình ${k} ${ITEMS[m].n.toLowerCase()} được không?`, ev: 'make', key: m, n: k }); }
-  const pens = S.objs.filter(o => o.k === 'pen' && o.animals.length);
+  const pens = S.objs.filter(o => o.k === 'pen' && !o.site && o.animals.length);
   if (pens.length) { const p = PENS[pick(pens).t], k = 3 + rnd(4); opts.push({ text: `Thu ${k} ${ITEMS[p.prod].n.toLowerCase()} từ chuồng ${p.an.toLowerCase()} nhé!`, ev: 'collect', key: p.prod, n: k }); }
   opts.push({ text: `Hôm nay nhiều người đặt hàng lắm. Giao ${2 + rnd(3)} đơn hàng nhé!`, ev: 'deliver', n: 2 + rnd(3) });
   if (S.objs.some(o => o.k === 'obstacle')) opts.push({ text: 'Dọn thêm 3 chướng ngại vật để đảo rộng hơn nào!', ev: 'clear', n: 3 });

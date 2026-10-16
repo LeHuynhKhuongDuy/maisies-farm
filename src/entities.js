@@ -453,7 +453,31 @@ function lootView(o) {
   return { root, update(t) { st.position.y = 1.0 + Math.sin(t * 3 + o.id) * 0.08; } };
 }
 
+// Công trường: giàn giáo gỗ tạm (nhỏ hơn công trình thật), thùng và đống gỗ bên cạnh; cao dần theo giai đoạn
+function siteView(o) {
+  const root = new THREE.Group(), [w, d] = footprint(o), s = Math.min(w, d);
+  root.add(yardPatch(s * 0.95));
+  const g = new THREE.Group(); root.add(g);
+  const side = s * 0.5, h = 0.8 + 0.3 * (o.site.stage || 0), wood = 0xb07a45, dark = 0x8a5a2b;
+  for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { // cột
+    const p = box(0.08, h, 0.08, wood); p.position.set(x * side / 2, h / 2, z * side / 2); g.add(p);
+  }
+  for (let y = 0.35; y < h; y += 0.4) for (const [x, z, rot] of [[0, -1, 0], [0, 1, 0], [-1, 0, 1], [1, 0, 1]]) { // xà ngang
+    const b = box(side + 0.08, 0.06, 0.06, dark); b.position.set(x * side / 2, y, z * side / 2); b.rotation.y = rot * Math.PI / 2; g.add(b);
+  }
+  const floor = box(side * 0.9, 0.05, side * 0.9, 0xd9a86a); floor.position.y = 0.36; g.add(floor);
+  const brace = box(0.05, Math.hypot(side, h) * 0.95, 0.05, dark); // thanh chéo phía trước
+  brace.position.set(0, h / 2, side / 2 + 0.03); brace.rotation.z = Math.atan2(side, h); g.add(brace);
+  g.position.set(-s * 0.08, 0, -s * 0.08);
+  const crate = art('crate', 0.6, 0.6, { scale: 0.75 }) || make('pirate/crate', { size: 0.5 });
+  crate.position.set(s * 0.32, 0, s * 0.3); root.add(crate);
+  const logs = art('logs', 0.7, 0.7, { scale: 0.8 }) || make('kk/decoration/props/resource_lumber.gltf', { size: 0.6 });
+  logs.position.set(-s * 0.3, 0, s * 0.36); root.add(logs);
+  return { root };
+}
+
 export function createView(o) {
+  if (o.site) return siteView(o);
   switch (o.k) {
     case 'field': return fieldView(o);
     case 'tree': return treeView(o);
