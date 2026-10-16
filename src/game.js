@@ -5,9 +5,10 @@ import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, a
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
   currentQuest, questEvent, claimQuest, newId, resetGame, exportSave, importSave } from './state.js';
 import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn } from './world.js';
-import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce } from './entities.js';
+import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce, walkTo, setHp, shake, chopPose } from './entities.js';
 import { ICONS } from './assets.js';
-import { hitObstacle } from './clearing.js';
+import { hitObstacle, openChest, regrowTick } from './clearing.js';
+import { isOpenCell } from './island.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
 import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
@@ -15,7 +16,7 @@ import { nbTap, openNeighbors } from './neighbors.js';
 import { openFishing } from './fishing.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
-  confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint } from './ui.js';
+  confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint, gainLine } from './ui.js';
 
 // Chỉ vẽ lại bảng do chính game.js mở (bảng khác mở thẳng từ ui.js thì bỏ qua)
 let drawOwner = null;
@@ -58,7 +59,8 @@ export function tapObject(oid, sx, sy) {
     case 'market': if (collectMarket(sx, sy)) { VIEWS.get(o.id).refresh(); return; } sfx('tap'); return openMarket();
     case 'barn': sfx('tap'); return openBarn();
     case 'house': sfx('tap'); return openQuest();
-    case 'obstacle': return clearObstacle(o, sx, sy);
+    case 'obstacle': return clearObstacle(o);
+    case 'loot': return takeChest(o);
     case 'decor': {
       const D = DECOR[o.t];
       if (D.pet) { const m = VIEWS.get(o.id).root.children[0]; m.userData.dance = true; m.userData.wait = 2.5; m.userData.goal.copy(m.position); sfx('collect'); }
@@ -243,25 +245,78 @@ function makeRecipe(o, i, sx, sy) {
 }
 
 // ============ Dọn chướng ngại vật ============
-function clearObstacle(o, sx, sy) { // tạm: mỗi chạm là một nhát (Task 3 sẽ làm giữ-để-chặt có hoạt ảnh)
+// Chạm: Maisie đi tới rồi chặt một nhát. Giữ ngón tay (onLongPress): tới nơi thì chặt liên tục tới khi nhấc tay.
+const CHOP_EVERY = 350; // ms giữa hai nhát khi giữ ngón tay
+let hold = null; // { o, down, timer }
+const sv = new THREE.Vector3();
+function screenOf(o, y = 0.9) {
+  const r = VIEWS.get(o.id)?.root; if (!r) return [innerWidth / 2, innerHeight / 2];
+  sv.copy(r.position); sv.y += y; return toScreen(sv);
+}
+function canChop(o) {
+  if (!isOpenCell(o.x, o.z)) { toast('Chỗ này còn mây che. Mở đường tới đây trước nhé!'); sfx('no'); return false; }
+  if (S.energy < 1) { openEnergy(); return false; }
+  return true;
+}
+function clearObstacle(o) {
+  stopHold();
+  if (canChop(o)) walkTo(o.x, o.z, () => chop(o));
+}
+function startHold(o) {
+  stopHold();
+  if (!canChop(o)) return;
+  const h = hold = { o, down: true, timer: 0 };
+  walkTo(o.x, o.z, () => {
+    if (!chop(o) || !h.down || hold !== h) return; // nhấc tay trước khi tới nơi: chỉ một nhát như chạm
+    h.timer = setInterval(() => { if (!h.down || hold !== h || W.mode !== 'farm' || M || !chop(o)) stopHold(); }, CHOP_EVERY);
+  });
+}
+function stopHold() { if (!hold) return; hold.down = false; clearInterval(hold.timer); hold = null; }
+// Nhấc hết ngón tay (hoặc chuyển sang phóng to bằng 2 ngón): thôi chặt liên tục
+export function onRelease() { stopHold(); }
+
+// Một nhát chặt (Maisie đã đứng cạnh). Trả true nếu còn chặt tiếp được.
+function chop(o) {
+  if (!S.objs.includes(o)) return false; // đã dọn xong rồi
   const r = hitObstacle(o);
-  if (!r) { openEnergy(); return; }
-  sfx('chop');
+  if (!r) { openEnergy(); return false; }
+  const [sx, sy] = screenOf(o);
+  sfx('chop'); shake(o.id); chopPose(o.x, o.z);
+  setHp(o.id, o.hp / OBSTACLES[o.t].hp);
   plus(sx, sy - 30, '-1⚡');
-  flyXP(sx, sy);
   for (const [k, n] of Object.entries(r.drops)) flyItem(sx, sy, k, n);
-  if (!r.done) return;
-  const v = VIEWS.get(o.id);
-  // thu nhỏ rồi biến mất
-  const t0 = performance.now();
-  const shrink = () => {
-    const f = (performance.now() - t0) / 380;
-    if (f < 1) { v.root.scale.setScalar(1 - f); v.root.rotation.y += 0.2; requestAnimationFrame(shrink); }
-    else removeView(o.id);
-  };
-  shrink();
-  if (r.chest) { flyCoins(sx, sy, r.chest.coins); toast(`Rương! +${r.chest.energy}⚡`); }
-  questEvent('clear');
+  gainLine(r.drops);
+  if (r.done) {
+    flyXP(sx, sy);
+    const v = VIEWS.get(o.id);
+    // thu nhỏ rồi biến mất
+    const t0 = performance.now();
+    const shrink = () => {
+      const f = (performance.now() - t0) / 380;
+      if (f < 1) { v.root.scale.setScalar(1 - f); v.root.rotation.y += 0.2; requestAnimationFrame(shrink); }
+      else removeView(o.id);
+    };
+    if (v) { v.root.userData.bounceT = 0; shrink(); }
+    questEvent('clear');
+    if (r.chest) { // rương nằm lại trên ô vừa dọn, chạm để nhận quà
+      const loot = { id: newId(), k: 'loot', t: 'chest', x: o.x, z: o.z, r: 0, chest: r.chest };
+      S.objs.push(loot); addView(loot); bounce(loot.id); sfx('collect');
+    }
+    save();
+  }
+  renderHUD();
+  return !r.done;
+}
+function takeChest(o) {
+  const [sx, sy] = screenOf(o, 0.5);
+  const r = openChest(o); if (!r) return;
+  removeView(o.id); sfx('collect');
+  if (r.coins) flyCoins(sx, sy, r.coins);
+  for (let i = 0; i < Math.min(r.energy, 4); i++) flyTo(sx, sy, '#energyPill', boltI, i * 80);
+  for (const [k, n] of Object.entries(r.mats)) flyItem(sx, sy, k, n);
+  plus(sx, sy - 30, `+${r.energy}⚡ +${r.coins}`);
+  gainLine(r.mats);
+  renderHUD(); save();
 }
 function openEnergy() {
   const foods = Object.entries(ITEMS).filter(([k, it]) => it.energy && have(k) > 0);
@@ -541,8 +596,10 @@ export function onLongPress(sx, sy) {
   if (placing || W.mode !== 'farm') return;
   const oid = pickAt(sx, sy);
   const o = typeof oid === 'number' ? byId(oid) : null;
-  if (!o || o.k === 'obstacle') return;
-  closeTimer(); sfx('tap');
+  if (!o || o.k === 'loot') return;
+  closeTimer();
+  if (o.k === 'obstacle') { bounce(o.id); startHold(o); return; } // giữ ngón trên vật cản = chặt liên tục
+  sfx('tap');
   startPlace(o, false);
 }
 
@@ -882,7 +939,7 @@ function questTarget() {
     case 'make': { const f = find(o => o.k === 'fac' && FACTORIES[o.t].rec.some(r => r.out === q.key)); return f ? { oid: f.id, y: 2.8 } : { el: '#btnShop' }; }
     case 'feed': case 'collect': case 'buyanimal': { const p = find(o => o.k === 'pen'); return p ? { oid: p.id, y: 1.8 } : null; }
     case 'deliver': { const b = find(o => o.k === 'board'); return b ? { oid: b.id, y: 2.1 } : null; }
-    case 'clear': { let best = null, bd = 1e9; for (const o of objs) if (o.k === 'obstacle') { const d = Math.hypot(o.x - 12, o.z - 10); if (d < bd) { bd = d; best = o; } } return best ? { oid: best.id, y: 1.4 } : null; }
+    case 'clear': { let best = null, bd = 1e9; for (const o of objs) if (o.k === 'obstacle' && isOpenCell(o.x, o.z)) { const d = Math.hypot(o.x - 12 - OFF, o.z - 10 - OFF); if (d < bd) { bd = d; best = o; } } return best ? { oid: best.id, y: 1.4 } : null; }
     case 'crate': return { oid: 'ship', y: 3.6 };
     case 'buydecor': case 'buytree': return { el: '#btnShop' };
   }
@@ -917,6 +974,7 @@ let lastSave = 0;
 export function tick() {
   const t = now();
   energyTick(); shipTick(); visitorsTick(); marketTick();
+  const g = regrowTick(t); if (g) { addView(g); bounce(g.id); }
   if (!(M && M.type === 'orders')) refreshOrders();
   for (const v of VIEWS.values()) v.refresh?.(t);
   buildBubbles();

@@ -3,7 +3,8 @@ import { make, play } from './assets.js';
 import { hasSprite, spriteObject, animateArt } from './sprites.js';
 import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, lushTree, roundBush } from './props.js';
 import { W, cellToWorld } from './world.js';
-import { S, footprint, now, rnd } from './state.js';
+import { S, footprint, occupancy, now, rnd } from './state.js';
+import { isOpenCell } from './island.js';
 import { GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE } from './data.js';
 
 // Hình 2D nếu đã có ảnh, không thì trả về null
@@ -390,19 +391,65 @@ function decorView(o) {
   };
 }
 
+// Thanh máu nhỏ trên vật cản: 2 tấm luôn quay về camera (nền tối + phần còn lại màu xanh)
+const HP_W = 0.8;
+let hpMats = null;
+function hpBar(y) {
+  hpMats ||= [0x3a2a1a, 0x7ee05a].map(c => new THREE.SpriteMaterial({ color: c, depthTest: false, transparent: true }));
+  const g = new THREE.Group(), bg = new THREE.Sprite(hpMats[0]), fill = new THREE.Sprite(hpMats[1]);
+  bg.scale.set(HP_W + 0.08, 0.16, 1); fill.scale.set(HP_W, 0.09, 1);
+  bg.renderOrder = 6; fill.renderOrder = 7;
+  g.add(bg, fill); g.position.y = y; g.userData.fill = fill; g.visible = false;
+  return g;
+}
+// Phần xanh co về mép trái: neo bằng `center` (tính theo màn hình) chứ không dời theo trục x của thế giới
+function hpFill(g, frac) {
+  const f = Math.max(0.01, Math.min(1, frac)), fill = g.userData.fill;
+  fill.scale.x = HP_W * f; fill.center.set(0.5 / f, 0.5);
+  g.visible = frac < 1 && frac > 0;
+}
+// Đặt tỉ lệ máu còn lại (0..1) cho vật cản `oid`; ẩn khi còn nguyên
+export function setHp(oid, frac) { const v = VIEWS.get(oid); if (v?.hp) hpFill(v.hp, frac); }
+// Rung vật cản khi bị chặt
+export function shake(oid) { const v = VIEWS.get(oid); if (v) v.shakeT = performance.now(); }
+
+// Hình tạm cho loại mới (tới khi có hình vẽ riêng): [hình, màu tô, phóng to]
+const OBSTACLE_ART = { bush: ['bush'], rock: ['rock'], tree: ['leafytree'], stump: ['stump'], logs: ['logs'],
+  grass: ['grasstuft'], bamboo: ['hedge', 0xc8e86a], claymound: ['rock', 0xe0a070], bigtree: ['leafytree', null, 1.4], bigrock: ['rock', null, 1.4] };
+// Không có hình 2D thì dùng mô hình 3D của loại cũ gần nghĩa
+const OBSTACLE_BASE = { grass: 'bush', bamboo: 'bush', claymound: 'rock', bigtree: 'tree', bigrock: 'rock' };
 function obstacleView(o) {
-  const O = OBSTACLES[o.t], root = new THREE.Group();
-  let m;
-  // loại mới dùng tạm hình của loại gần nghĩa (Giai đoạn A task 3 sẽ vẽ riêng)
-  const oa = { bush: 'bush', rock: 'rock', tree: 'leafytree', stump: 'stump', logs: 'logs',
-    grass: 'grasstuft', bamboo: 'bush', claymound: 'rock', bigtree: 'leafytree', bigrock: 'rock' }[o.t];
-  if (oa && hasSprite(oa)) { root.add(art(oa)); if (o.t.startsWith('big')) root.scale.setScalar(1.5); return { root }; }
-  if (!O.proc && !O.model) { m = roundBush(0x4fb82e, 0x66cc3e, false); root.add(m); return { root }; }
-  if (O.proc === 'bush') m = roundBush(0x4fb82e, 0x66cc3e, o.id % 3 === 0);
-  else if (O.proc === 'tree') { m = lushTree({ leaf: 0x3fa82a, leaf2: 0x58c23a, n: 0 }).group; m.scale.setScalar(0.85); }
-  else m = make(O.model, O.fit);
-  m.rotation.y = (o.r || 0) * 1.57 + (o.id % 7) * 0.3; root.add(m);
-  return { root };
+  const root = new THREE.Group(), [an, tint, sc = 1] = OBSTACLE_ART[o.t] || [];
+  let m = an && art(an, 1, 1, { scale: sc });
+  if (m) { if (tint != null) m.userData.plane.material.color.set(tint); }
+  else {
+    const O = OBSTACLES[OBSTACLE_BASE[o.t] || o.t];
+    if (O.proc === 'tree') { m = lushTree({ leaf: 0x3fa82a, leaf2: 0x58c23a, n: 0 }).group; m.scale.setScalar(0.85 * sc); }
+    else if (O.model) { m = make(O.model, O.fit); m.scale.multiplyScalar(sc); }
+    else m = roundBush(0x4fb82e, 0x66cc3e, o.id % 3 === 0);
+    if (tint != null) m.traverse(c => { if (c.isMesh) { c.material = c.material.clone(); c.material.color.set(tint); } });
+    m.rotation.y = (o.r || 0) * 1.57 + (o.id % 7) * 0.3;
+  }
+  root.add(m);
+  const top = new THREE.Box3().setFromObject(m).max.y;
+  const hp = hpBar(Math.min(3, Math.max(0.8, (isFinite(top) ? top : 1.2) + 0.15))); root.add(hp);
+  const v = { root, hp, shakeT: 0,
+    update() {
+      const f = v.shakeT ? (performance.now() - v.shakeT) / 260 : 1;
+      if (f < 1) { m.position.x = Math.sin(f * Math.PI * 6) * 0.07 * (1 - f); m.rotation.z = Math.sin(f * Math.PI * 6) * 0.05 * (1 - f); }
+      else if (v.shakeT) { m.position.x = 0; m.rotation.z = 0; v.shakeT = 0; }
+    } };
+  const max = OBSTACLES[o.t]?.hp;
+  if (o.hp != null && max) hpFill(hp, o.hp / max);
+  return v;
+}
+
+// Rương rơi ra khi dọn xong vật cản: nằm trên ô vừa dọn, lấp lánh chờ bé chạm
+function lootView(o) {
+  const root = new THREE.Group(), m = art('chest') || make('pirate/chest', { size: 0.65 });
+  root.add(m);
+  const st = sparkle(); st.position.y = 1.0; root.add(st);
+  return { root, update(t) { st.position.y = 1.0 + Math.sin(t * 3 + o.id) * 0.08; } };
 }
 
 export function createView(o) {
@@ -416,6 +463,7 @@ export function createView(o) {
     case 'board': return boardView(o);
     case 'decor': return decorView(o);
     case 'obstacle': return obstacleView(o);
+    case 'loot': return lootView(o);
     case 'market': return marketView(o);
   }
   return { root: new THREE.Group() };
@@ -494,6 +542,35 @@ export function buildSpecials() {
   SPECIAL.maisie = maisie;
 }
 
+// Maisie đi tới ô kề gần nhất còn trống của ô (x, z) rồi gọi onArrive(). Gọi mới thì việc cũ chưa tới bị hủy.
+// Trong lúc đi làm việc thì không đi dạo; tới nơi nghỉ một lát rồi đi dạo tiếp.
+export function walkTo(x, z, onArrive) {
+  const m = SPECIAL.maisie; if (!m) { onArrive?.(); return; }
+  const u = m.userData, occ = occupancy(), here = m.position;
+  let best = null, bd = 1e9;
+  for (const [dx, dz] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    const cx = x + dx, cz = z + dz;
+    if (cx < 0 || cz < 0 || cx >= GRID || cz >= GRID || occ.has(cx + ',' + cz) || !isOpenCell(cx, cz)) continue;
+    const p = cellToWorld(cx, cz), d = p.distanceTo(here) + (dx && dz ? 0.3 : 0); // ưu tiên đứng thẳng hàng
+    if (d < bd) { bd = d; best = p; }
+  }
+  const c = cellToWorld(x, z);
+  if (!best) { // bị vây kín: đứng sát mép ô, phía gần Maisie
+    const dir = here.clone().sub(c); dir.y = 0;
+    if (dir.length() < 1e-3) dir.set(0, 0, 1);
+    best = c.clone().add(dir.setLength(0.75));
+  }
+  u.job = { goal: best, face: c, onArrive };
+}
+
+// Maisie vung tay chặt về phía ô (x, z) và đứng yên thêm một lát (không đi dạo giữa hai nhát)
+export function chopPose(x, z) {
+  const m = SPECIAL.maisie; if (!m) return;
+  const c = cellToWorld(x, z), u = m.userData;
+  faceDir(m, c.x - m.position.x, c.z - m.position.z);
+  u.wave = 0.3; u.wait = Math.max(u.wait || 0, 2.5);
+}
+
 export function updateSpecials(t, dt) {
   const sh = SPECIAL.ship, away = S.ship.st === 'away';
   const target = SPECIAL.shipHome.clone(); if (away) target.z += 30;
@@ -503,8 +580,15 @@ export function updateSpecials(t, dt) {
   sh.visible = sh.position.z < SPECIAL.shipHome.z + 25;
 
   const m = SPECIAL.maisie, u = m.userData; u.mixer?.update(dt);
+  const job = u.job;
+  if (job) u.goal.copy(job.goal);
   const d = u.goal.clone().sub(m.position); d.y = 0;
-  if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * 0.9)); m.position.add(d); faceDir(m, d.x, d.z); if (u.isArt) animateArt(m, t, 'walk'); }
+  if (d.length() > 0.05) { play(m, 'walk'); d.setLength(Math.min(d.length(), dt * (job ? 3 : 0.9))); m.position.add(d); faceDir(m, d.x, d.z); if (u.isArt) animateArt(m, t, 'walk'); }
+  else if (job) { // tới nơi làm việc
+    u.job = null; u.wait = 2.5;
+    faceDir(m, job.face.x - m.position.x, job.face.z - m.position.z);
+    job.onArrive?.();
+  }
   else {
     if (u.isArt) animateArt(m, t, u.wave > 0 ? 'happy' : 'idle');
     play(m, u.wave > 0 ? 'emote-yes' : 'idle'); u.wait -= dt; u.wave = (u.wave || 0) - dt;

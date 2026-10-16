@@ -1,6 +1,6 @@
 import { ICONS } from './assets.js';
 import { S, now, energyNextIn, currentQuest } from './state.js';
-import { xpNeed, ENERGY_MAX, QUESTS } from './data.js';
+import { xpNeed, ENERGY_MAX, QUESTS, ITEMS } from './data.js';
 
 export const $ = s => document.querySelector(s);
 export const img = k => `<img src="${ICONS[k] || ''}" alt="">`;
@@ -25,6 +25,22 @@ export function toast(m) {
 export function plus(x, y, text) {
   const e = document.createElement('div'); e.className = 'plus'; e.textContent = text;
   e.style.left = x + 'px'; e.style.top = y + 'px'; $('#fx').appendChild(e); setTimeout(() => e.remove(), 1000);
+}
+
+// Dòng "+3 Gỗ +1 Dây leo" ở góc dưới phải: gom các lần rơi cách nhau dưới 1,2 giây
+let gain = null;
+export function gainLine(drops) {
+  const ks = Object.keys(drops || {}).filter(k => drops[k] > 0); if (!ks.length) return;
+  if (!gain) {
+    const el = document.createElement('div'); el.className = 'gain'; $('#fx').appendChild(el);
+    gain = { el, sum: {} };
+  }
+  const g = gain;
+  for (const k of ks) g.sum[k] = (g.sum[k] || 0) + drops[k];
+  g.el.innerHTML = Object.entries(g.sum).map(([k, n]) => `<span>+${n} ${img(k)}${esc(ITEMS[k]?.n || k)}</span>`).join(' ');
+  g.el.classList.remove('bump'); void g.el.offsetWidth; g.el.classList.add('bump');
+  clearTimeout(g.t);
+  g.t = setTimeout(() => { if (gain === g) gain = null; g.el.classList.add('out'); setTimeout(() => g.el.remove(), 400); }, 1200);
 }
 
 // Biểu tượng bay từ chỗ chạm về nút trên HUD
