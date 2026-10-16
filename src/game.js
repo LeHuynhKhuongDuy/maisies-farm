@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, HELPERS, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES, FAC_SPRITE,
   fieldCost, xpNeed, energyMax, barnUpgradeCost } from './data.js';
-import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, noRoom, have, add, hasAll, take,
+import { S, now, on, save, footprint, isFree, findFree, noRoom, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
   currentQuest, questEvent, claimQuest, inTutorial, newId, resetGame, exportSave, importSave } from './state.js';
 import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn, flyCamTo } from './world.js';
@@ -441,7 +441,7 @@ function takeBeach(id) {
 function openEnergy() {
   const foods = Object.entries(ITEMS).filter(([k, it]) => it.energy && have(k) > 0);
   const list = foods.length ? `<div class="inv">${foods.map(([k, it]) => `<div class="it">${img(k)}<span class="q">${have(k)}</span><small>${it.n}<br>+${it.energy} năng lượng</small><div class="acts"><button class="btn small" data-act="eat" data-k="${k}">Ăn</button></div></div>`).join('')}</div>`
-    : '<p class="hint">Bếp nấu làm được món ăn hồi năng lượng (mở ở cấp 6).</p>';
+    : '<p class="hint">Nướng bánh mì ở Lò bánh rồi ăn để có thêm năng lượng nhé!</p>';
   const full = S.energy >= energyMax(S.level);
   openModal('energy', S.energy > 0 ? 'Năng lượng' : 'Hết năng lượng', `<p class="hint">Dọn dẹp cần năng lượng <span class="ico bolt sm"></span>. Năng lượng tự hồi: ${energyHint()}. Nhặt sao biển, vỏ sò, cua trên bãi biển cũng có năng lượng!</p>${list}
     <div class="row" style="justify-content:center;margin-top:14px">${full ? '<button class="btn gray" data-close>Năng lượng đang đầy</button>' : `<button class="btn blue" data-act="buyenergy">Nạp đầy ${gemI}5</button>`}</div>`);
@@ -1110,7 +1110,7 @@ const inModal = sel => ({ el: '#mBody ' + sel });
 // Chỗ kiếm `item`: vật cản gần nhất (thô), xưởng làm ra (bậc 2), ruộng (nông sản)
 function sourceOf(item) {
   const I = ITEMS[item], t = now();
-  if (I?.mat === 1) { const o = nearestSeen(x => OBSTACLES[x.t].drop[item]); return o && at(o); }
+  if (I?.mat === 1) { const o = nearestSeen(x => OBSTACLES[x.t].drop[item] || OBSTACLES[x.t].rare?.[item]); return o && at(o); } // dây leo: rơi hiếm (bụi tre, cây rừng)
   if (I?.mat === 2) {
     const f = S.objs.find(o => o.k === 'fac' && FACTORIES[o.t].rec.some(r => r.out === item));
     return !f ? { el: '#btnShop' } : f.site ? siteTarget(f) : at(f);

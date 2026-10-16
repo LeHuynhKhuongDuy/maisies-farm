@@ -345,7 +345,7 @@ export const TUTORIAL = [
   { who: 'maisie', text: 'Nhà đẹp lại rồi! Thu hoạch 3 lúa mì nào.', ev: 'harvest', key: 'wheat', n: 3, coins: 15, xp: 5 },
   { who: 'tom', text: 'Gà đói rồi! Ra máy xay làm thức ăn rồi cho gà ăn nhé.', ev: 'feed', n: 1, coins: 20, xp: 6 },
   { who: 'maisie', text: 'Chặt 3 bụi cây hoặc cây rừng để lấy vật liệu nhé.', ev: 'clear', n: 3, coins: 20, xp: 6 },
-  { who: 'ben', text: 'Lò bánh bị đổ rồi. Sửa giúp ông nhé!', ev: 'build', key: 'ruin:bakery', n: 1, coins: 30, xp: 8, energy: 10 },
+  { who: 'ben', text: 'Lò bánh bị đổ rồi. Sửa giúp anh nhé!', ev: 'build', key: 'ruin:bakery', n: 1, coins: 30, xp: 8, energy: 10 },
   { who: 'ben', text: 'Nướng 1 ổ bánh mì. Ăn bánh mì sẽ có thêm năng lượng đó!', ev: 'make', key: 'bread', n: 1, coins: 25, xp: 8 },
   { who: 'sam', text: 'Mua Xưởng mộc ở cửa hàng và xây xong nhé.', ev: 'build', key: 'fac:carpentry', n: 1, coins: 30, xp: 10 },
   { who: 'sam', text: 'Làm 3 tấm ván gỗ ở Xưởng mộc.', ev: 'make', key: 'planks', n: 3, coins: 30, xp: 10 },

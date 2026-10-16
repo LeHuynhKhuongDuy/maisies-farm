@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, put } from './helpers.mjs';
-import { S, producible, genOrder, newShip } from '../src/state.js';
-import { ITEMS, FACTORIES } from '../src/data.js';
+import { S, producible, genOrder, newShip, energyLabel } from '../src/state.js';
+import { ITEMS, FACTORIES, TUTORIAL, QUESTS } from '../src/data.js';
 
 test('mọi nguyên liệu và thành phẩm của mọi công thức đều có trong ITEMS', () => {
   for (const [fk, F] of Object.entries(FACTORIES)) for (const r of F.rec) {
@@ -29,4 +29,18 @@ test('producible, đơn hàng và tàu hàng không có vật liệu (kể cả 
     assert.ok(!Object.keys(genOrder().items).some(isMat));
     assert.ok(!newShip().crates.some(c => isMat(c.item)));
   }
+});
+
+// ---- Chữ cho bé ----
+test('anh Ben xưng "anh", không gọi mình là "ông"', () => {
+  for (const q of [...TUTORIAL, ...QUESTS]) if (q.who === 'ben') assert.ok(!/(^|[\s,.!])ông([\s,.!]|$)/u.test(q.text), q.text);
+  assert.ok(TUTORIAL.some(q => q.who === 'ben' && q.text.includes('giúp anh')));
+});
+test('bánh mì hồi năng lượng, nướng ở Lò bánh từ cấp 1 (bảng năng lượng chỉ tới Lò bánh)', () => {
+  const r = FACTORIES.bakery.rec.find(r => r.out === 'bread');
+  assert.equal(r.lv, 1); assert.ok(ITEMS.bread.energy > 0); assert.equal(FACTORIES.bakery.n, 'Lò bánh');
+});
+test('viên năng lượng: dưới 100 hiện số/giới hạn, từ 100 trở lên chỉ hiện 99+', () => {
+  assert.equal(energyLabel(30, 37), '30/37'); assert.equal(energyLabel(99, 37), '99/37');
+  assert.equal(energyLabel(100, 37), '99+'); assert.equal(energyLabel(1234, 40), '99+');
 });

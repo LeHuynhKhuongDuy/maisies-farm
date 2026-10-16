@@ -96,6 +96,8 @@ export function energyTick() {
     S.energyAt += gained * ENERGY_REGEN * 1000;
   }
 }
+// Chữ trên viên năng lượng: từ 100 trở lên (quà, rương, bãi biển cộng vượt mức) chỉ hiện "99+" để viên không lấn khối cấp ở màn 375px
+export const energyLabel = (e, max) => e >= 100 ? '99+' : `${e}/${max}`;
 export const energyNextIn = () => S.energy >= energyMax(S.level) ? 0 : S.energyAt + ENERGY_REGEN * 1000 - now();
 
 // ---------- Những gì người chơi làm ra được ----------

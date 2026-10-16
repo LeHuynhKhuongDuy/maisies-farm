@@ -1,5 +1,5 @@
 import { ICONS } from './assets.js';
-import { S, now, energyNextIn, currentQuest } from './state.js';
+import { S, now, energyNextIn, energyLabel, currentQuest } from './state.js';
 import { xpNeed, energyMax, QUESTS, ITEMS } from './data.js';
 
 export const $ = s => document.querySelector(s);
@@ -96,7 +96,7 @@ export function renderHUD() {
   $('#coins').textContent = short(S.coins);
   $('#gems').textContent = short(S.gems);
   const emax = energyMax(S.level);
-  $('#energy').textContent = `${S.energy}/${emax}`;
+  $('#energy').textContent = energyLabel(S.energy, emax);
   $('#efill').style.width = Math.min(100, S.energy / emax * 100) + '%';
   $('#energyPill').classList.toggle('low', S.energy < 1);
   const q = currentQuest();
