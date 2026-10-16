@@ -4,7 +4,7 @@ import { hasSprite, spriteObject, animateArt } from './sprites.js';
 import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, lushTree, roundBush } from './props.js';
 import { W, cellToWorld, AZ, EL } from './world.js';
 import { S, footprint, occupancy, now, rnd, on } from './state.js';
-import { isOpenCell, zoneAt, seeded, GATES } from './island.js';
+import { isOpenCell, zoneAt, seeded, GATES, canReach } from './island.js';
 import { ZONES, GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE, FAC_SPRITE } from './data.js';
 
 // Hình 2D nếu đã có ảnh, không thì trả về null
@@ -528,7 +528,7 @@ function gateView(o) {
   }
   const zone = G.zone, arrow = gateArrow(); root.add(arrow);
   const v = { root, update(t) {
-    const show = !S.zones?.[zone] && isOpenCell(o.x, o.z);
+    const show = !S.zones?.[zone] && canReach(o);
     arrow.visible = show; if (!show) return;
     arrow.position.y = 1.5 + Math.abs(Math.sin(t * 3)) * 0.35;
     arrowMat.opacity = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 6));
@@ -589,7 +589,7 @@ function cloudMesh(Z, i) {
   return { mesh, mat, t0: 0 };
 }
 // Vật nằm dưới mây thì ẩn (đỡ vẽ, và không lòi ra khỏi mây)
-const underCloud = o => typeof o.id === 'number' && !isOpenCell(o.x, o.z);
+const underCloud = o => typeof o.id === 'number' && !canReach(o);
 export function buildClouds() {
   ZONES.forEach((Z, i) => {
     if (S.zones?.[Z.id] || CLOUDS.has(Z.id)) return;

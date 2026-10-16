@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { memStorage, v1Save, fresh } from './helpers.mjs';
 import { GRID, CORE, OFF, ZONES, OBSTACLES, JUNGLE_MIX } from '../src/data.js';
 import { S, load, importSave, resetGame, footprint, isFree, findFree, have, on } from '../src/state.js';
-import { zoneAt, isOpenCell, genJungle, migrateV1, openZone, gateFor, GATES } from '../src/island.js';
+import { zoneAt, isOpenCell, genJungle, migrateV1, openZone, gateFor, gateReachable, GATES } from '../src/island.js';
 import { siteReq, contribute, tryAdvance, gateLock } from '../src/build.js';
 
 test('migrateV1 dời mọi vật vào vùng lõi', () => {
@@ -163,4 +163,44 @@ test('openZone mở vùng; gateFor chỉ cổng tới được (Rừng già cầ
   openZone('west'); assert.equal(S.zones.west, true);
   assert.equal(gateFor('old').t, 'stairs_old');
   assert.equal(GATES.bridge_w.n, 'Cầu tre'); assert.equal(GATES.bridge_n.n, 'Cầu gỗ'); assert.equal(GATES.stairs_old.n, 'Bậc đá');
+});
+
+// ---------- Sửa vòng 1: đặt cổng không bao giờ thất bại ----------
+const coreFilledV1 = (fill) => { // bản v1 có cả vùng lõi 26x26 kín vật, fill(x, z) trả vật cho ô
+  const v1 = v1Save(); v1.objs = []; let id = 1;
+  for (let x = 0; x < 26; x++) for (let z = 0; z < 26; z++) v1.objs.push({ id: id++, r: 0, x, z, ...fill(x, z) });
+  v1.nextId = id; return v1;
+};
+test('vùng lõi kín đồ trang trí và ruộng: vẫn đủ 3 cổng, đồ trang trí bị dời được cất vào túi', () => {
+  const v1 = coreFilledV1((x, z) => x < 4 || z < 4 ? { k: 'decor', t: 'bush' } : { k: 'field', t: 'field', crop: null, s: 0, e: 0 }); // trang trí dọc 2 ranh giới
+  const decorBefore = v1.objs.filter(o => o.k === 'decor').length, fieldsBefore = v1.objs.filter(o => o.k === 'field').length;
+  const s = migrateV1(v1);
+  for (const t of ['bridge_w', 'bridge_n', 'stairs_old']) assert.equal(gateOf(s, t).length, 1, t);
+  const [bw] = gateOf(s, 'bridge_w'), [bn] = gateOf(s, 'bridge_n');
+  assert.equal(bw.x, OFF); assert.equal(bn.z, OFF); // vẫn sát ranh giới, trong lõi
+  const seen = new Set();
+  for (const o of s.objs) for (const [x, z] of cellsOf(o)) { const k = x + ',' + z; assert.ok(!seen.has(k), k); seen.add(k); }
+  const evicted = decorBefore - s.objs.filter(o => o.k === 'decor').length;
+  assert.ok(evicted > 0); assert.equal(s.store?.bush, evicted); // không mất đồ trang trí nào
+  assert.equal(s.objs.filter(o => o.k === 'field').length, fieldsBefore); // còn đồ trang trí để dời thì không đụng ruộng
+});
+test('vùng lõi chỉ có ruộng trống: đặt cổng lên ruộng trống', () => {
+  const s = migrateV1(coreFilledV1(() => ({ k: 'field', t: 'field', crop: null, s: 0, e: 0 })));
+  for (const t of ['bridge_w', 'bridge_n', 'stairs_old']) assert.equal(gateOf(s, t).length, 1, t);
+  assert.equal(gateOf(s, 'bridge_w')[0].x, OFF);
+  assert.equal(s.objs.filter(o => o.k === 'field').length, 26 * 26 - 4);
+});
+test('vùng lõi kín vật không dời được: cổng nằm ngay bên kia ranh giới và vẫn tới được', () => {
+  const t0 = 1.7e12;
+  const s = migrateV1(coreFilledV1((x, z) => ({ k: 'field', t: 'field', crop: 'wheat', s: t0, e: t0 + 1000 })));
+  for (const t of ['bridge_w', 'bridge_n', 'stairs_old']) assert.equal(gateOf(s, t).length, 1, t);
+  assert.equal(s.objs.filter(o => o.k === 'field').length, 26 * 26); // không ruộng đang trồng nào bị mất
+  const [bw] = gateOf(s, 'bridge_w'), [bn] = gateOf(s, 'bridge_n');
+  assert.equal(bw.x, OFF - 2); assert.equal(zoneAt(bw.x, bw.z), 'west');
+  assert.equal(bn.z, OFF - 1); assert.equal(zoneAt(bn.x, bn.z), 'north');
+  memStorage({ 'maisies-farm-v1': JSON.stringify(s) }); load();
+  assert.ok(gateReachable(bw)); assert.equal(gateFor('west').t, 'bridge_w'); assert.equal(gateFor('north').t, 'bridge_n');
+  assert.ok(!gateReachable(gateOf(S, 'stairs_old')[0])); // bậc đá vẫn chờ rừng Tây mở
+  const seen = new Set();
+  for (const o of S.objs) for (const [x, z] of cellsOf(o)) { const k = x + ',' + z; assert.ok(!seen.has(k), k); seen.add(k); }
 });

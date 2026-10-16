@@ -8,7 +8,7 @@ import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn, flyCa
 import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce, walkTo, setHp, shake, chopPose } from './entities.js';
 import { ICONS } from './assets.js';
 import { hitObstacle, openChest, regrowTick } from './clearing.js';
-import { isOpenCell, zoneAt, gateFor, zoneOfGate, GATES } from './island.js';
+import { isOpenCell, zoneAt, gateFor, zoneOfGate, GATES, canReach } from './island.js';
 import { startSite, siteReq, contribute, tryAdvance, stageCount, matHint, gateLock } from './build.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
@@ -61,7 +61,7 @@ export function tapObject(oid, sx, sy) {
   if (typeof oid === 'string' && oid.startsWith('v:')) return tapVisitor(oid);
   if (oid === 'pier') { bounce('pier'); sfx('tap'); return openFishing({ openEnergy }); }
   const o = byId(oid); if (!o) return;
-  if (!isOpenCell(o.x, o.z)) return cloudTap(zoneAt(o.x, o.z)); // vật còn dưới mây
+  if (!canReach(o)) return cloudTap(zoneAt(o.x, o.z)); // vật còn dưới mây
   bounce(oid);
   if (o.site) { sfx('tap'); return openSite(o); } // đang xây: chỉ mở bảng góp vật liệu
   switch (o.k) {
@@ -661,7 +661,7 @@ export function onLongPress(sx, sy) {
   if (placing || W.mode !== 'farm') return;
   const oid = pickAt(sx, sy);
   const o = typeof oid === 'number' ? byId(oid) : null;
-  if (!o || o.k === 'loot' || o.k === 'gate' || !isOpenCell(o.x, o.z)) return; // cổng đứng yên một chỗ
+  if (!o || o.k === 'loot' || o.k === 'gate' || !canReach(o)) return; // cổng đứng yên một chỗ
   closeTimer();
   if (o.k === 'obstacle') { bounce(o.id); startHold(o); return; } // giữ ngón trên vật cản = chặt liên tục
   sfx('tap');
@@ -964,7 +964,7 @@ function buildBubbles() {
   for (const o of S.objs) {
     const v = VIEWS.get(o.id); if (!v) continue;
     if (o.site) { // công trường: búa khi bé đang có món góp được
-      if (!gateLock(o) && isOpenCell(o.x, o.z) && Object.entries(siteReq(o)).some(([k, r]) => r.got < r.need && have(k) > 0)) list.push({ oid: o.id, y: 1.6, mark: '🔨', cls: 'sitemark' });
+      if (!gateLock(o) && canReach(o) && Object.entries(siteReq(o)).some(([k, r]) => r.got < r.need && have(k) > 0)) list.push({ oid: o.id, y: 1.6, mark: '🔨', cls: 'sitemark' });
       continue;
     }
     if (o.k === 'pen') {

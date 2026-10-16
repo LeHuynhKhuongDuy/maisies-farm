@@ -1,6 +1,6 @@
 // Đảo 40x40: các vùng, ô mở, sinh rừng, chuyển bản lưu v1 -> v2
 // Không dùng Three.js/DOM để chạy được trong node --test
-import { ZONES, OFF, CORE, JUNGLE_MIX } from './data.js';
+import { ZONES, GRID, OFF, CORE, JUNGLE_MIX } from './data.js';
 import { S, emit, footprint } from './state.js';
 
 export function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
@@ -57,40 +57,51 @@ export function migrateV1(raw) {
 }
 
 // ---------- Cổng mở vùng ----------
-// Mỗi vùng ngoài có một cổng (2x1) đặt sát ranh giới, bên phía đã tới được:
+// Mỗi vùng ngoài có một cổng (2x1) đặt sát ranh giới, bên phía đã tới được (vùng `home`):
 // cầu tre / cầu gỗ ở mép vùng lõi; bậc đá nằm trong rừng Tây, sát Rừng già (Rừng già không giáp lõi).
-// line: hàng/cột ô của ranh giới; along: trục chạy dọc ranh giới; pref: chỗ ưa thích (ngay đầu đường đi giữa rừng);
-// span: các vị trí cho phép dọc ranh giới; inward: hướng lùi vào trong nếu cả hàng ranh giới bị vướng.
+// line: hàng/cột ô đầu tiên của `home` sát ranh giới; along: trục chạy dọc ranh giới;
+// pref: chỗ ưa thích (ngay đầu đường đi giữa rừng); span: các vị trí dọc ranh giới phía bên kia (chỗ dự phòng cuối).
 export const GATES = {
-  bridge_w:   { n: 'Cầu tre', zone: 'west',  along: 'z', line: OFF, inward: 1, pref: OFF + 13, span: [OFF, OFF + CORE - 2] },
-  bridge_n:   { n: 'Cầu gỗ',  zone: 'north', along: 'x', line: OFF, inward: 1, pref: OFF + 13, span: [OFF, OFF + CORE - 2] },
-  stairs_old: { n: 'Bậc đá',  zone: 'old',   along: 'x', line: OFF, inward: 1, pref: 7, span: [0, OFF - 2] },
+  bridge_w:   { n: 'Cầu tre', zone: 'west',  home: 'core', along: 'z', line: OFF, pref: OFF + 13, span: [OFF, OFF + CORE - 1] },
+  bridge_n:   { n: 'Cầu gỗ',  zone: 'north', home: 'core', along: 'x', line: OFF, pref: OFF + 13, span: [OFF, OFF + CORE - 2] },
+  stairs_old: { n: 'Bậc đá',  zone: 'old',   home: 'west', along: 'x', line: OFF, pref: 7, span: [0, OFF - 2] },
 };
 export const zoneOfGate = t => ZONES.find(z => z.id === GATES[t]?.zone);
 
-// Đặt cổng còn thiếu vào bản lưu `s` (ván mới, bản v1 vừa chuyển, bản v2 cũ chưa có cổng).
-// Chọn chỗ không đè công trình nào; ưu tiên sát ranh giới, ít vật cản phải dọn, gần đầu đường.
-// Vật cản (và rương) nằm trên chỗ đã chọn thì dọn đi.
+// Vật nằm trên chỗ đặt cổng: bậc phải dời (0 vật cản: dọn đi; 1 đồ trang trí: cất vào túi; 2 ruộng trống: bỏ),
+// null = không bao giờ đụng (nhà, chuồng, nhà máy, cây, ruộng đang trồng, rương, cổng...)
+const evictTier = o => o.k === 'obstacle' ? 0 : o.k === 'decor' ? 1 : (o.k === 'field' && !o.crop) ? 2 : null;
+
+// Đặt cổng còn thiếu vào bản lưu `s` (ván mới, bản v1 vừa chuyển, bản v2 cũ chưa có cổng). Không bao giờ thất bại:
+//  1. tìm khắp vùng `home`: ưu tiên ô trống / vật cản, rồi dời đồ trang trí (cất vào s.store), rồi ruộng trống;
+//     cùng bậc thì gần ranh giới, gần đầu đường, ít vật phải dời;
+//  2. vùng `home` kín vật không dời được: đặt ngay bên kia ranh giới (vùng còn đóng chỉ có vật cản),
+//     cổng vẫn tới được vì sát ô vùng mở (gateReachable).
 export function placeGates(s) {
   for (const [t, G] of Object.entries(GATES)) {
     if (s.zones?.[G.zone] || s.objs.some(o => o.k === 'gate' && o.t === t)) continue;
     const occ = new Map();
     for (const o of s.objs) { const [w, d] = footprint(o); for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) occ.set((o.x + i) + ',' + (o.z + j), o); }
     let best = null, bs = Infinity;
-    for (let depth = 0; depth < 6; depth++) for (let a = G.span[0]; a <= G.span[1]; a++) {
-      const b = G.line + depth * G.inward;
-      const [x, z] = G.along === 'z' ? [b, a] : [a, b];
-      const hit = new Set();
-      let ok = true;
+    const consider = (x, z, extraTier) => {
+      const hit = new Set(); let tier = extraTier;
       for (const [cx, cz] of [[x, z], [x + 1, z]]) { // 2x1
-        const o = occ.get(cx + ',' + cz);
-        if (o && o.k !== 'obstacle' && o.k !== 'loot') ok = false; else if (o) hit.add(o);
+        const o = occ.get(cx + ',' + cz); if (!o) continue;
+        const k = evictTier(o); if (k === null || (extraTier && k)) return; // bên kia ranh giới chỉ dọn vật cản
+        tier = Math.max(tier, k); hit.add(o);
       }
-      if (!ok) continue;
-      const score = depth * 1000 + Math.abs(a - G.pref) * 10 + hit.size * 3; // dọn 1-2 vật cản để cầu nằm ngay đầu đường
+      const [a, b] = G.along === 'z' ? [z, x] : [x, z];
+      const score = tier * 1e6 + Math.abs(b - G.line) * 1000 + Math.abs(a - G.pref) * 10 + hit.size * 3; // dọn 1-2 vật cản để cầu nằm ngay đầu đường
       if (score < bs) { bs = score; best = { x, z, hit }; }
+    };
+    for (let x = 0; x < GRID - 1; x++) for (let z = 0; z < GRID; z++) if (zoneAt(x, z) === G.home && zoneAt(x + 1, z) === G.home) consider(x, z, 0);
+    const far = G.along === 'z' ? G.line - 2 : G.line - 1; // ngay bên kia ranh giới
+    for (let a = G.span[0]; a <= G.span[1]; a++) {
+      const [x, z] = G.along === 'z' ? [far, a] : [a, far];
+      if (zoneAt(x, z) === G.zone && zoneAt(x + 1, z) === G.zone) consider(x, z, 3);
     }
-    if (!best) continue; // không thể xảy ra với đảo thật, nhưng không làm hỏng bản lưu
+    if (!best) continue; // vùng đóng chỉ có vật cản nên bước 2 luôn có chỗ
+    for (const o of best.hit) if (o.k === 'decor') (s.store ||= {})[o.t] = (s.store[o.t] || 0) + 1; // bé không mất đồ trang trí
     s.objs = s.objs.filter(o => !best.hit.has(o));
     const id = Math.max(s.nextId || 1, ...s.objs.map(o => (o.id || 0) + 1));
     s.objs.push({ id, k: 'gate', t, x: best.x, z: best.z, r: 0, site: { stage: 0, got: {} } });
@@ -106,11 +117,24 @@ export function openZone(id) {
   emit('zone', id);
 }
 
+// Cổng tới được: có ô thuộc vùng mở, hoặc nằm sát (chung cạnh) một ô vùng mở
+// (trường hợp vùng lõi kín vật, cổng phải nằm ngay bên kia ranh giới)
+export function gateReachable(g) {
+  for (const [x, z] of [[g.x, g.z], [g.x + 1, g.z]]) {
+    if (isOpenCell(x, z)) return true;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpenCell(x + dx, z + dz)) return true;
+  }
+  return false;
+}
+
+// Vật tới được (chạm, góp, thấy): cổng theo gateReachable, vật khác phải nằm trong vùng mở
+export const canReach = o => o.k === 'gate' ? gateReachable(o) : isOpenCell(o.x, o.z);
+
 // Cổng bé cần sửa để tới được vùng `id`: nếu chính cổng đó còn dưới mây (bậc đá trong rừng Tây đang đóng)
 // thì chỉ tới cổng mở vùng đang che nó
 export function gateFor(id, seen = new Set()) {
   const Z = ZONES.find(z => z.id === id); if (!Z?.gate || seen.has(id)) return null;
   const g = S.objs.find(o => o.k === 'gate' && o.t === Z.gate); if (!g) return null;
   const under = zoneAt(g.x, g.z);
-  return isOpenCell(g.x, g.z) ? g : gateFor(under, seen.add(id));
+  return gateReachable(g) ? g : gateFor(under, seen.add(id));
 }
