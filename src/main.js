@@ -3,7 +3,7 @@ import { load, save, S, ensureStarterDecor } from './state.js';
 import { loadAll, renderIcons, iconList, ICONS } from './assets.js';
 import { initWorld, W, focusOn, cellToWorld } from './world.js';
 import { OFF } from './data.js';
-import { VIEWS, addView, buildSpecials, updateSpecials, updateBounce, buildingIcons } from './entities.js';
+import { VIEWS, addView, buildSpecials, updateSpecials, updateBounce, buildingIcons, buildClouds, updateClouds } from './entities.js';
 import { initInput } from './input.js';
 import { initUI, tick, positionBubbles, placePendingPets } from './game.js';
 import { renderHUD, $ } from './ui.js';
@@ -36,6 +36,7 @@ async function boot() {
   ensureStarterDecor(addView);
   neighborsHelpYou();
   buildSpecials();
+  buildClouds(); // mây phủ các vùng rừng còn đóng
   initVisitors();
   buildAmbient();
   focusOn(cellToWorld(12.5 + OFF, 11.5 + OFF)); // nhìn vào vùng lõi như trước
@@ -90,6 +91,7 @@ async function boot() {
     else {
       for (const v of VIEWS.values()) { v.update?.(t, dt); updateBounce(v.root); }
       updateSpecials(t, dt);
+      updateClouds(t);
       visitorsUpdate(t, dt);
       updateAmbient(t, dt);
     }

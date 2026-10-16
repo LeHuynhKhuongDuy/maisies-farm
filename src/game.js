@@ -4,12 +4,12 @@ import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLE
 import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
   currentQuest, questEvent, claimQuest, newId, resetGame, exportSave, importSave } from './state.js';
-import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn } from './world.js';
+import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn, flyCamTo } from './world.js';
 import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce, walkTo, setHp, shake, chopPose } from './entities.js';
 import { ICONS } from './assets.js';
 import { hitObstacle, openChest, regrowTick } from './clearing.js';
-import { isOpenCell } from './island.js';
-import { startSite, siteReq, contribute, tryAdvance, stageCount, matHint } from './build.js';
+import { isOpenCell, zoneAt, gateFor, zoneOfGate, GATES } from './island.js';
+import { startSite, siteReq, contribute, tryAdvance, stageCount, matHint, gateLock } from './build.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
 import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
@@ -40,8 +40,19 @@ export function onTap(sx, sy) {
   if (placing) { const p = groundAt(sx, sy); if (p) moveGhost(p); return; }
   const oid = pickAt(sx, sy, tray === 'seed' ? isField : null);
   closeTimer();
-  if (oid == null) { if (tray === 'seed') closeTray(); return; }
+  if (oid == null) {
+    if (tray === 'seed') { closeTray(); return; }
+    const p = groundAt(sx, sy), [cx, cz] = p ? worldToCell(p) : [-1, -1], z = zoneAt(cx, cz);
+    if (z && !isOpenCell(cx, cz)) cloudTap(z); // chạm vào mây
+    return;
+  }
   tapObject(oid, sx, sy);
+}
+// Chạm vào vùng mây: nhắc cổng cần sửa và bay camera tới đó
+function cloudTap(zoneId) {
+  const g = gateFor(zoneId); if (!g) return;
+  toast(`Sửa ${GATES[g.t].n.toLowerCase()} để mở ${zoneOfGate(g.t).n} nhé!`); sfx('tap');
+  flyCamTo(cellToWorld(g.x, g.z, ...footprint(g))); bounce(g.id);
 }
 
 export function tapObject(oid, sx, sy) {
@@ -50,6 +61,7 @@ export function tapObject(oid, sx, sy) {
   if (typeof oid === 'string' && oid.startsWith('v:')) return tapVisitor(oid);
   if (oid === 'pier') { bounce('pier'); sfx('tap'); return openFishing({ openEnergy }); }
   const o = byId(oid); if (!o) return;
+  if (!isOpenCell(o.x, o.z)) return cloudTap(zoneAt(o.x, o.z)); // vật còn dưới mây
   bounce(oid);
   if (o.site) { sfx('tap'); return openSite(o); } // đang xây: chỉ mở bảng góp vật liệu
   switch (o.k) {
@@ -63,6 +75,7 @@ export function tapObject(oid, sx, sy) {
     case 'house': sfx('tap'); return openQuest();
     case 'obstacle': return clearObstacle(o);
     case 'loot': return takeChest(o);
+    case 'gate': sfx('tap'); return toast(`${GATES[o.t].n} dẫn tới ${zoneOfGate(o.t).n}`);
     case 'decor': {
       const D = DECOR[o.t];
       if (D.pet) { const m = VIEWS.get(o.id).root.children[0]; m.userData.dance = true; m.userData.wait = 2.5; m.userData.goal.copy(m.position); sfx('collect'); }
@@ -250,31 +263,34 @@ function makeRecipe(o, i, sx, sy) {
 function siteName(o) {
   if (o.k === 'fac') return FACTORIES[o.t].n;
   if (o.k === 'pen') return PENS[o.t].n;
-  if (o.k === 'gate') return 'Đường tới ' + (ZONES.find(z => z.gate === o.t)?.n || 'vùng mới');
+  if (o.k === 'gate') return GATES[o.t]?.n || 'Cổng';
   return 'Công trình';
 }
 function openSite(o) {
   closeTray(); closeTimer();
   M_draw = () => {
     if (!o.site) return '<p class="hint">Đã xây xong!</p>';
-    const req = siteReq(o), n = stageCount(o);
+    const req = siteReq(o), n = stageCount(o), lock = gateLock(o);
     const icon = ICONS[o.k + ':' + o.t] ? `<img class="sitepic" src="${ICONS[o.k + ':' + o.t]}" alt="">` : '';
     const rows = Object.entries(req).map(([k, r]) => {
       const done = r.got >= r.need, h = have(k);
       return `<div class="mat ${done ? 'ok' : 'lack'}">${img(k)}<b>${nameOf(k)}</b><span class="q">${r.got}/${r.need}</span>
-        ${done ? '<span class="t">✓ Đủ rồi</span>'
+        ${done ? '<span class="t">✓ Đủ rồi</span>' : lock ? `<small>${esc(matHint(k))}</small>`
           : `<button class="btn small ${h ? '' : 'gray'}" data-act="give" data-oid="${o.id}" data-k="${k}">Góp</button>
              <small>${h ? `Đang có ${h}` : esc(matHint(k))}</small>`}</div>`;
     }).join('');
+    const what = o.k === 'gate' ? `sửa ${siteName(o).toLowerCase()}, mở ${zoneOfGate(o.t).n}` : `xây ${siteName(o).toLowerCase()}`;
     return `<div class="sitehead">${icon}<span class="stage">Giai đoạn ${o.site.stage + 1}/${n}</span></div>
-      <p class="hint">Góp đủ vật liệu để xây ${esc(siteName(o).toLowerCase())} nhé!</p><div class="mats">${rows}</div>`;
+      ${lock ? `<p class="hint lockmsg">🔒 Mở ở cấp ${lock}</p>` : ''}
+      <p class="hint">Góp đủ vật liệu để ${esc(what)} nhé!</p><div class="mats">${rows}</div>`;
   };
-  M_sig = () => JSON.stringify(o.site || null) + JSON.stringify(S.inv);
+  M_sig = () => JSON.stringify(o.site || null) + JSON.stringify(S.inv) + S.level;
   openModal('site', siteName(o), M_draw(), { sig: M_sig(), oid: o.id });
 }
 function giveSite(o, k, x, y) {
   if (!o?.site) return;
   const n = contribute(o, k);
+  if (gateLock(o)) { toast(`Mở ở cấp ${gateLock(o)}`); sfx('no'); return; }
   if (!n) { const h = matHint(k); toast(`Chưa có ${nameOf(k).toLowerCase()}.${h ? ' ' + h + ' nhé!' : ''}`); sfx('no'); return; }
   bounce(o.id);
   const stage = o.site.stage, r = tryAdvance(o);
@@ -297,7 +313,7 @@ function screenOf(o, y = 0.9) {
   sv.copy(r.position); sv.y += y; return toScreen(sv);
 }
 function canChop(o) {
-  if (!isOpenCell(o.x, o.z)) { toast('Chỗ này còn mây che. Mở đường tới đây trước nhé!'); sfx('no'); return false; }
+  if (!isOpenCell(o.x, o.z)) { cloudTap(zoneAt(o.x, o.z)); return false; }
   if (S.energy < 1) { openEnergy(); return false; }
   return true;
 }
@@ -645,7 +661,7 @@ export function onLongPress(sx, sy) {
   if (placing || W.mode !== 'farm') return;
   const oid = pickAt(sx, sy);
   const o = typeof oid === 'number' ? byId(oid) : null;
-  if (!o || o.k === 'loot') return;
+  if (!o || o.k === 'loot' || o.k === 'gate' || !isOpenCell(o.x, o.z)) return; // cổng đứng yên một chỗ
   closeTimer();
   if (o.k === 'obstacle') { bounce(o.id); startHold(o); return; } // giữ ngón trên vật cản = chặt liên tục
   sfx('tap');
@@ -753,6 +769,12 @@ on('levelup', (L, bonus) => {
   }, 400);
 });
 on('quest', () => renderHUD());
+// Cổng xong, vùng mở: mây tan (entities.js), chúc mừng bé
+on('zone', id => {
+  const Z = ZONES.find(z => z.id === id);
+  setTimeout(() => { toast(`Đã mở ${Z.n}! Vào chặt cây thôi`); confetti(24); }, 500);
+  save();
+});
 on('ship', ev => { if (ev === 'arrive') { toast('Tàu chở hàng đã cập bến!'); sfx('ship'); } });
 
 // Lịch quà 7 ngày: điểm danh liên tục thì quà to dần, ngày 7 có quà lớn
@@ -942,7 +964,7 @@ function buildBubbles() {
   for (const o of S.objs) {
     const v = VIEWS.get(o.id); if (!v) continue;
     if (o.site) { // công trường: búa khi bé đang có món góp được
-      if (Object.entries(siteReq(o)).some(([k, r]) => r.got < r.need && have(k) > 0)) list.push({ oid: o.id, y: 1.6, mark: '🔨', cls: 'sitemark' });
+      if (!gateLock(o) && isOpenCell(o.x, o.z) && Object.entries(siteReq(o)).some(([k, r]) => r.got < r.need && have(k) > 0)) list.push({ oid: o.id, y: 1.6, mark: '🔨', cls: 'sitemark' });
       continue;
     }
     if (o.k === 'pen') {

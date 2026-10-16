@@ -1,6 +1,6 @@
 import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, QUESTS, STARTER_DECOR,
   xpNeed, ENERGY_MAX, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
-import { seeded, outerJungle, migrateV1 } from './island.js';
+import { seeded, outerJungle, migrateV1, placeGates, isOpenCell } from './island.js';
 
 const KEY = 'maisies-farm-v1';
 export const now = () => Date.now();
@@ -20,7 +20,7 @@ export function footprint(o) {
     case 'field': case 'tree': return [1, 1];
     case 'pen': case 'house': return [3, 3];
     case 'fac': case 'barn': case 'market': return [2, 2];
-    case 'board': return [2, 1];
+    case 'board': case 'gate': return [2, 1];
     case 'decor': { const d = DECOR[o.t]; const w = d.w || 1, h = d.d || 1; return o.r % 2 ? [h, w] : [w, h]; }
     case 'obstacle': return [1, 1];
   }
@@ -36,10 +36,11 @@ export function occupancy(ignoreId) {
   }
   return g;
 }
+// Ô trống: trong đảo, không có vật, và thuộc vùng đã mở (ô dưới mây coi như vướng)
 export function isFree(x, z, w, d, ignoreId) {
   if (x < 0 || z < 0 || x + w > GRID || z + d > GRID) return false;
   const g = occupancy(ignoreId);
-  for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) if (g.has((x + i) + ',' + (z + j))) return false;
+  for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) if (g.has((x + i) + ',' + (z + j)) || !isOpenCell(x + i, z + j)) return false;
   return true;
 }
 export function findFree(w, d, nearX = OFF + CORE / 2, nearZ = OFF + CORE / 2) {
@@ -47,7 +48,7 @@ export function findFree(w, d, nearX = OFF + CORE / 2, nearZ = OFF + CORE / 2) {
   const g = occupancy();
   for (let x = 0; x <= GRID - w; x++) for (let z = 0; z <= GRID - d; z++) {
     let ok = true;
-    for (let i = 0; i < w && ok; i++) for (let j = 0; j < d && ok; j++) if (g.has((x + i) + ',' + (z + j))) ok = false;
+    for (let i = 0; i < w && ok; i++) for (let j = 0; j < d && ok; j++) if (g.has((x + i) + ',' + (z + j)) || !isOpenCell(x + i, z + j)) ok = false;
     if (!ok) continue;
     const dist = Math.hypot(x - nearX, z - nearZ);
     if (dist < bd) { bd = dist; best = [x, z]; }
@@ -232,7 +233,7 @@ function freshState() {
     zones: { core: true, west: false, north: false, old: false },
     tut: 0, boatFixed: true, // Task 7 sẽ đổi: ván mới bắt đầu với thuyền hỏng
   };
-  return st;
+  return placeGates(st); // cầu / bậc đá mở các vùng rừng
 }
 
 export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
@@ -240,7 +241,7 @@ export function load() {
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(KEY)); } catch (e) { }
   if (raw && raw.v === 1 && Array.isArray(raw.objs)) { S = migrateV1(raw); save(); }
-  else S = raw && raw.v === 2 && Array.isArray(raw.objs) ? raw : freshState();
+  else S = raw && raw.v === 2 && Array.isArray(raw.objs) ? placeGates(raw) : freshState(); // bản v2 cũ chưa có cổng
   if (!S.ship) S.ship = newShip();
   refreshOrders();
   return S;
@@ -250,7 +251,7 @@ export const exportSave = () => btoa(unescape(encodeURIComponent(JSON.stringify(
 export function importSave(code) {
   const o = JSON.parse(decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))));
   if (!o || (o.v !== 1 && o.v !== 2) || !Array.isArray(o.objs)) throw new Error('bad');
-  S = o.v === 1 ? migrateV1(o) : o; save();
+  S = o.v === 1 ? migrateV1(o) : placeGates(o); save();
 }
 // Nông trại cũ: thêm đường gạch, luống hoa vào chỗ còn trống (chỉ một lần)
 export function ensureStarterDecor(addView) {

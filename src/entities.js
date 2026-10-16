@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { make, play } from './assets.js';
 import { hasSprite, spriteObject, animateArt } from './sprites.js';
 import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, lushTree, roundBush } from './props.js';
-import { W, cellToWorld } from './world.js';
-import { S, footprint, occupancy, now, rnd } from './state.js';
-import { isOpenCell } from './island.js';
-import { GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE, FAC_SPRITE } from './data.js';
+import { W, cellToWorld, AZ, EL } from './world.js';
+import { S, footprint, occupancy, now, rnd, on } from './state.js';
+import { isOpenCell, zoneAt, seeded, GATES } from './island.js';
+import { ZONES, GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE, FAC_SPRITE } from './data.js';
 
 // Hình 2D nếu đã có ảnh, không thì trả về null
 export function art(name, w = 1, d = 1, extra = {}) {
@@ -476,7 +476,142 @@ function siteView(o) {
   return { root };
 }
 
+// ---------- Cổng mở vùng: cầu tre, cầu gỗ, bậc đá ----------
+// Đang sửa: ván gãy, cột trơ (mỗi giai đoạn thêm ván); xong: cầu có tay vịn / bậc đá đủ.
+// Mũi tên cam nhấp nháy chỉ vào cổng khi vùng còn đóng và cổng đã tới được (không bị mây che).
+let arrowMat = null;
+function gateArrow() {
+  arrowMat ||= new THREE.MeshStandardMaterial({ color: 0xff8a1e, emissive: 0xff6a00, emissiveIntensity: 0.5, roughness: 0.6, transparent: true });
+  const g = new THREE.Group(); g.scale.setScalar(1.4);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.5, 4), arrowMat); head.rotation.x = Math.PI; head.position.y = 0.25;
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.42, 0.16), arrowMat); tail.position.y = 0.68;
+  g.add(head, tail);
+  return g;
+}
+function gateView(o) {
+  const root = new THREE.Group(), G = GATES[o.t], stairs = o.t === 'stairs_old';
+  const n = o.site ? o.site.stage : 9; // số giai đoạn đã xong (9 = xây xong)
+  const bamboo = o.t === 'bridge_w', plank = bamboo ? 0xc9b25a : 0xb07a45, post = bamboo ? 0x8fa83a : 0x7a4f26;
+  const g = new THREE.Group(); root.add(g);
+  if (stairs) { // bậc đá lên Rừng già (phía -z)
+    const steps = o.site ? 1 + n : 3;
+    for (let i = 0; i < 3; i++) {
+      const ok = i < steps, st = box(1.7 - i * 0.12, 0.22 * (i + 1), 0.32, ok ? 0xb9b4a8 : 0x9a958a);
+      st.position.set(ok ? 0 : (i - 1) * 0.2, 0.11 * (i + 1), 0.3 - i * 0.3); if (!ok) { st.scale.set(0.45, 0.5, 0.9); st.rotation.y = 0.5 * i; }
+      g.add(st);
+    }
+    if (!o.site) for (const x of [-0.8, 0.8]) { const l = box(0.12, 0.5, 0.12, 0x8c877c); l.position.set(x, 0.25, 0.32); g.add(l); }
+  } else {
+    // cầu nằm ngang 2 ô; cầu tre chạy theo trục x (sang Tây), cầu gỗ chạy theo trục z (lên Bắc)
+    const along = o.t === 'bridge_w' ? 'x' : 'z', L = along === 'x' ? 2 : 1.3, Wd = along === 'x' ? 0.9 : 1.8;
+    const k = 9, have = o.site ? Math.min(k, 3 + n * 3) : k; // ván đã lát
+    for (let i = 0; i < k; i++) {
+      if (i >= have && i % 2) continue; // còn thiếu ván: chừa lỗ hổng
+      const p = box(along === 'x' ? L / k * 0.85 : Wd, 0.07, along === 'x' ? Wd : L / k * 0.85, i < have ? plank : 0x8a6a40);
+      const u = -L / 2 + (i + 0.5) * L / k;
+      p.position.set(along === 'x' ? u : 0, 0.16 + (i < have ? 0 : -0.06), along === 'x' ? 0 : u);
+      if (i >= have) p.rotation.y = 0.25;
+      g.add(p);
+    }
+    for (const s1 of [-1, 1]) for (const s2 of [-1, 1]) { // cột ở 4 góc
+      const c = box(0.1, 0.55, 0.1, post);
+      c.position.set(along === 'x' ? s1 * L / 2 : s2 * Wd / 2, 0.27, along === 'x' ? s2 * Wd / 2 : s1 * L / 2); g.add(c);
+    }
+    if (!o.site || n >= 1) for (const s2 of [-1, 1]) { // tay vịn (dây hoặc thanh gỗ)
+      const r = box(along === 'x' ? L : 0.05, 0.05, along === 'x' ? 0.05 : L, o.site ? 0xc8a46a : post);
+      r.position.set(along === 'x' ? 0 : s2 * Wd / 2, 0.5, along === 'x' ? s2 * Wd / 2 : 0); g.add(r);
+    }
+  }
+  if (o.site) { // đống vật liệu chờ góp bên cạnh
+    const logs = art('logs', 0.6, 0.6, { scale: 0.6 }) || make('kk/decoration/props/resource_lumber.gltf', { size: 0.45 });
+    logs.position.set(stairs ? 0.75 : 0.6, 0, 0.45); root.add(logs);
+  }
+  const zone = G.zone, arrow = gateArrow(); root.add(arrow);
+  const v = { root, update(t) {
+    const show = !S.zones?.[zone] && isOpenCell(o.x, o.z);
+    arrow.visible = show; if (!show) return;
+    arrow.position.y = 1.5 + Math.abs(Math.sin(t * 3)) * 0.35;
+    arrowMat.opacity = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 6));
+    arrow.rotation.y = t * 1.5;
+  } };
+  return v;
+}
+
+// ---------- Mây phủ vùng còn đóng ----------
+// Mỗi vùng một khối lưới gộp nhiều tấm mây mềm luôn quay về camera (camera không xoay nên quay sẵn một lần).
+// Tấm xa vẽ trước để pha màu đúng; depthWrite tắt để mây không che lẫn nhau.
+let cloudTex = null;
+const CLOUDS = new Map(); // id vùng -> { mesh, mat, t0 }
+function cloudTexture() {
+  if (cloudTex) return cloudTex;
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  for (const [cx, cy, r] of [[64, 72, 44], [40, 76, 30], [88, 76, 30], [56, 52, 30], [78, 56, 26]]) {
+    const gr = x.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.65, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = gr; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+  }
+  // bụng mây hơi xanh xám để các lớp mây nổi khối
+  x.globalCompositeOperation = 'source-atop';
+  const sh = x.createLinearGradient(0, 30, 0, 118);
+  sh.addColorStop(0, 'rgba(160,185,215,0)'); sh.addColorStop(0.55, 'rgba(160,185,215,.18)'); sh.addColorStop(1, 'rgba(140,165,200,.6)');
+  x.fillStyle = sh; x.fillRect(0, 0, 128, 128);
+  cloudTex = new THREE.CanvasTexture(c); cloudTex.colorSpace = THREE.SRGBColorSpace;
+  return cloudTex;
+}
+function cloudMesh(Z, i) {
+  const [x0, z0, w, d] = Z.rect, rand = seeded(7919 + i * 131), puffs = [];
+  const q = new THREE.Object3D(); q.lookAt(Math.sin(AZ) * Math.cos(EL), Math.sin(EL), Math.cos(AZ) * Math.cos(EL));
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(q.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(q.quaternion);
+  const toCam = new THREE.Vector3(0, 0, 1).applyQuaternion(q.quaternion);
+  const step = 1.5;
+  for (let layer = 0; layer < 2; layer++) for (let gx = x0 + 0.6; gx < x0 + w - 0.2; gx += step) for (let gz = z0 + 0.6; gz < z0 + d - 0.2; gz += step) {
+    const px = gx + (rand() - 0.5) * 0.9 + layer * 0.7, pz = gz + (rand() - 0.5) * 0.9 + layer * 0.7;
+    if (px > x0 + w - 0.4 || pz > z0 + d - 0.4) continue; // không tràn sang vùng đã mở
+    const p = new THREE.Vector3(px - GRID / 2, 0.55 + layer * 0.75 + rand() * 0.35, pz - GRID / 2);
+    puffs.push({ p, s: 2.3 + rand() * 1.2, c: layer ? 1 : 0.9 + rand() * 0.06 });
+  }
+  puffs.sort((a, b) => a.p.dot(toCam) - b.p.dot(toCam)); // xa trước, gần sau
+  const pos = [], uv = [], col = [], idx = [];
+  puffs.forEach(({ p, s, c }, k) => {
+    for (const [a, b] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
+      const v = p.clone().addScaledVector(right, a * s).addScaledVector(up, b * s * 0.8);
+      pos.push(v.x, v.y, v.z); uv.push(a + 0.5, b + 0.5); col.push(c * 0.97, c * 0.98, c);
+    }
+    idx.push(k * 4, k * 4 + 1, k * 4 + 2, k * 4, k * 4 + 2, k * 4 + 3);
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setIndex(idx);
+  const mat = new THREE.MeshBasicMaterial({ map: cloudTexture(), vertexColors: true, transparent: true, depthWrite: false, fog: false });
+  const mesh = new THREE.Mesh(geo, mat); mesh.renderOrder = 4;
+  return { mesh, mat, t0: 0 };
+}
+// Vật nằm dưới mây thì ẩn (đỡ vẽ, và không lòi ra khỏi mây)
+const underCloud = o => typeof o.id === 'number' && !isOpenCell(o.x, o.z);
+export function buildClouds() {
+  ZONES.forEach((Z, i) => {
+    if (S.zones?.[Z.id] || CLOUDS.has(Z.id)) return;
+    const c = cloudMesh(Z, i); W.farm.add(c.mesh); CLOUDS.set(Z.id, c);
+  });
+}
+// Vùng vừa mở: hiện các vật bên dưới, mây bay lên và tan dần trong 1,5 giây
+on('zone', id => {
+  for (const o of S.objs) { const v = VIEWS.get(o.id); if (v && zoneAt(o.x, o.z) === id) v.root.visible = true; }
+  const c = CLOUDS.get(id); if (c && !c.t0) c.t0 = performance.now();
+});
+export function updateClouds(t) {
+  for (const [id, c] of CLOUDS) {
+    if (!c.t0) { c.mesh.position.y = Math.sin(t * 0.8 + id.length) * 0.06; continue; }
+    const f = (performance.now() - c.t0) / 1500;
+    if (f >= 1) { W.farm.remove(c.mesh); c.mesh.geometry.dispose(); c.mat.dispose(); CLOUDS.delete(id); continue; }
+    c.mat.opacity = 1 - f * f; c.mesh.position.y = f * 1.6;
+  }
+}
+
 export function createView(o) {
+  if (o.k === 'gate') return gateView(o);
   if (o.site) return siteView(o);
   switch (o.k) {
     case 'field': return fieldView(o);
@@ -508,6 +643,7 @@ export function addView(o) {
   const v = createView(o);
   v.root.userData.oid = o.id;
   place(v, o);
+  if (underCloud(o)) v.root.visible = false;
   W.farm.add(v.root);
   W.pickables.push(v.root);
   VIEWS.set(o.id, v);

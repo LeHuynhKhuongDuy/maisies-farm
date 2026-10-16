@@ -1,7 +1,8 @@
 // Công trường: mua xong chỉ mới là giàn giáo, bé góp vật liệu từng giai đoạn để xây xong.
 // Chỉ logic thuần (không Three/DOM) để chạy được trong node --test
 import { ITEMS, FACTORIES, PENS, ZONES, OBSTACLES, BUILD } from './data.js';
-import { have, add, addXP, questEvent } from './state.js';
+import { S, have, add, addXP, questEvent } from './state.js';
+import { openZone, zoneOfGate } from './island.js';
 
 // Khóa tra bảng BUILD: '<k>:<t>' — 'fac:bakery', 'pen:coop', 'gate:bridge_w' ({k:'gate', t}),
 // 'ruin:boat' ({k:'ruin', t}). Ruộng, cây, đồ trang trí, thú không có trong BUILD nên không qua công trường.
@@ -25,8 +26,16 @@ export function siteReq(o) {
   return out;
 }
 
+// Cổng chưa tới cấp mở vùng: trả cấp cần (0 nếu góp được)
+export function gateLock(o) {
+  if (o.k !== 'gate') return 0;
+  const lv = unlockLevel(keyOf(o));
+  return S.level < lv ? lv : 0;
+}
+
 // Góp một món từ kho: chuyển tối đa phần còn thiếu, không quá số đang có. Trả số đã góp
 export function contribute(o, item) {
+  if (gateLock(o)) return 0;
   const r = siteReq(o)[item]; if (!r) return 0;
   const n = Math.max(0, Math.min(have(item), r.need - r.got));
   if (!n) return 0;
@@ -38,12 +47,13 @@ export function contribute(o, item) {
 // Đủ hết thì sang giai đoạn sau (xp 10 * (giai đoạn + 1)); xong giai đoạn cuối thì hết công trường
 export function tryAdvance(o) {
   const req = siteReq(o), ks = Object.keys(req);
-  if (!ks.length || ks.some(k => req[k].got < req[k].need)) return 'none';
+  if (gateLock(o) || !ks.length || ks.some(k => req[k].got < req[k].need)) return 'none';
   addXP(10 * (o.site.stage + 1));
   o.site.stage++; o.site.got = {};
   if (o.site.stage < stagesOf(o).length) return 'stage';
   delete o.site;
   questEvent('build', keyOf(o));
+  if (o.k === 'gate') openZone(zoneOfGate(o.t).id); // cổng xong: mây tan, vùng mở
   return 'done';
 }
 

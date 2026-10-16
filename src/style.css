@@ -237,6 +237,7 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 .btn .ico { width: 22px; height: 22px; margin: 0; }
 .btn[disabled] { filter: grayscale(.8); opacity: .6; }
 .hint { margin: 0 0 10px; color: var(--ink-soft); font-weight: 700; text-align: center; }
+.hint.lockmsg { color: #d0621a; font-size: 17px; font-weight: 900; margin-bottom: 4px; }
 .row { display: flex; align-items: center; gap: 10px; }
 .need { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .need span { display: inline-flex; align-items: center; gap: 1px; padding: 0 8px 0 0; border-radius: 12px; background: var(--cream-d); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }

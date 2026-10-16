@@ -162,6 +162,7 @@ export function setZoom(z) { W.zoom = THREE.MathUtils.clamp(z, 0.55, 2.6); updat
 
 // Kéo màn hình: đổi pixel -> dịch chuyển trên mặt đất
 export function panBy(dx, dy) {
+  flight++; // bé tự kéo màn hình thì thôi bay
   const cam = W.camera, h = window.innerHeight;
   const unitsPerPx = (cam.top - cam.bottom) / h;
   const right = new THREE.Vector3(Math.cos(AZ), 0, -Math.sin(AZ));
@@ -188,9 +189,9 @@ export function pickAt(sx, sy, prefer) {
   const hits = ray.intersectObjects(W.mode === 'farm' ? W.pickables : W.advPick, true);
   let first = null;
   for (const h of hits) {
-    let o = h.object;
-    while (o && o.userData.oid === undefined) o = o.parent;
-    if (!o) continue;
+    let o = h.object, hidden = !o.visible;
+    while (o && o.userData.oid === undefined) { o = o.parent; hidden ||= o ? !o.visible : false; }
+    if (!o || hidden || !o.visible) continue; // vật đang ẩn (dưới mây) không chạm được
     if (!prefer) return o.userData.oid;
     if (prefer(o.userData.oid)) return o.userData.oid;
     if (first === null) first = o.userData.oid;
@@ -204,3 +205,15 @@ export function toScreen(v) {
   return [(tmp.x + 1) / 2 * window.innerWidth, (1 - tmp.y) / 2 * window.innerHeight, tmp.z < 1];
 }
 export function focusOn(v) { W.target.set(v.x, 0, v.z); updateCamera(); }
+// Camera bay êm tới điểm v trong `ms` mili giây (chạm mới thì thay đường bay cũ)
+let flight = 0;
+export function flyCamTo(v, ms = 700) {
+  const from = W.target.clone(), to = new THREE.Vector3(v.x, 0, v.z), t0 = performance.now(), me = ++flight;
+  const step = () => {
+    if (me !== flight) return;
+    const f = Math.min(1, (performance.now() - t0) / ms), e = f * f * (3 - 2 * f);
+    W.target.lerpVectors(from, to, e); updateCamera();
+    if (f < 1) requestAnimationFrame(step);
+  };
+  step();
+}

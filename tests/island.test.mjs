@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { memStorage, v1Save } from './helpers.mjs';
+import { memStorage, v1Save, fresh } from './helpers.mjs';
 import { GRID, CORE, OFF, ZONES, OBSTACLES, JUNGLE_MIX } from '../src/data.js';
-import { S, load, importSave, resetGame, footprint } from '../src/state.js';
-import { zoneAt, isOpenCell, genJungle, migrateV1 } from '../src/island.js';
+import { S, load, importSave, resetGame, footprint, isFree, findFree, have, on } from '../src/state.js';
+import { zoneAt, isOpenCell, genJungle, migrateV1, openZone, gateFor, GATES } from '../src/island.js';
+import { siteReq, contribute, tryAdvance, gateLock } from '../src/build.js';
 
 test('migrateV1 dời mọi vật vào vùng lõi', () => {
   const v1 = v1Save(); const s = migrateV1(structuredClone(v1));
@@ -73,4 +74,93 @@ test('genJungle: mật độ ~55%, chừa đường 1 ô ở giữa, chỉ dùng
   const w = genJungle('west', 1); // đường ngang giữa vùng Tây
   assert.ok(!w.some(o => o.z === 14 + 13));
   assert.deepEqual(genJungle('north', 5), genJungle('north', 5));
+});
+
+// ---------- Task 6: vùng dưới mây và cổng mở vùng ----------
+const cellsOf = o => { const [w, d] = footprint(o), out = []; for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) out.push([o.x + i, o.z + j]); return out; };
+const gateOf = (s, t) => s.objs.filter(o => o.k === 'gate' && o.t === t);
+// Gỡ mọi vật đè lên khung (x, z, w, d) để thử riêng chuyện vùng mở/đóng
+const clearRect = (x, z, w, d) => { S.objs = S.objs.filter(o => !cellsOf(o).some(([cx, cz]) => cx >= x && cx < x + w && cz >= z && cz < z + d)); };
+const fullStages = (o) => { // góp đủ mọi giai đoạn, trả kết quả tryAdvance cuối
+  let r; do { for (const k of Object.keys(siteReq(o))) contribute(o, k); r = tryAdvance(o); } while (r === 'stage'); return r;
+};
+const lots = () => Object.fromEntries(['wood', 'bamboo', 'planks', 'rope', 'stone', 'torch', 'reedmat', 'rack'].map(k => [k, 99]));
+
+test('isFree từ chối ô vùng đóng và khung vắt qua ranh giới', () => {
+  fresh(); clearRect(10, 18, 8, 6);
+  assert.equal(isFree(13, 20, 2, 2), false); // vắt qua ranh giới lõi / Tây
+  assert.equal(isFree(10, 20, 1, 1), false); // trong rừng Tây
+  assert.equal(isFree(14, 20, 2, 2), true);  // sát mép, vẫn trong lõi
+  S.zones.west = true;
+  assert.equal(isFree(13, 20, 2, 2), true); assert.equal(isFree(10, 20, 1, 1), true);
+});
+test('findFree chỉ trả ô vùng mở', () => {
+  fresh();
+  for (const [nx, nz] of [[0, 0], [3, 25], [25, 3], [13, 13]]) {
+    const [x, z] = findFree(2, 2, nx, nz);
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) assert.ok(isOpenCell(x + i, z + j), `${nx},${nz} -> ${x},${z}`);
+  }
+  S.objs = []; S.zones.west = true;
+  const [x] = findFree(1, 1, 0, 20); assert.equal(x, 0); // mở rồi thì tìm được trong rừng Tây
+});
+test('ván mới có 3 cổng 2x1 đúng ranh giới, đang là công trường', () => {
+  fresh();
+  const [bw] = gateOf(S, 'bridge_w'), [bn] = gateOf(S, 'bridge_n'), [so] = gateOf(S, 'stairs_old');
+  assert.ok(bw && bn && so);
+  for (const g of [bw, bn, so]) { assert.deepEqual(footprint(g), [2, 1]); assert.deepEqual(g.site, { stage: 0, got: {} }); }
+  assert.ok(cellsOf(bw).every(([x, z]) => zoneAt(x, z) === 'core')); assert.equal(zoneAt(bw.x - 1, bw.z), 'west');
+  assert.ok(cellsOf(bn).every(([x, z]) => zoneAt(x, z) === 'core')); assert.equal(zoneAt(bn.x, bn.z - 1), 'north');
+  assert.ok(cellsOf(so).every(([x, z]) => zoneAt(x, z) === 'west')); assert.equal(zoneAt(so.x, so.z - 1), 'old');
+  const seen = new Set(); // không vật nào chồng lên nhau
+  for (const o of S.objs) for (const [x, z] of cellsOf(o)) { const k = x + ',' + z; assert.ok(!seen.has(k), k); seen.add(k); }
+});
+test('migrateV1 đặt cổng; vùng lõi kín ranh giới: dọn vật cản, không đè công trình', () => {
+  const v1 = v1Save();
+  v1.objs = v1.objs.filter(o => o.k !== 'obstacle');
+  v1.objs.push({ id: 900, k: 'fac', t: 'bakery', x: 0, z: 12, r: 0, jobs: [] });
+  for (let z = 0; z < 26; z++) if (z !== 12 && z !== 13) v1.objs.push({ id: 901 + z, k: 'obstacle', t: 'rock', x: 0, z, r: 0 });
+  for (let x = 1; x < 26; x++) v1.objs.push({ id: 950 + x, k: 'obstacle', t: 'bush', x, z: 0, r: 0 });
+  v1.nextId = 1000;
+  const s = migrateV1(v1);
+  for (const t of ['bridge_w', 'bridge_n', 'stairs_old']) assert.equal(gateOf(s, t).length, 1, t);
+  const [bw] = gateOf(s, 'bridge_w'), [bn] = gateOf(s, 'bridge_n');
+  assert.equal(bw.x, OFF); assert.equal(bn.z, OFF);
+  const seen = new Map();
+  for (const o of s.objs) for (const [x, z] of cellsOf(o)) { const k = x + ',' + z; assert.ok(!seen.has(k), `${o.k} đè ${seen.get(k)} ở ${k}`); seen.set(k, o.k); }
+  assert.ok(s.objs.some(o => o.id === 900)); // nhà máy vẫn còn
+  const ids = s.objs.map(o => o.id); assert.equal(new Set(ids).size, ids.length); assert.ok(s.nextId > Math.max(...ids));
+});
+test('load() bản v2 thiếu cổng thì thêm cổng (một lần)', () => {
+  memStorage({}); resetGame();
+  const saved = JSON.parse(localStorage.getItem('maisies-farm-v1'));
+  saved.objs = saved.objs.filter(o => o.k !== 'gate'); saved.zones.west = true;
+  memStorage({ 'maisies-farm-v1': JSON.stringify(saved) });
+  const s = load();
+  assert.equal(gateOf(s, 'bridge_n').length, 1); assert.equal(gateOf(s, 'stairs_old').length, 1);
+  assert.equal(gateOf(s, 'bridge_w').length, 0); // vùng đã mở thì thôi
+  load(); assert.equal(gateOf(S, 'bridge_n').length, 1);
+});
+test('góp đủ cầu tre thì mở rừng phía Tây và báo sự kiện zone', () => {
+  fresh({ level: 4 }); S.inv = lots();
+  const got = []; on('zone', id => got.push(id));
+  const [g] = gateOf(S, 'bridge_w');
+  assert.equal(fullStages(g), 'done');
+  assert.equal(S.zones.west, true); assert.equal(S.zones.north, false); assert.deepEqual(got, ['west']);
+  assert.equal(isOpenCell(3, 20), true);
+});
+test('cổng không nhận góp khi cấp thấp hơn lv của vùng', () => {
+  fresh({ level: 3 }); S.inv = lots();
+  const [g] = gateOf(S, 'bridge_w');
+  assert.equal(gateLock(g), 4);
+  assert.equal(contribute(g, 'wood'), 0); assert.equal(have('wood'), 99); assert.equal(tryAdvance(g), 'none');
+  S.level = 4; assert.equal(gateLock(g), 0); assert.equal(contribute(g, 'wood'), 10);
+  const [so] = gateOf(S, 'stairs_old'); S.level = 10; assert.equal(gateLock(so), 11);
+});
+test('openZone mở vùng; gateFor chỉ cổng tới được (Rừng già cần qua rừng Tây trước)', () => {
+  fresh();
+  assert.equal(gateFor('west').t, 'bridge_w'); assert.equal(gateFor('north').t, 'bridge_n');
+  assert.equal(gateFor('old').t, 'bridge_w'); // bậc đá còn dưới mây
+  openZone('west'); assert.equal(S.zones.west, true);
+  assert.equal(gateFor('old').t, 'stairs_old');
+  assert.equal(GATES.bridge_w.n, 'Cầu tre'); assert.equal(GATES.bridge_n.n, 'Cầu gỗ'); assert.equal(GATES.stairs_old.n, 'Bậc đá');
 });
