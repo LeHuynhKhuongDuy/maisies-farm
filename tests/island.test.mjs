@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { memStorage, v1Save, fresh } from './helpers.mjs';
 import { GRID, CORE, OFF, ZONES, OBSTACLES, JUNGLE_MIX } from '../src/data.js';
-import { S, load, importSave, resetGame, footprint, isFree, findFree, have, on } from '../src/state.js';
+import { S, load, importSave, exportSave, resetGame, footprint, isFree, findFree, have, on } from '../src/state.js';
 import { zoneAt, isOpenCell, genJungle, migrateV1, openZone, gateFor, gateReachable, GATES } from '../src/island.js';
 import { siteReq, contribute, tryAdvance, gateLock } from '../src/build.js';
 
@@ -39,6 +39,28 @@ test('load() nhận bản v1 từ localStorage và lưu lại thành v2', () => 
   memStorage({ 'maisies-farm-v1': JSON.stringify(v1Save()) });
   const s = load(); assert.equal(s.v, 2);
   assert.equal(JSON.parse(localStorage.getItem('maisies-farm-v1')).v, 2);
+});
+test('load() bản v1: chép nguyên chuỗi v1 gốc sang maisies-farm-v1-backup trước khi chuyển', () => {
+  const str = JSON.stringify(v1Save());
+  memStorage({ 'maisies-farm-v1': str });
+  load();
+  assert.equal(localStorage.getItem('maisies-farm-v1-backup'), str);
+  assert.equal(JSON.parse(localStorage.getItem('maisies-farm-v1')).v, 2);
+});
+test('load() bản v1: đã có bản sao lưu thì không ghi đè; bản v2 thì không sao lưu', () => {
+  memStorage({ 'maisies-farm-v1': JSON.stringify(v1Save()), 'maisies-farm-v1-backup': 'cũ' });
+  load(); assert.equal(localStorage.getItem('maisies-farm-v1-backup'), 'cũ');
+  memStorage({}); resetGame(); const v2 = localStorage.getItem('maisies-farm-v1');
+  memStorage({ 'maisies-farm-v1': v2 }); load(); assert.equal(localStorage.getItem('maisies-farm-v1-backup'), null);
+});
+test('importSave mã v1: sao lưu chuỗi v1 gốc (chỉ khi chưa có)', () => {
+  const str = JSON.stringify(v1Save()), code = btoa(unescape(encodeURIComponent(str)));
+  memStorage({}); importSave(code);
+  assert.equal(localStorage.getItem('maisies-farm-v1-backup'), str); assert.equal(S.v, 2);
+  memStorage({ 'maisies-farm-v1-backup': 'cũ' }); importSave(code);
+  assert.equal(localStorage.getItem('maisies-farm-v1-backup'), 'cũ');
+  const v2code = exportSave(); memStorage({}); importSave(v2code);
+  assert.equal(localStorage.getItem('maisies-farm-v1-backup'), null); // mã v2 không sao lưu
 });
 test('load() giữ nguyên bản v2 đã có', () => {
   memStorage({}); resetGame();

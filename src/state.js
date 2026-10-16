@@ -259,10 +259,16 @@ function freshState() {
 }
 
 export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
+// Trước khi chuyển bản v1 sang v2: giữ nguyên chuỗi v1 gốc ở khóa riêng (chỉ lần đầu, không ghi đè),
+// để lỡ phải quay về bản game cũ thì vẫn lấy lại được nông trại
+export const BACKUP_KEY = KEY + '-backup';
+function backupV1(str) {
+  try { if (localStorage.getItem(BACKUP_KEY) == null) localStorage.setItem(BACKUP_KEY, str); } catch (e) { }
+}
 export function load() {
-  let raw = null;
-  try { raw = JSON.parse(localStorage.getItem(KEY)); } catch (e) { }
-  if (raw && raw.v === 1 && Array.isArray(raw.objs)) { S = migrateV1(raw); save(); }
+  let raw = null, str = null;
+  try { str = localStorage.getItem(KEY); raw = JSON.parse(str); } catch (e) { }
+  if (raw && raw.v === 1 && Array.isArray(raw.objs)) { backupV1(str); S = migrateV1(raw); save(); }
   else S = raw && raw.v === 2 && Array.isArray(raw.objs) ? fixV2(raw) : freshState();
   if (!S.ship) S.ship = newShip();
   refreshOrders();
@@ -271,8 +277,9 @@ export function load() {
 // Mã sao lưu để chuyển nông trại sang máy khác
 export const exportSave = () => btoa(unescape(encodeURIComponent(JSON.stringify(S))));
 export function importSave(code) {
-  const o = JSON.parse(decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))));
+  const str = decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))), o = JSON.parse(str);
   if (!o || (o.v !== 1 && o.v !== 2) || !Array.isArray(o.objs)) throw new Error('bad');
+  if (o.v === 1) backupV1(str);
   S = o.v === 1 ? migrateV1(o) : fixV2(o); save();
 }
 // Bản v2 lưu trước khi có hướng dẫn mới (không có thuyền đổ nát): coi như đã xong hướng dẫn và thuyền đã sửa
