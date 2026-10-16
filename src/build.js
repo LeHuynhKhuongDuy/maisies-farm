@@ -4,9 +4,11 @@ import { ITEMS, FACTORIES, PENS, ZONES, OBSTACLES, BUILD } from './data.js';
 import { S, have, add, addXP, questEvent } from './state.js';
 import { openZone, zoneOfGate } from './island.js';
 
-// Khóa tra bảng BUILD: '<k>:<t>' — 'fac:bakery', 'pen:coop', 'gate:bridge_w' ({k:'gate', t}),
-// 'ruin:boat' ({k:'ruin', t}). Ruộng, cây, đồ trang trí, thú không có trong BUILD nên không qua công trường.
-export const keyOf = o => `${o.k}:${o.t}`;
+// Khóa tra bảng BUILD: '<k>:<t>' — 'fac:bakery', 'pen:coop', 'gate:bridge_w' ({k:'gate', t}).
+// Đồ đổ nát của ván mới (site.ruin) dùng 'ruin:<t>': nhà 'ruin:house', lò bánh 'ruin:bakery', thuyền 'ruin:boat';
+// sửa xong thì thành vật thường ('house:house', 'fac:bakery'...).
+// Ruộng, cây, đồ trang trí, thú không có trong BUILD nên không qua công trường.
+export const keyOf = o => o.site?.ruin ? 'ruin:' + o.t : `${o.k}:${o.t}`;
 const stagesOf = o => BUILD[keyOf(o)];
 export const stageCount = o => stagesOf(o)?.length || 0;
 
@@ -48,11 +50,13 @@ export function contribute(o, item) {
 export function tryAdvance(o) {
   const req = siteReq(o), ks = Object.keys(req);
   if (gateLock(o) || !ks.length || ks.some(k => req[k].got < req[k].need)) return 'none';
+  const key = keyOf(o); // lấy trước khi xóa site: đồ đổ nát sửa xong vẫn báo 'ruin:*'
   addXP(10 * (o.site.stage + 1));
   o.site.stage++; o.site.got = {};
   if (o.site.stage < stagesOf(o).length) return 'stage';
   delete o.site;
-  questEvent('build', keyOf(o));
+  if (key === 'ruin:boat') S.boatFixed = true; // thuyền sửa xong: mở nút Phiêu lưu
+  questEvent('build', key);
   if (o.k === 'gate') openZone(zoneOfGate(o.t).id); // cổng xong: mây tan, vùng mở
   return 'done';
 }

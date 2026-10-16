@@ -31,6 +31,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 #hud > * { pointer-events: auto; }
 .tl { position: absolute; top: calc(var(--st) + 8px); left: calc(var(--sl) + 8px); display: flex; flex-direction: column; gap: 18px; align-items: flex-start; pointer-events: none; }
 .tl > * { pointer-events: auto; }
+#hud > .tl { pointer-events: none; } /* thắng "#hud > *": khoảng trống giữa các nút góc trái vẫn chạm được xuống đảo */
 .lvl { display: flex; align-items: center; }
 .star { position: relative; z-index: 1; width: 54px; height: 54px; display: grid; place-items: center; padding-top: 6px;
   background: var(--gold); clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);

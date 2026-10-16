@@ -1,4 +1,4 @@
-import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, QUESTS, STARTER_DECOR,
+import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, QUESTS, TUTORIAL, RUINS, STARTER_DECOR,
   xpNeed, ENERGY_MAX, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
 import { seeded, outerJungle, migrateV1, placeGates, isOpenCell } from './island.js';
 
@@ -19,7 +19,7 @@ export function footprint(o) {
   switch (o.k) {
     case 'field': case 'tree': return [1, 1];
     case 'pen': case 'house': return [3, 3];
-    case 'fac': case 'barn': case 'market': return [2, 2];
+    case 'fac': case 'barn': case 'market': case 'boat': return [2, 2];
     case 'board': case 'gate': return [2, 1];
     case 'decor': { const d = DECOR[o.t]; const w = d.w || 1, h = d.d || 1; return o.r % 2 ? [h, w] : [w, h]; }
     case 'obstacle': return [1, 1];
@@ -146,7 +146,21 @@ export function shipTick() {
 }
 
 // ---------- Nhiệm vụ ----------
+// Ván mới đi hết TUTORIAL (S.tut) trước, rồi mới tới chuỗi QUESTS (S.quest) và nhiệm vụ ngẫu nhiên.
+// Bản cũ chuyển sang có S.tut = 999 nên bỏ qua hướng dẫn.
+export const inTutorial = () => S.tut < TUTORIAL.length;
+// Công trình của khóa `key` ('ruin:bakery', 'fac:carpentry'...) đã xây / sửa xong chưa
+function builtKey(key) {
+  const [k, t] = key.split(':'), kind = k === 'ruin' ? RUINS[t] : k;
+  return S.objs.some(o => o.k === kind && o.t === t && !o.site);
+}
 export function currentQuest() {
+  if (inTutorial()) {
+    const q = TUTORIAL[S.tut];
+    // bé đã xây xong từ trước khi tới bước này: bước tự xong, không phải chờ sự kiện không bao giờ tới
+    if (q.ev === 'build' && S.qprog < q.n && builtKey(q.key)) S.qprog = q.n;
+    return q;
+  }
   const q = QUESTS[S.quest];
   if (q) return (q.lv && S.level > 0 && S.level < q.lv) ? null : q;
   if (!S.gq) S.gq = genQuest();
@@ -171,8 +185,9 @@ function genQuest() {
 }
 export function claimQuest() {
   const q = currentQuest(); if (!q || S.qprog < q.n) return null;
-  S.coins += q.coins || 0; S.gems += q.gems || 0; addXP(q.xp || 0);
-  if (QUESTS[S.quest]) S.quest++; else S.gq = null;
+  const tut = inTutorial();
+  S.coins += q.coins || 0; S.gems += q.gems || 0; S.energy += q.energy || 0; addXP(q.xp || 0);
+  if (tut) S.tut++; else if (QUESTS[S.quest]) S.quest++; else S.gq = null;
   S.qprog = 0;
   return q;
 }
@@ -193,7 +208,9 @@ function freshState() {
   const objs = [];
   const id = () => objs.length + 1;
   const c = (x, z) => ({ x: x + OFF, z: z + OFF }); // toạ độ cũ (đảo 26x26) -> vùng lõi
-  objs.push({ id: id(), k: 'house', t: 'house', ...c(11, 4), r: 0 });
+  // nhà, lò bánh, thuyền nhỏ ở bến bị bão làm đổ nát: bé góp vật liệu để sửa (hướng dẫn đầu game)
+  const ruin = () => ({ stage: 0, got: {}, ruin: true });
+  objs.push({ id: id(), k: 'house', t: 'house', ...c(11, 4), r: 0, site: ruin() });
   objs.push({ id: id(), k: 'barn', t: 'barn', ...c(15, 5), r: 0 });
   // 6 ô ruộng, 3 ô đang có lúa mì sắp chín
   const fields = [[8, 9], [9, 9], [10, 9], [8, 10], [9, 10], [10, 10]];
@@ -205,6 +222,8 @@ function freshState() {
   objs.push({ id: id(), k: 'tree', t: 'palm', ...c(17, 14), r: 0, s: t - 100000, e: t });
   STARTER_DECOR.forEach(([t, x, z]) => objs.push({ id: id(), k: 'decor', t, ...c(x, z), r: 0 }));
   objs.push({ id: id(), k: 'decor', t: 'bush', ...c(18, 6), r: 0 });
+  objs.push({ id: id(), k: 'fac', t: 'bakery', ...c(15, 14), r: 0, jobs: [], site: ruin() });
+  objs.push({ id: id(), k: 'boat', t: 'boat', ...c(18, 24), r: 0, site: ruin() }); // sát bờ Nam, ngay cạnh bến tàu
 
   // chướng ngại vật quanh mép vùng lõi (cách sinh cũ, dời theo OFF)
   const rand = seeded(20240611);
@@ -215,7 +234,8 @@ function freshState() {
     const inCore = x >= 6 && x <= 19 && z >= 2 && z <= 16;
     if (inCore || taken.has((x + OFF) + ',' + (z + OFF))) continue;
     const edge = Math.min(x, z, CORE - 1 - x, CORE - 1 - z);
-    const p = edge < 1 ? 0.12 : 0.24;
+    // nửa Tây vùng lõi (ngoài khu nhà / ruộng) rừng dày: đủ gỗ, đá, lá cọ cho các bước hướng dẫn đầu
+    const west = x < 13, p = edge < 1 ? (west ? 0.3 : 0.12) : (west ? 0.6 : 0.24);
     if (rand() < p) objs.push({ id: id(), k: 'obstacle', t: types[Math.floor(rand() * types.length)], ...c(x, z), r: Math.floor(rand() * 4) });
   }
   // rừng ở 3 vùng ngoài
@@ -225,13 +245,13 @@ function freshState() {
   const st = {
     ffsDeco: true,
     v: 2, coins: 150, gems: 10, xp: 0, level: 1, energy: ENERGY_MAX, energyAt: t,
-    inv: { wheat: 4, chickenfeed: 2 }, barnLvl: 0,
+    inv: { wheat: 4, chickenfeed: 2, wood: 4, palmleaf: 4 }, barnLvl: 0,
     objs, nextId: j.nextId,
     orders: [null, null, null, null, null, null],
     ship: null, quest: 0, qprog: 0,
     lastDaily: '', sound: true, music: true, seed: 'wheat',
     zones: { core: true, west: false, north: false, old: false },
-    tut: 0, boatFixed: true, // Task 7 sẽ đổi: ván mới bắt đầu với thuyền hỏng
+    tut: 0, boatFixed: false, // thuyền hỏng: sửa xong (bước 9) mới ra khơi được
   };
   return placeGates(st); // cầu / bậc đá mở các vùng rừng
 }
@@ -241,7 +261,7 @@ export function load() {
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(KEY)); } catch (e) { }
   if (raw && raw.v === 1 && Array.isArray(raw.objs)) { S = migrateV1(raw); save(); }
-  else S = raw && raw.v === 2 && Array.isArray(raw.objs) ? placeGates(raw) : freshState(); // bản v2 cũ chưa có cổng
+  else S = raw && raw.v === 2 && Array.isArray(raw.objs) ? fixV2(raw) : freshState();
   if (!S.ship) S.ship = newShip();
   refreshOrders();
   return S;
@@ -251,7 +271,15 @@ export const exportSave = () => btoa(unescape(encodeURIComponent(JSON.stringify(
 export function importSave(code) {
   const o = JSON.parse(decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))));
   if (!o || (o.v !== 1 && o.v !== 2) || !Array.isArray(o.objs)) throw new Error('bad');
-  S = o.v === 1 ? migrateV1(o) : placeGates(o); save();
+  S = o.v === 1 ? migrateV1(o) : fixV2(o); save();
+}
+// Bản v2 lưu trước khi có hướng dẫn mới (không có thuyền đổ nát): coi như đã xong hướng dẫn và thuyền đã sửa
+// (không thì bé kẹt ở bước sửa thuyền không có); bản v2 cũ chưa có cổng thì thêm cổng
+function fixV2(s) {
+  const boat = s.objs.find(o => o.k === 'boat');
+  if (!boat) { if (!(s.tut >= TUTORIAL.length)) s.tut = 999; s.boatFixed = true; }
+  else if (!boat.site) s.boatFixed = true;
+  return placeGates(s);
 }
 // Nông trại cũ: thêm đường gạch, luống hoa vào chỗ còn trống (chỉ một lần)
 export function ensureStarterDecor(addView) {

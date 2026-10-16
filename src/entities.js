@@ -476,6 +476,43 @@ function siteView(o) {
   return { root };
 }
 
+// Thuyền nhỏ sát bến (ván mới): sửa xong thì chạm để ra khơi
+function boatView() {
+  const root = new THREE.Group();
+  root.add(art('boat', 2, 2) || make('pirate/boat-row-small', { size: 1.9 }));
+  return { root };
+}
+
+// Đồ đổ nát (nhà, lò bánh, thuyền sau bão): chính công trình thật nhưng tối màu, nghiêng, ván gỗ vương vãi.
+// Hình tạm tới khi có hình vẽ riêng (nhà đổ nát, lò bánh đổ nát, thuyền chìm)
+const RUIN_TINT = new THREE.Color(0x8c7a68);
+function ruinView(o) {
+  const root = new THREE.Group(), [w, d] = footprint(o), s = Math.min(w, d);
+  const body = createView({ ...o, site: undefined }).root; root.add(body);
+  body.traverse(m => {
+    if (!m.isMesh || !m.material) return;
+    const tint = x => { // chép vật liệu: mô hình 3D có thể dùng chung vật liệu với vật khác
+      x = x.clone();
+      if (x.color) { if (m.userData.sprite) x.color.copy(RUIN_TINT); else x.color.multiply(RUIN_TINT); }
+      return x;
+    };
+    m.material = Array.isArray(m.material) ? m.material.map(tint) : tint(m.material);
+  });
+  const boat = o.k === 'boat';
+  body.rotation.z = boat ? 0.28 : 0.09; body.rotation.x = boat ? 0.1 : -0.05; // bị bão quật nghiêng
+  if (boat) body.position.y = -0.12; // lún xuống cát
+  else body.scale.y = 0.88;
+  // ván gãy nằm ngổn ngang phía trước
+  for (let i = 0; i < (boat ? 3 : 5); i++) {
+    const p = box(0.18 + 0.5 * ((i * 37) % 10) / 10, 0.05, 0.12, i % 2 ? 0xb07a45 : 0x8a5a2b);
+    p.position.set((((i * 53) % 10) / 10 - 0.5) * s * 0.9, 0.04 + i * 0.01, s * 0.32 + ((i * 29) % 10) / 10 * 0.25);
+    p.rotation.y = i * 1.3; p.rotation.z = (i % 3 - 1) * 0.15; root.add(p);
+  }
+  const logs = art('logs', 0.7, 0.7, { scale: 0.7 }) || make('kk/decoration/props/resource_lumber.gltf', { size: 0.55 });
+  logs.position.set(-s * 0.38, 0, s * 0.38); root.add(logs);
+  return { root };
+}
+
 // ---------- Cổng mở vùng: cầu tre, cầu gỗ, bậc đá ----------
 // Đang sửa: ván gãy, cột trơ (mỗi giai đoạn thêm ván); xong: cầu có tay vịn / bậc đá đủ.
 // Mũi tên cam nhấp nháy chỉ vào cổng khi vùng còn đóng và cổng đã tới được (không bị mây che).
@@ -612,6 +649,7 @@ export function updateClouds(t) {
 
 export function createView(o) {
   if (o.k === 'gate') return gateView(o);
+  if (o.site?.ruin) return ruinView(o);
   if (o.site) return siteView(o);
   switch (o.k) {
     case 'field': return fieldView(o);
@@ -625,6 +663,7 @@ export function createView(o) {
     case 'obstacle': return obstacleView(o);
     case 'loot': return lootView(o);
     case 'market': return marketView(o);
+    case 'boat': return boatView(o);
   }
   return { root: new THREE.Group() };
 }

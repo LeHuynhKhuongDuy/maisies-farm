@@ -7,9 +7,9 @@ import { hitObstacle, rollChest, openChest, regrowTick } from '../src/clearing.j
 import { isOpenCell, zoneAt } from '../src/island.js';
 
 test('mỗi nhát trừ 1 năng lượng và rơi vật liệu', () => {
-  fresh({ energy: 5 }); const o = obstacle('tree');
+  fresh({ energy: 5 }); const o = obstacle('tree'), w0 = have('wood'); // ván mới có sẵn ít gỗ để sửa nhà
   const r = hitObstacle(o, () => 0.99); // không rơi hiếm, không rương
-  assert.equal(S.energy, 4); assert.equal(o.hp, 5); assert.equal(have('wood'), 1); assert.equal(r.done, false);
+  assert.equal(S.energy, 4); assert.equal(o.hp, 5); assert.equal(have('wood'), w0 + 1); assert.equal(r.done, false);
 });
 test('nhát cuối xóa vật cản, cộng xp thưởng, có thể ra rương', () => {
   fresh({ energy: 9 }); const o = obstacle('stump'); o.hp = 1;
@@ -22,8 +22,8 @@ test('hết năng lượng thì không chặt, năng lượng không âm', () =>
   assert.equal(hitObstacle(o), null); assert.equal(S.energy, 0); assert.equal(o.hp, 4);
 });
 test('kho nông sản đầy vẫn nhận vật liệu', () => {
-  fresh({ energy: 3 }); fillBarnToCap(); const o = obstacle('bush');
-  hitObstacle(o, () => 0.99); assert.equal(have('palmleaf'), 1); assert.equal(barnRoom(), 0);
+  fresh({ energy: 3 }); fillBarnToCap(); const o = obstacle('bush'), p0 = have('palmleaf');
+  hitObstacle(o, () => 0.99); assert.equal(have('palmleaf'), p0 + 1); assert.equal(barnRoom(), 0);
 });
 test('barnUsed bỏ qua vật liệu', () => { fresh(); S.inv = { wheat: 3, wood: 50, planks: 9 }; assert.equal(barnUsed(), 3); });
 

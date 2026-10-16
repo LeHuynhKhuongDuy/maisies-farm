@@ -53,7 +53,7 @@ test('hằng số đảo', () => { assert.equal(GRID, 40); assert.equal(CORE, 26
 test('ván mới: vùng lõi như cũ dời 14 ô, 3 vùng ngoài đóng và có rừng', () => {
   memStorage({}); resetGame();
   assert.equal(S.v, 2); assert.deepEqual(S.zones, { core: true, west: false, north: false, old: false });
-  assert.equal(S.tut, 0); assert.equal(S.boatFixed, true);
+  assert.equal(S.tut, 0); assert.equal(S.boatFixed, false); // ván mới: thuyền hỏng tới bước 9 của hướng dẫn
   const house = S.objs.find(o => o.k === 'house'); assert.deepEqual([house.x, house.z], [11 + OFF, 4 + OFF]);
   for (const z of ['west', 'north', 'old']) assert.ok(S.objs.filter(o => o.k === 'obstacle' && zoneAt(o.x, o.z) === z).length > 40);
   assert.ok(S.objs.every(o => o.x >= 0 && o.z >= 0 && o.x < GRID && o.z < GRID));

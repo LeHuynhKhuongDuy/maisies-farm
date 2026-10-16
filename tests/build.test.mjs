@@ -58,7 +58,7 @@ test('siteReq báo đã góp / cần; góp món không cần thì 0', () => {
   assert.equal(contribute(o, 'bamboo'), 0); assert.equal(have('bamboo'), 9);
 });
 test('xong giai đoạn cộng xp 10 * (giai đoạn + 1), xong hết báo nhiệm vụ build', () => {
-  fresh({ xp: 0, level: 5 }); S.inv = { wood: 20, stone: 20, planks: 10, palmleaf: 10 };
+  fresh({ xp: 0, level: 5, tut: 999 }); S.inv = { wood: 20, stone: 20, planks: 10, palmleaf: 10 }; // đã qua hướng dẫn
   const o = put({ k: 'fac', t: 'bakery', jobs: [] }); startSite(o);
   S.quest = 1e6; S.gq = { ev: 'build', key: 'fac:bakery', n: 1 }; S.qprog = 0; // nhiệm vụ ngẫu nhiên giả
   for (const k of Object.keys(siteReq(o))) contribute(o, k);

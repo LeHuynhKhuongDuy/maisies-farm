@@ -51,6 +51,22 @@ export function openChest(loot) {
   return { energy, coins, mats };
 }
 
+// Vật cản trong vùng đang mở thỏa `pred` có `dist(o)` nhỏ nhất (bàn tay hướng dẫn chỉ vào đây), không có thì null.
+// dist trả Infinity thì bỏ qua vật đó
+export function nearestObstacle(pred, dist) {
+  let best = null, bd = Infinity;
+  for (const o of S.objs) {
+    if (o.k !== 'obstacle' || !OBSTACLES[o.t] || !isOpenCell(o.x, o.z) || !pred(o)) continue;
+    const d = dist(o);
+    if (d < bd) { bd = d; best = o; }
+  }
+  return best;
+}
+export const cellDist = (x, z) => o => Math.hypot(o.x - x, o.z - z);
+
+// Vật cản rơi vật liệu dùng ngay trong hướng dẫn đầu game (gỗ, đá, lá cọ)
+export const basicDrop = o => ['wood', 'stone', 'palmleaf'].some(k => OBSTACLES[o.t]?.drop[k]);
+
 // ---------- Mọc lại ----------
 export const REGROW_EVERY = 180, REGROW_MIN = 8; // giây; số vật cản mọc lại tối thiểu trong các vùng đang mở
 const REGROW_TYPES = ['grass', 'bush', 'bamboo'];

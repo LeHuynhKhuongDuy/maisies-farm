@@ -138,7 +138,7 @@ export const FACTORIES = {
     { out: 'pigfeed',     qty: 3, in: { carrot: 2 }, t: 40, lv: 7 },
   ]},
   bakery: { n: 'Lò bánh', lv: 2, cost: 120, rec: [
-    { out: 'bread',    in: { wheat: 3 }, t: 40, lv: 2 },
+    { out: 'bread',    in: { wheat: 3 }, t: 40, lv: 1 }, // cấp 1: lò bánh đổ nát sửa xong ở hướng dẫn là nướng được ngay
     { out: 'cookie',   in: { wheat: 2, egg: 1 }, t: 60, lv: 3 },
     { out: 'applepie', in: { wheat: 2, apple: 2 }, t: 80, lv: 5 },
     { out: 'cake',     in: { wheat: 2, egg: 2, milk: 1 }, t: 100, lv: 6 },
@@ -313,6 +313,24 @@ export const QUESTS = [
   { who: 'ben', text: 'Tiệm bánh ngọt mở cửa! Làm 2 chiếc bánh vòng nào.', ev: 'make', key: 'donut', n: 2, coins: 120, xp: 28, lv: 9 },
   { who: 'maisie', text: 'Làm mứt dâu tặng mọi người trên đảo nhé! Làm 2 hũ.', ev: 'make', key: 'jam', n: 2, coins: 140, xp: 30, gems: 3, lv: 10 },
 ];
+
+// ---------- Hướng dẫn đầu game (chỉ ván mới) ----------
+// Cùng cấu trúc QUESTS; ev 'build' với key công trình (xem keyOf trong build.js), 'sail' đếm khi mở màn Phiêu lưu.
+// energy: thưởng thêm năng lượng. Xong hết thì chạy tiếp QUESTS từ đầu.
+export const TUTORIAL = [
+  { who: 'maisie', text: 'Bão làm nhà mình hỏng mất rồi! Góp gỗ và lá cọ để sửa nhà nhé.', ev: 'build', key: 'ruin:house', n: 1, coins: 20, xp: 6, energy: 10 },
+  { who: 'maisie', text: 'Nhà đẹp lại rồi! Thu hoạch 3 lúa mì nào.', ev: 'harvest', key: 'wheat', n: 3, coins: 15, xp: 5 },
+  { who: 'tom', text: 'Gà đói rồi! Ra máy xay làm thức ăn rồi cho gà ăn nhé.', ev: 'feed', n: 1, coins: 20, xp: 6 },
+  { who: 'maisie', text: 'Chặt 3 bụi cây hoặc cây rừng để lấy vật liệu nhé.', ev: 'clear', n: 3, coins: 20, xp: 6 },
+  { who: 'ben', text: 'Lò bánh bị đổ rồi. Sửa giúp ông nhé!', ev: 'build', key: 'ruin:bakery', n: 1, coins: 30, xp: 8, energy: 10 },
+  { who: 'ben', text: 'Nướng 1 ổ bánh mì. Ăn bánh mì sẽ có thêm năng lượng đó!', ev: 'make', key: 'bread', n: 1, coins: 25, xp: 8 },
+  { who: 'sam', text: 'Mua Xưởng mộc ở cửa hàng và xây xong nhé.', ev: 'build', key: 'fac:carpentry', n: 1, coins: 30, xp: 10 },
+  { who: 'sam', text: 'Làm 3 tấm ván gỗ ở Xưởng mộc.', ev: 'make', key: 'planks', n: 3, coins: 30, xp: 10 },
+  { who: 'sam', text: 'Sửa chiếc thuyền ở bến để ra khơi!', ev: 'build', key: 'ruin:boat', n: 1, coins: 40, xp: 12, energy: 10 },
+  { who: 'maisie', text: 'Thuyền xong rồi! Mình cùng ra khơi phiêu lưu nào!', ev: 'sail', n: 1, coins: 40, xp: 12 },
+];
+// Đồ đổ nát của ván mới: t -> k của vật sau khi sửa (khóa công trường 'ruin:<t>')
+export const RUINS = { house: 'house', bakery: 'fac', boat: 'boat' };
 
 // ---------- Đảo phiêu lưu ----------
 // Mỗi đảo là lưới w x h; bắt đầu ở mép trước (gần bến thuyền), đích ở cuối đảo.
