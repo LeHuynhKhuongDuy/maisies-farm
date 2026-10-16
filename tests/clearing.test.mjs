@@ -55,7 +55,12 @@ test('openChest: nhận quà đúng một lần, xóa rương', () => {
 test('mọc lại khi vùng mở còn ít bụi', () => { fresh(); S.objs = S.objs.filter(o => o.k !== 'obstacle'); S.regrowAt = 0;
   const o = regrowTick(200_000, () => 0.5); assert.ok(o && ['grass','bush','bamboo'].includes(o.t)); assert.ok(isOpenCell(o.x, o.z)); });
 test('không mọc khi chưa tới giờ hoặc đã đủ', () => { fresh(); S.regrowAt = 1e12; assert.equal(regrowTick(0), null); });
-test('không mọc vào vùng đóng', () => { fresh(); S.regrowAt = 0; for (let i = 0; i < 50; i++) { const o = regrowTick(200_000 * (i + 1)); if (o) assert.equal(zoneAt(o.x, o.z), 'core'); } });
+test('không mọc vào vùng đóng', () => {
+  fresh(); S.objs = S.objs.filter(o => !(o.k === 'obstacle' && OBSTACLES[o.t].regrow && isOpenCell(o.x, o.z))); S.regrowAt = 0;
+  let n = 0;
+  for (let i = 0; i < 50; i++) { const o = regrowTick(200_000 * (i + 1)); if (o) { n++; assert.equal(zoneAt(o.x, o.z), 'core'); } }
+  assert.ok(n >= 1, 'phải có ít nhất một bụi mọc lại');
+});
 test('mọc lại: vật mới nằm trong S.objs, ô trống, không kề công trình, hẹn mốc sau', () => {
   fresh(); S.objs = S.objs.filter(o => o.k !== 'obstacle'); S.regrowAt = 0;
   const t = 500_000, o = regrowTick(t, () => 0.3);
