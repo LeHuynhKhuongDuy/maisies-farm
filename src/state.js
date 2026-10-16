@@ -1,5 +1,6 @@
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, STARTER_DECOR,
+import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, QUESTS, STARTER_DECOR,
   xpNeed, ENERGY_MAX, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
+import { seeded, outerJungle, migrateV1 } from './island.js';
 
 const KEY = 'maisies-farm-v1';
 export const now = () => Date.now();
@@ -41,7 +42,7 @@ export function isFree(x, z, w, d, ignoreId) {
   for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) if (g.has((x + i) + ',' + (z + j))) return false;
   return true;
 }
-export function findFree(w, d, nearX = GRID / 2, nearZ = GRID / 2) {
+export function findFree(w, d, nearX = OFF + CORE / 2, nearZ = OFF + CORE / 2) {
   let best = null, bd = 1e9;
   const g = occupancy();
   for (let x = 0; x <= GRID - w; x++) for (let z = 0; z <= GRID - d; z++) {
@@ -185,46 +186,50 @@ export function questEvent(ev, key, n = 1) {
 let nextId = 1;
 export const newId = () => (S.nextId = (S.nextId || 1) + 1);
 
-function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
-
 function freshState() {
   const t = now();
   const objs = [];
   const id = () => objs.length + 1;
-  objs.push({ id: id(), k: 'house', t: 'house', x: 11, z: 4, r: 0 });
-  objs.push({ id: id(), k: 'barn', t: 'barn', x: 15, z: 5, r: 0 });
+  const c = (x, z) => ({ x: x + OFF, z: z + OFF }); // toạ độ cũ (đảo 26x26) -> vùng lõi
+  objs.push({ id: id(), k: 'house', t: 'house', ...c(11, 4), r: 0 });
+  objs.push({ id: id(), k: 'barn', t: 'barn', ...c(15, 5), r: 0 });
   // 6 ô ruộng, 3 ô đang có lúa mì sắp chín
   const fields = [[8, 9], [9, 9], [10, 9], [8, 10], [9, 10], [10, 10]];
-  fields.forEach(([x, z], i) => objs.push({ id: id(), k: 'field', t: 'field', x, z, r: 0,
+  fields.forEach(([x, z], i) => objs.push({ id: id(), k: 'field', t: 'field', ...c(x, z), r: 0,
     crop: i < 3 ? 'wheat' : null, s: t - 18000, e: t + 2000 + i * 1500 }));
-  objs.push({ id: id(), k: 'pen', t: 'coop', x: 14, z: 9, r: 0, animals: [{ s: 0, e: 0 }, { s: 0, e: 0 }] });
-  objs.push({ id: id(), k: 'fac', t: 'feedmill', x: 12, z: 13, r: 0, jobs: [] });
-  objs.push({ id: id(), k: 'board', t: 'board', x: 8, z: 13, r: 0 });
-  objs.push({ id: id(), k: 'tree', t: 'palm', x: 17, z: 14, r: 0, s: t - 100000, e: t });
-  STARTER_DECOR.forEach(([t, x, z]) => objs.push({ id: id(), k: 'decor', t, x, z, r: 0 }));
-  objs.push({ id: id(), k: 'decor', t: 'bush', x: 18, z: 6, r: 0 });
+  objs.push({ id: id(), k: 'pen', t: 'coop', ...c(14, 9), r: 0, animals: [{ s: 0, e: 0 }, { s: 0, e: 0 }] });
+  objs.push({ id: id(), k: 'fac', t: 'feedmill', ...c(12, 13), r: 0, jobs: [] });
+  objs.push({ id: id(), k: 'board', t: 'board', ...c(8, 13), r: 0 });
+  objs.push({ id: id(), k: 'tree', t: 'palm', ...c(17, 14), r: 0, s: t - 100000, e: t });
+  STARTER_DECOR.forEach(([t, x, z]) => objs.push({ id: id(), k: 'decor', t, ...c(x, z), r: 0 }));
+  objs.push({ id: id(), k: 'decor', t: 'bush', ...c(18, 6), r: 0 });
 
-  // chướng ngại vật quanh mép đảo
+  // chướng ngại vật quanh mép vùng lõi (cách sinh cũ, dời theo OFF)
   const rand = seeded(20240611);
   const taken = new Set();
   for (const o of objs) { const [w, d] = footprint(o); for (let i = -1; i <= w; i++) for (let j = -1; j <= d; j++) taken.add((o.x + i) + ',' + (o.z + j)); }
-  const types = Object.keys(OBSTACLES);
-  for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) {
+  const types = JUNGLE_MIX.core;
+  for (let x = 0; x < CORE; x++) for (let z = 0; z < CORE; z++) {
     const inCore = x >= 6 && x <= 19 && z >= 2 && z <= 16;
-    if (inCore || taken.has(x + ',' + z)) continue;
-    const edge = Math.min(x, z, GRID - 1 - x, GRID - 1 - z);
+    if (inCore || taken.has((x + OFF) + ',' + (z + OFF))) continue;
+    const edge = Math.min(x, z, CORE - 1 - x, CORE - 1 - z);
     const p = edge < 1 ? 0.12 : 0.24;
-    if (rand() < p) objs.push({ id: id(), k: 'obstacle', t: types[Math.floor(rand() * types.length)], x, z, r: Math.floor(rand() * 4) });
+    if (rand() < p) objs.push({ id: id(), k: 'obstacle', t: types[Math.floor(rand() * types.length)], ...c(x, z), r: Math.floor(rand() * 4) });
   }
+  // rừng ở 3 vùng ngoài
+  const j = outerJungle(objs.length + 1);
+  objs.push(...j.objs);
 
   const st = {
     ffsDeco: true,
-    v: 1, coins: 150, gems: 10, xp: 0, level: 1, energy: ENERGY_MAX, energyAt: t,
+    v: 2, coins: 150, gems: 10, xp: 0, level: 1, energy: ENERGY_MAX, energyAt: t,
     inv: { wheat: 4, chickenfeed: 2 }, barnLvl: 0,
-    objs, nextId: objs.length + 1,
+    objs, nextId: j.nextId,
     orders: [null, null, null, null, null, null],
     ship: null, quest: 0, qprog: 0,
     lastDaily: '', sound: true, music: true, seed: 'wheat',
+    zones: { core: true, west: false, north: false, old: false },
+    tut: 0, boatFixed: true, // Task 7 sẽ đổi: ván mới bắt đầu với thuyền hỏng
   };
   return st;
 }
@@ -233,7 +238,8 @@ export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } c
 export function load() {
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(KEY)); } catch (e) { }
-  S = raw && raw.v === 1 && Array.isArray(raw.objs) ? raw : freshState();
+  if (raw && raw.v === 1 && Array.isArray(raw.objs)) { S = migrateV1(raw); save(); }
+  else S = raw && raw.v === 2 && Array.isArray(raw.objs) ? raw : freshState();
   if (!S.ship) S.ship = newShip();
   refreshOrders();
   return S;
@@ -242,14 +248,15 @@ export function load() {
 export const exportSave = () => btoa(unescape(encodeURIComponent(JSON.stringify(S))));
 export function importSave(code) {
   const o = JSON.parse(decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))));
-  if (!o || o.v !== 1 || !Array.isArray(o.objs)) throw new Error('bad');
-  S = o; save();
+  if (!o || (o.v !== 1 && o.v !== 2) || !Array.isArray(o.objs)) throw new Error('bad');
+  S = o.v === 1 ? migrateV1(o) : o; save();
 }
 // Nông trại cũ: thêm đường gạch, luống hoa vào chỗ còn trống (chỉ một lần)
 export function ensureStarterDecor(addView) {
   if (S.ffsDeco) return;
   S.ffsDeco = true;
-  for (const [t, x, z] of STARTER_DECOR) {
+  for (const [t, cx, cz] of STARTER_DECOR) {
+    const x = cx + OFF, z = cz + OFF;
     if (!isFree(x, z, 1, 1)) continue;
     const o = { id: newId(), k: 'decor', t, x, z, r: 0 };
     S.objs.push(o); addView(o);

@@ -1,6 +1,6 @@
 // Khách ghé thăm: đi bộ từ bến tàu vào nông trại, xin mua một món, nhận xong thì về
 import * as THREE from 'three';
-import { GRID, ITEMS, CROPS, PEOPLE } from './data.js';
+import { GRID, OFF, ITEMS, CROPS, PEOPLE } from './data.js';
 import { S, now, rnd, pick, have, add, addXP, producible, footprint, save, questEvent, emit } from './state.js';
 import { W, cellToWorld } from './world.js';
 import { make, play, ICONS } from './assets.js';
@@ -10,7 +10,7 @@ import { sfx } from './sound.js';
 import { $, img, coinI, gemI, xpI, esc, toast, flyCoins, flyGems, flyXP, openModal, closeModal, renderHUD } from './ui.js';
 
 const views = new Map(); // id -> holder
-const DOCK = () => cellToWorld(17, GRID - 1);
+const DOCK = () => cellToWorld(17 + OFF, GRID - 1);
 const SAY = {
   crop: ['Bác đang nấu cơm, cháu bán cho bác {n} {item} nhé?', 'Nhà cô hết {item} rồi. Cháu có {n} {item} không?'],
   food: ['Cháu ơi, bác thèm {item} quá! Cho bác mua {n} phần nhé?', 'Hôm nay sinh nhật con chú, chú cần {n} {item}!'],
@@ -19,12 +19,12 @@ const SAY = {
 
 function freeSpot() {
   for (let k = 0; k < 40; k++) {
-    const x = 7 + rnd(12), z = 5 + rnd(11);
+    const x = 7 + OFF + rnd(12), z = 5 + OFF + rnd(11);
     const busy = S.objs.some(o => { const [w, d] = footprint(o); return x >= o.x && x < o.x + w && z >= o.z && z < o.z + d; })
       || S.visitors.some(v => v.x === x && v.z === z);
     if (!busy) return [x, z];
   }
-  return [12, 8];
+  return [12 + OFF, 8 + OFF];
 }
 
 function spawn() {

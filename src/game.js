@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES,
+import { GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES,
   fieldCost, xpNeed, ENERGY_MAX, barnUpgradeCost } from './data.js';
 import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
@@ -821,7 +821,7 @@ export function initUI() {
 export function placePendingPets() {
   const list = S.pendingDecor || [];
   while (list.length) {
-    const t = list.shift(), spot = findFree(1, 1, 12, 9);
+    const t = list.shift(), spot = findFree(1, 1, 12 + OFF, 9 + OFF);
     if (!spot) break;
     const o = { id: newId(), k: 'decor', t, x: spot[0], z: spot[1], r: 0 };
     S.objs.push(o); addView(o); focusOn(VIEWS.get(o.id).root.position);

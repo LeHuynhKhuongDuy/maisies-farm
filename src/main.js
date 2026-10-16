@@ -1,7 +1,8 @@
 import './style.css';
 import { load, save, S, ensureStarterDecor } from './state.js';
 import { loadAll, renderIcons, iconList, ICONS } from './assets.js';
-import { initWorld, W, focusOn } from './world.js';
+import { initWorld, W, focusOn, cellToWorld } from './world.js';
+import { OFF } from './data.js';
 import { VIEWS, addView, buildSpecials, updateSpecials, updateBounce, buildingIcons } from './entities.js';
 import { initInput } from './input.js';
 import { initUI, tick, positionBubbles, placePendingPets } from './game.js';
@@ -37,7 +38,7 @@ async function boot() {
   buildSpecials();
   initVisitors();
   buildAmbient();
-  focusOn({ x: 0, z: -1 });
+  focusOn(cellToWorld(12.5 + OFF, 11.5 + OFF)); // nhìn vào vùng lõi như trước
   const momentum = initInput(canvas);
   initUI();
   initEvents({ placePending: placePendingPets });

@@ -1,6 +1,15 @@
 // Toàn bộ dữ liệu cân bằng game. Thời gian tính bằng giây.
 
-export const GRID = 26; // đảo 26 x 26 ô
+export const GRID = 40; // đảo 40 x 40 ô
+export const CORE = 26; // vùng lõi (nông trại cũ) 26 x 26 ô
+export const OFF = 14; // vùng lõi chiếm ô x,z từ 14 tới 39 (góc Đông Nam): bờ Nam và Đông không đổi
+// Các vùng của đảo, rect = [x, z, rộng, sâu]. Vùng ngoài lõi bị rừng phủ, mở dần theo cấp
+export const ZONES = [
+  { id: 'core',  n: 'Vùng lõi',       rect: [14, 14, 26, 26], open: true },
+  { id: 'west',  n: 'Rừng phía Tây',  rect: [0, 14, 14, 26], gate: 'bridge_w', lv: 4 },
+  { id: 'north', n: 'Rừng phía Bắc',  rect: [14, 0, 26, 14], gate: 'bridge_n', lv: 7 },
+  { id: 'old',   n: 'Rừng già',       rect: [0, 0, 14, 14], gate: 'stairs_old', lv: 11 },
+];
 
 // ---------- Vật phẩm ----------
 // icon: đường dẫn mô hình dùng để vẽ biểu tượng; tint: tô màu lại mô hình (bao thức ăn)
@@ -192,6 +201,10 @@ export const OBSTACLES = {
   logs:  { n: 'Đống gỗ',  model: 'kk/decoration/props/resource_lumber.gltf', fit: { size: 0.8 }, energy: 3, xp: 1 },
 };
 
+// Loại vật cản mọc ở từng vùng (lặp lại một loại = tỉ lệ cao hơn)
+const OLD_MIX = ['bush', 'rock', 'stump', 'tree', 'logs'];
+export const JUNGLE_MIX = { core: OLD_MIX, west: OLD_MIX, north: OLD_MIX, old: OLD_MIX };
+
 // Giá mua ô ruộng thứ n (n tính từ 0)
 export const fieldCost = n => (n < 6 ? 0 : 10 + (n - 6) * 6);
 export const xpNeed = l => 10 + l * 12;
@@ -334,6 +347,7 @@ export const BUILDING_MODELS = {
 };
 
 // Đường gạch và luống hoa trang trí sẵn quanh nhà (kiểu Family Farm)
+// Tọa độ ô theo vùng lõi cũ; khi dùng phải cộng OFF
 export const STARTER_DECOR = [
   ...[7, 8, 9, 10, 11].map(z => ['path', 12, z]),
   ...[7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18].map(x => ['path', x, 12]),

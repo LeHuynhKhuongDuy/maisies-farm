@@ -4,7 +4,7 @@ import { hasSprite, spriteObject, animateArt } from './sprites.js';
 import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, lushTree, roundBush } from './props.js';
 import { W, cellToWorld } from './world.js';
 import { S, footprint, now, rnd } from './state.js';
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE } from './data.js';
+import { GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE } from './data.js';
 
 // Hình 2D nếu đã có ảnh, không thì trả về null
 export function art(name, w = 1, d = 1, extra = {}) {
@@ -452,7 +452,7 @@ const PIER_LIFT = -0.55; // chân cột cầu chìm dưới mặt nước
 export function buildSpecials() {
   // Bến gỗ nhô ra biển ở mép trước đảo
   const dock = new THREE.Group();
-  const p = cellToWorld(17, GRID - 1);
+  const p = cellToWorld(17 + OFF, GRID - 1);
   if (hasSprite('pier')) { // cầu gỗ vẽ tay chạy từ bờ ra biển (dọc trục z)
     const pr = spriteObject('pier', { width: 5.1, w: 1.6, d: 5.6, lift: PIER_LIFT, shadow: false }); pr.position.z = 3.2; dock.add(pr);
   } else for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock', { size: 1.6 }); d.position.set(0, -0.62, 1.2 + i * 1.6); dock.add(d); }
@@ -472,7 +472,7 @@ export function buildSpecials() {
   SPECIAL.ship = ship; SPECIAL.shipHome = home; SPECIAL.dock = dock;
 
   // Cầu câu cá ở mép phải đảo
-  const pier = new THREE.Group(), pp = cellToWorld(GRID - 1, 9);
+  const pier = new THREE.Group(), pp = cellToWorld(GRID - 1, 9 + OFF);
   if (hasSprite('pier')) { // cùng hình cầu gỗ, lật ngang để chạy dọc trục x
     const pr = spriteObject('pier', { width: 4.2, w: 4.35, d: 1.5, lift: PIER_LIFT, shadow: false }); pr.userData.plane.scale.x = -1; pier.add(pr);
   } else for (let i = 0; i < 3; i++) { const d = make('pirate/structure-platform-dock-small', { size: 1.5 }); d.rotation.y = Math.PI / 2; d.position.set(-1.45 + i * 1.45, -0.62, 0); pier.add(d); }
@@ -485,7 +485,7 @@ export function buildSpecials() {
   // Maisie đi dạo quanh nhà
   const maisie = bodyOf('maisie', PEOPLE[0].model, { h: 1.15 }); if (!maisie.userData.isArt) dressUp(maisie, 'maisie');
   maisie.userData.oid = 'maisie';
-  const mp = cellToWorld(12, 8); maisie.position.copy(mp);
+  const mp = cellToWorld(12 + OFF, 8 + OFF); maisie.position.copy(mp);
   maisie.userData.goal = mp.clone(); maisie.userData.wait = 2;
   W.farm.add(maisie); W.pickables.push(maisie);
   SPECIAL.maisie = maisie;
@@ -508,7 +508,7 @@ export function updateSpecials(t, dt) {
     if (u.wait <= 0) {
       // đi tới một ô trống gần trung tâm
       for (let k = 0; k < 20; k++) {
-        const x = 7 + rnd(13), z = 3 + rnd(14);
+        const x = 7 + OFF + rnd(13), z = 3 + OFF + rnd(14);
         if (!S.objs.some(o => { const [w, dd] = footprint(o); return x >= o.x && x < o.x + w && z >= o.z && z < o.z + dd; })) { u.goal.copy(cellToWorld(x, z)); break; }
       }
       u.wait = 3 + Math.random() * 5;

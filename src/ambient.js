@@ -1,6 +1,6 @@
 // Không khí đảo: bóng mây, hải âu, thuyền buồm, sóng bọt, bướm, biển tên nông trại
 import * as THREE from 'three';
-import { GRID } from './data.js';
+import { GRID, OFF } from './data.js';
 import { W, roundedRect, cellToWorld } from './world.js';
 import { make } from './assets.js';
 import { art, faceDir } from './entities.js';
@@ -50,7 +50,7 @@ export function buildAmbient() {
   // Thuyền chèo chạy vòng ngoài khơi (không dùng hình tàu hàng để khỏi nhầm là tàu thứ hai)
   for (let i = 0; i < 2; i++) {
     const s = art('boat', 1, 1, { scale: i ? 0.6 : 0.75, shadow: false }) || make('pirate/boat-row-large', { h: 0.9 });
-    Object.assign(s.userData, { r: 24 + i * 7, sp: (i ? -1 : 1) * (0.025 + i * 0.01), ph: i * 3 });
+    Object.assign(s.userData, { r: 34 + i * 7, sp: (i ? -1 : 1) * (0.025 + i * 0.01), ph: i * 3 });
     g.add(s); A.boats.push(s);
   }
 
@@ -68,7 +68,7 @@ export function buildAmbient() {
   for (let i = 0; i < 5; i++) {
     const f = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: colors[i % 4], side: THREE.DoubleSide });
     for (const side of [-1, 1]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.12), mat); w.position.x = side * 0.08; w.userData.side = side; f.add(w); }
-    f.userData = { cx: (Math.random() - 0.5) * 12, cz: (Math.random() - 0.5) * 10, ph: Math.random() * 6 };
+    f.userData = { cx: 7 + (Math.random() - 0.5) * 12, cz: 7 + (Math.random() - 0.5) * 10, ph: Math.random() * 6 };
     g.add(f); A.flies.push(f);
   }
 
@@ -91,7 +91,7 @@ export function buildAmbient() {
       tex.needsUpdate = true;
     };
     draw(); mat.map = tex;
-    const pos = cellToWorld(14, GRID - 1); sign.position.set(pos.x, 0, pos.z + 0.9);
+    const pos = cellToWorld(14 + OFF, GRID - 1); sign.position.set(pos.x, 0, pos.z + 0.9);
     g.add(sign);
     document.fonts?.ready.then(draw); // vẽ lại chữ khi phông chữ đã tải xong
   }

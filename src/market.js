@@ -1,5 +1,5 @@
 // Quầy chợ ven đường: bày hàng từ kho, khách ghé mua, chạm để thu xu
-import { ITEMS, PEOPLE } from './data.js';
+import { OFF, ITEMS, PEOPLE } from './data.js';
 import { S, now, rnd, pick, have, add, save, footprint, findFree, newId, emit } from './state.js';
 import { ICONS } from './assets.js';
 import { sfx } from './sound.js';
@@ -11,7 +11,7 @@ export const marketOf = () => S.objs.find(o => o.k === 'market');
 // Nông trại cũ chưa có quầy chợ thì tự thêm vào
 export function ensureMarket(addView) {
   if (marketOf()) return;
-  const spot = findFree(2, 2, 6, 12); if (!spot) return;
+  const spot = findFree(2, 2, 6 + OFF, 12 + OFF); if (!spot) return;
   const o = { id: newId(), k: 'market', t: 'market', x: spot[0], z: spot[1], r: 0, slots: [null, null, null, null], cap: 4 };
   S.objs.push(o); addView?.(o);
 }

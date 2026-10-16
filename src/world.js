@@ -8,7 +8,7 @@ export const worldToCell = (p) => [Math.floor(p.x + GRID / 2), Math.floor(p.z + 
 export const W = {
   renderer: null, scene: null, camera: null, target: new THREE.Vector3(0, 0, 2),
   zoom: 1.7, clock: new THREE.Clock(), waterTex: null, pickables: [],
-  mode: 'farm', farm: null, advPick: [], bounds: { x0: -14, x1: 14, z0: -14, z1: 18 },
+  mode: 'farm', farm: null, advPick: [], sun: null, bounds: { x0: -GRID / 2 - 1, x1: GRID / 2 + 1, z0: -GRID / 2 - 1, z1: GRID / 2 + 5 }, // bao cả đảo
 };
 
 // Góc nhìn chéo 2:1 kiểu game nông trại (nâng 30°)
@@ -42,7 +42,7 @@ export function initWorld(canvas) {
   sun.shadow.mapSize.set(2048, 2048);
   const sc = sun.shadow.camera; sc.left = -20; sc.right = 20; sc.top = 20; sc.bottom = -20; sc.near = 1; sc.far = 80;
   sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sun.shadow.intensity = 0.42; sun.shadow.radius = 3;
-  scene.add(sun);
+  scene.add(sun, sun.target); W.sun = sun; // nắng đi theo chỗ đang nhìn để bóng đổ luôn có quanh màn hình
 
   W.farm = new THREE.Group(); scene.add(W.farm);
   buildIsland(scene);
@@ -154,6 +154,7 @@ export function updateCamera() {
     W.target.y + DIST * Math.sin(EL),
     W.target.z + DIST * Math.cos(EL) * Math.cos(AZ));
   cam.lookAt(W.target);
+  if (W.sun) { W.sun.position.set(W.target.x - 14, 26, W.target.z + 10); W.sun.target.position.copy(W.target); }
   cam.updateProjectionMatrix();
 }
 

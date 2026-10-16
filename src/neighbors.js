@@ -1,8 +1,8 @@
 // Hàng xóm: ghé thăm nông trại của người dân trên đảo, giúp tưới cây/cho thú ăn mỗi ngày
 import * as THREE from 'three';
-import { GRID, CROPS, PEOPLE, ITEMS } from './data.js';
+import { GRID, CORE, CROPS, PEOPLE, ITEMS } from './data.js';
 import { S, now, rnd, add, barnRoom, addXP, save, emit } from './state.js';
-import { W, cellToWorld, focusOn, updateCamera, slab, pickAt } from './world.js';
+import { W, cellToWorld as cellToWorldG, focusOn, updateCamera, slab, pickAt } from './world.js';
 import { createView, cropStage, dressUp, bodyOf, artOrModel } from './entities.js';
 import { make, play, ICONS } from './assets.js';
 import { animateArt } from './sprites.js';
@@ -17,6 +17,9 @@ export const NEIGHBORS = [
   { id: 'sam', farm: 'Bến Cá Chú Sam', lv: 5, seed: 29 },
 ];
 const HELPS = 5;
+// Nông trại hàng xóm vẫn là đảo 26x26 đặt giữa gốc toạ độ: dời ô cho khớp cách tính theo GRID
+const NB = (GRID - CORE) / 2;
+const cellToWorld = (x, z, w, d) => cellToWorldG(x + NB, z + NB, w, d);
 const today = () => new Date().toDateString();
 function day() {
   if (!S.nb || S.nb.day !== today()) S.nb = { day: today(), help: {}, done: {}, gift: {} };
@@ -58,8 +61,8 @@ export function visitNeighbor(nid, h) {
   const N = NEIGHBORS.find(n => n.id === nid), objs = layout(N);
   closeModal();
   const g = new THREE.Group(), views = [], pick = [];
-  g.add(slab(GRID + 4.4, 3, 0.8, W.sandMat, -0.12));
-  g.add(slab(GRID + 0.4, 1.6, 0.5, W.ground.material, 0));
+  g.add(slab(CORE + 4.4, 3, 0.8, W.sandMat, -0.12));
+  g.add(slab(CORE + 0.4, 1.6, 0.5, W.ground.material, 0));
   objs.forEach(o => {
     const v = createView(o); v.refresh?.(now());
     const [w, d] = footW(o);
