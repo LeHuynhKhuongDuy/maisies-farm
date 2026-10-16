@@ -400,10 +400,11 @@ function sendShip(sx, sy) {
 
 // ============ Kho ============
 const CAT = [
-  ['Nông sản', k => CROPS[k] || Object.values(TREES).some(t => t.yield === k)],
-  ['Từ chuồng', k => Object.values(PENS).some(p => p.prod === k)],
-  ['Thức ăn thú', k => k.endsWith('feed')],
-  ['Món ngon', k => true],
+  ['Nông sản', k => !ITEMS[k].mat && CROPS[k] || Object.values(TREES).some(t => t.yield === k)],
+  ['Từ chuồng', k => !ITEMS[k].mat && Object.values(PENS).some(p => p.prod === k)],
+  ['Thức ăn thú', k => !ITEMS[k].mat && k.endsWith('feed')],
+  ['Món ngon', k => !ITEMS[k].mat],
+  ['Vật liệu', k => !!ITEMS[k].mat], // vật liệu thô và đã chế, không tính vào sức chứa
 ];
 function openBarn() {
   M_draw = () => {

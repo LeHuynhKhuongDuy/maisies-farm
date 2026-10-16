@@ -5,7 +5,7 @@ import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, l
 import { W, cellToWorld } from './world.js';
 import { S, footprint, occupancy, now, rnd } from './state.js';
 import { isOpenCell } from './island.js';
-import { GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE } from './data.js';
+import { GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE, FAC_SPRITE } from './data.js';
 
 // Hình 2D nếu đã có ảnh, không thì trả về null
 export function art(name, w = 1, d = 1, extra = {}) {
@@ -270,7 +270,8 @@ const SMOKE_AT = { bakery: [0.35, 1.7, -0.35], kitchen: [0.7, 0.3, 0.75], seafoo
 function facView(o) {
   const root = new THREE.Group();
   root.add(yardPatch(1.9));
-  const pic = art(o.t, 2, 2);
+  const alias = FAC_SPRITE[o.t]; // xưởng chưa có hình riêng thì mượn hình tạm
+  const pic = alias ? art(alias.sprite, 2, 2, { scale: alias.scale }) : art(o.t, 2, 2);
   const { m, spin, axis } = pic ? { m: pic } : kkBuilding(o.t); root.add(m);
   if (!pic) FAC_PROPS[o.t]?.(root);
   let puff = null;

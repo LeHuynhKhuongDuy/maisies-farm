@@ -120,6 +120,18 @@ export const PENS = {
 
 // ---------- Nhà máy (2x2) ----------
 export const FACTORIES = {
+  // Hai xưởng làm vật liệu cho công trường (bậc 2)
+  carpentry: { n: 'Xưởng mộc', lv: 1, cost: 40, rec: [
+    { out: 'planks',   qty: 2, in: { wood: 3 }, t: 30, lv: 1 },
+    { out: 'firewood', qty: 2, in: { wood: 1 }, t: 20, lv: 1 },
+    { out: 'rack',     in: { wood: 2, liana: 1 }, t: 45, lv: 2 },
+  ]},
+  weaving: { n: 'Nhà đan lát', lv: 3, cost: 120, rec: [
+    { out: 'basket', in: { palmleaf: 3 }, t: 30, lv: 3 },
+    { out: 'reedmat', in: { palmleaf: 2, bamboo: 2 }, t: 45, lv: 3 },
+    { out: 'rope',   in: { liana: 1, palmleaf: 2 }, t: 60, lv: 4 },
+    { out: 'torch',  in: { firewood: 1, palmleaf: 1 }, t: 40, lv: 4 },
+  ]},
   feedmill: { n: 'Máy xay thức ăn', lv: 1, cost: 60, rec: [
     { out: 'chickenfeed', qty: 3, in: { wheat: 2 }, t: 20, lv: 1 },
     { out: 'cowfeed',     qty: 3, in: { corn: 2 },  t: 30, lv: 4 },
@@ -367,6 +379,14 @@ export const BUILDING_MODELS = {
   kitchen:  { model: KK('home_A', 'green'), size: 1.6, rot: 0 },
   sweets:   { model: KK('market', 'yellow'), size: 1.9, rot: 0 },
   jammaker: { model: KK('home_B', 'yellow'), size: 1.6, rot: 0 },
+  // Hình tạm cho hai xưởng vật liệu: nhà kho / chợ thu nhỏ
+  carpentry: { model: KK('home_A', 'red'), size: 1.4, rot: 0 },
+  weaving:   { model: KK('market', 'red'), size: 1.5, rot: 0 },
+};
+// Hình 2D tạm của nhà máy chưa có ảnh riêng: mượn hình có sẵn, thu nhỏ
+export const FAC_SPRITE = {
+  carpentry: { sprite: 'barn', scale: 0.75 },
+  weaving: { sprite: 'market', scale: 0.75 },
 };
 
 // Đường gạch và luống hoa trang trí sẵn quanh nhà (kiểu Family Farm)

@@ -99,7 +99,7 @@ export function producible() {
     if (o.k === 'pen' && o.animals.length) set.add(PENS[o.t].prod);
     if (o.k === 'fac') for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed')) set.add(r.out);
   }
-  return [...set];
+  return [...set].filter(k => !ITEMS[k].mat); // vật liệu không bao giờ thành món đơn hàng
 }
 
 // ---------- Đơn hàng ----------
@@ -157,7 +157,7 @@ function genQuest() {
   const c = pick(crops), n = 4 + rnd(6);
   opts.push({ text: `Mình cần ${n} ${ITEMS[c].n.toLowerCase()} cho bữa tiệc. Bạn thu hoạch giúp nhé!`, ev: 'harvest', key: c, n });
   const made = [];
-  for (const o of S.objs) if (o.k === 'fac') for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed')) made.push(r.out);
+  for (const o of S.objs) if (o.k === 'fac') for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed') && !ITEMS[r.out].mat) made.push(r.out);
   if (made.length) { const m = pick(made), k = 1 + rnd(3); opts.push({ text: `Làm giúp mình ${k} ${ITEMS[m].n.toLowerCase()} được không?`, ev: 'make', key: m, n: k }); }
   const pens = S.objs.filter(o => o.k === 'pen' && o.animals.length);
   if (pens.length) { const p = PENS[pick(pens).t], k = 3 + rnd(4); opts.push({ text: `Thu ${k} ${ITEMS[p.prod].n.toLowerCase()} từ chuồng ${p.an.toLowerCase()} nhé!`, ev: 'collect', key: p.prod, n: k }); }
