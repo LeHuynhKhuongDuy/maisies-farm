@@ -1,5 +1,5 @@
 import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, QUESTS, TUTORIAL, RUINS, STARTER_DECOR,
-  xpNeed, ENERGY_MAX, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
+  xpNeed, energyMax, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
 import { seeded, outerJungle, migrateV1, placeGates, isOpenCell } from './island.js';
 
 const KEY = 'maisies-farm-v1';
@@ -76,20 +76,21 @@ export function addXP(n) {
     S.level++;
     const bonus = { coins: 20 + S.level * 10, gems: 2 };
     S.coins += bonus.coins; S.gems += bonus.gems;
-    S.energy = Math.max(S.energy, ENERGY_MAX);
+    S.energy = Math.max(S.energy, energyMax(S.level));
     emit('levelup', S.level, bonus);
   }
 }
 export function energyTick() {
   const t = now();
-  if (S.energy >= ENERGY_MAX) { S.energyAt = t; return; }
+  const max = energyMax(S.level);
+  if (S.energy >= max) { S.energyAt = t; return; } // đầy (hoặc vượt nhờ quà): không hồi, không cắt bớt
   const gained = Math.floor((t - S.energyAt) / (ENERGY_REGEN * 1000));
   if (gained > 0) {
-    S.energy = Math.min(ENERGY_MAX, S.energy + gained);
+    S.energy = Math.min(max, S.energy + gained);
     S.energyAt += gained * ENERGY_REGEN * 1000;
   }
 }
-export const energyNextIn = () => S.energy >= ENERGY_MAX ? 0 : S.energyAt + ENERGY_REGEN * 1000 - now();
+export const energyNextIn = () => S.energy >= energyMax(S.level) ? 0 : S.energyAt + ENERGY_REGEN * 1000 - now();
 
 // ---------- Những gì người chơi làm ra được ----------
 export function producible() {
@@ -244,13 +245,14 @@ function freshState() {
 
   const st = {
     ffsDeco: true,
-    v: 2, coins: 150, gems: 10, xp: 0, level: 1, energy: ENERGY_MAX, energyAt: t,
+    v: 2, coins: 150, gems: 10, xp: 0, level: 1, energy: energyMax(1), energyAt: t,
     inv: { wheat: 4, chickenfeed: 2, wood: 4, palmleaf: 4 }, barnLvl: 0,
     objs, nextId: j.nextId,
     orders: [null, null, null, null, null, null],
     ship: null, quest: 0, qprog: 0,
     lastDaily: '', sound: true, music: true, seed: 'wheat',
     zones: { core: true, west: false, north: false, old: false },
+    beach: [], // sao biển, vỏ sò, cua trên bãi cát (beach.js)
     tut: 0, boatFixed: false, // thuyền hỏng: sửa xong (bước 9) mới ra khơi được
   };
   return placeGates(st); // cầu / bậc đá mở các vùng rừng

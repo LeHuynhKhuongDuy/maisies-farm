@@ -269,7 +269,16 @@ export const JUNGLE_MIX = { core: MIX_LOW, west: MIX_LOW, north: MIX_HIGH, old: 
 // Giá mua ô ruộng thứ n (n tính từ 0)
 export const fieldCost = n => (n < 6 ? 0 : 10 + (n - 6) * 6);
 export const xpNeed = l => 10 + l * 12;
-export const ENERGY_MAX = 30, ENERGY_REGEN = 30; // giây hồi 1 năng lượng
+// Năng lượng tự hồi tới giới hạn theo cấp (quà, rương, bãi biển, món ăn thì được vượt)
+export const energyMax = level => 30 + Math.floor(level / 2);
+export const ENERGY_REGEN = 30; // giây hồi 1 năng lượng
+// Đồ nhặt trên bãi cát quanh đảo: chạm để nhận năng lượng
+export const BEACH = {
+  starfish: { n: 'Sao biển', energy: 2 },
+  shell:    { n: 'Vỏ sò',    energy: 3 },
+  crab:     { n: 'Cua nhỏ',  energy: 5 },
+};
+export const BEACH_MAX = 6, BEACH_EVERY = 240; // tối đa 6 món; cứ 240 giây thêm một món
 export const BARN_BASE = 60, BARN_STEP = 25;
 export const barnUpgradeCost = lvl => 50 + lvl * 60;
 

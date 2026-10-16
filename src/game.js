@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES, FAC_SPRITE,
-  fieldCost, xpNeed, ENERGY_MAX, barnUpgradeCost } from './data.js';
+  fieldCost, xpNeed, energyMax, barnUpgradeCost } from './data.js';
 import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
   currentQuest, questEvent, claimQuest, inTutorial, newId, resetGame, exportSave, importSave } from './state.js';
 import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn, flyCamTo } from './world.js';
-import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce, walkTo, setHp, shake, chopPose } from './entities.js';
+import { VIEWS, SPECIAL, addView, removeView, rebuildView, place, cropStage, bounce, walkTo, setHp, shake, chopPose, syncBeach, beachRoot, pickBeachView } from './entities.js';
 import { ICONS } from './assets.js';
 import { hitObstacle, openChest, regrowTick, nearestObstacle, basicDrop } from './clearing.js';
+import { beachSpots, beachTick, pickBeach } from './beach.js';
 import { isOpenCell, zoneAt, gateFor, zoneOfGate, GATES, canReach } from './island.js';
 import { startSite, siteReq, contribute, tryAdvance, stageCount, matHint, gateLock, keyOf } from './build.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
@@ -59,6 +60,7 @@ export function tapObject(oid, sx, sy) {
   if (oid === 'ship') { bounce('dock'); return openShip(); }
   if (oid === 'maisie') { SPECIAL.maisie.userData.wave = 1.5; return openQuest(); }
   if (typeof oid === 'string' && oid.startsWith('v:')) return tapVisitor(oid);
+  if (typeof oid === 'string' && oid.startsWith('beach:')) return takeBeach(+oid.slice(6));
   if (oid === 'pier') { bounce('pier'); sfx('tap'); return openFishing({ openEnergy }); }
   const o = byId(oid); if (!o) return;
   if (!canReach(o)) return cloudTap(zoneAt(o.x, o.z)); // vật còn dưới mây
@@ -382,12 +384,22 @@ function takeChest(o) {
   gainLine(r.mats);
   renderHUD(); save();
 }
+// Nhặt sao biển / vỏ sò / cua trên bãi: năng lượng bay vào viên năng lượng ở giữa trên
+function takeBeach(id) {
+  const r = beachRoot(id); if (!r) return;
+  v3.copy(r.position); v3.y += 0.4; const [sx, sy] = toScreen(v3);
+  const e = pickBeach(id); if (!e) return;
+  pickBeachView(id); sfx('collect');
+  for (let i = 0; i < Math.min(e, 4); i++) flyTo(sx, sy, '#energyPill', boltI, i * 80);
+  plus(sx, sy - 30, `+${e}⚡`);
+  renderHUD(); save();
+}
 function openEnergy() {
   const foods = Object.entries(ITEMS).filter(([k, it]) => it.energy && have(k) > 0);
   const list = foods.length ? `<div class="inv">${foods.map(([k, it]) => `<div class="it">${img(k)}<span class="q">${have(k)}</span><small>${it.n}<br>+${it.energy} năng lượng</small><div class="acts"><button class="btn small" data-act="eat" data-k="${k}">Ăn</button></div></div>`).join('')}</div>`
     : '<p class="hint">Bếp nấu làm được món ăn hồi năng lượng (mở ở cấp 6).</p>';
-  const full = S.energy >= ENERGY_MAX;
-  openModal('energy', S.energy > 0 ? 'Năng lượng' : 'Hết năng lượng', `<p class="hint">Dọn dẹp cần năng lượng <span class="ico bolt sm"></span>. Năng lượng tự hồi: ${energyHint()}.</p>${list}
+  const full = S.energy >= energyMax(S.level);
+  openModal('energy', S.energy > 0 ? 'Năng lượng' : 'Hết năng lượng', `<p class="hint">Dọn dẹp cần năng lượng <span class="ico bolt sm"></span>. Năng lượng tự hồi: ${energyHint()}. Nhặt sao biển, vỏ sò, cua trên bãi biển cũng có năng lượng!</p>${list}
     <div class="row" style="justify-content:center;margin-top:14px">${full ? '<button class="btn gray" data-close>Năng lượng đang đầy</button>' : `<button class="btn blue" data-act="buyenergy">Nạp đầy ${gemI}5</button>`}</div>`);
 }
 
@@ -806,7 +818,7 @@ function claimDaily(x, y) {
   const r = DAILY[(L.streak - 1) % 7];
   if (r.coins) { S.coins += r.coins; flyCoins(x, y, r.coins); }
   if (r.gems) { S.gems += r.gems; flyGems(x, y); }
-  if (r.energy) S.energy = Math.max(S.energy, ENERGY_MAX) + (r.energy > 20 ? 0 : r.energy);
+  if (r.energy) S.energy = Math.max(S.energy, energyMax(S.level)) + (r.energy > 20 ? 0 : r.energy);
   confetti(); sfx('level'); openGift();
 }
 
@@ -876,7 +888,7 @@ const ACT = {
     add(k, -1); S.energy += ITEMS[k].energy; plus(x, y - 20, `+${ITEMS[k].energy}⚡`); sfx('collect');
     if (M.type === 'energy') closeModal(); else redrawModal();
   },
-  buyenergy() { if (S.energy >= ENERGY_MAX) { toast('Năng lượng đang đầy rồi'); closeModal(); return; } if (S.gems < 5) { toast('Cần 5 kim cương'); sfx('no'); return; } S.gems -= 5; S.energy = Math.max(S.energy, ENERGY_MAX); sfx('collect'); closeModal(); },
+  buyenergy() { if (S.energy >= energyMax(S.level)) { toast('Năng lượng đang đầy rồi'); closeModal(); return; } if (S.gems < 5) { toast('Cần 5 kim cương'); sfx('no'); return; } S.gems -= 5; S.energy = Math.max(S.energy, energyMax(S.level)); sfx('collect'); closeModal(); },
   upbarn() {
     const c = barnUpgradeCost(S.barnLvl);
     if (S.coins < c) { toast(`Cần thêm ${c - S.coins} xu nữa`); sfx('no'); return; }
@@ -1155,6 +1167,7 @@ export function tick() {
   const t = now();
   energyTick(); shipTick(); visitorsTick(); marketTick();
   const g = regrowTick(t); if (g) { addView(g); bounce(g.id); }
+  beachTick(t); syncBeach(beachSpots()); // đồ dạt vào bãi biển
   if (!(M && M.type === 'orders')) refreshOrders();
   for (const v of VIEWS.values()) v.refresh?.(t);
   buildBubbles();

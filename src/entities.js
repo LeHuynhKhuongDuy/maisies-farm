@@ -852,3 +852,78 @@ export function dressUp(model, who) {
   g.position.set(0, 0.3, 0.0);
   head.add(g);
 }
+
+// ---------- Đồ nhặt trên bãi biển (sao biển, vỏ sò, cua nhỏ) ----------
+// Không nằm trong S.objs (ở ngoài lưới ô, trên dải cát): S.beach = [{ id, t, spot }], spot = số thứ tự trong beachSpots()
+const BEACH_VIEWS = new Map(); // id món -> { root, body, kind, ph, t0 }
+const SAND_Y = -0.12; // mặt bãi cát (world.js: slab cát đỉnh ở -0.12)
+let shellMat = null, starGeo = null, hitGeo = null;
+const hitMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }); // vùng chạm vô hình, to cho ngón tay bé
+function starfish() {
+  if (!starGeo) {
+    const s = new THREE.Shape();
+    for (let i = 0; i < 10; i++) { const r = i % 2 ? 0.15 : 0.38, a = i * Math.PI / 5; s[i ? 'lineTo' : 'moveTo'](Math.sin(a) * r, Math.cos(a) * r); }
+    s.closePath();
+    starGeo = new THREE.ExtrudeGeometry(s, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
+    starGeo.rotateX(-Math.PI / 2);
+  }
+  const g = new THREE.Group(), m = new THREE.Mesh(starGeo, mat(0xff8a4c, { roughness: 0.6 }));
+  m.castShadow = true; m.rotation.x = 0.35; // nghiêng về phía camera cho dễ thấy hình ngôi sao
+  m.position.y = 0.06; g.add(m);
+  return g;
+}
+function shell() {
+  if (!shellMat) { // hình vỏ sò của biểu tượng vật phẩm, dùng chung cho mọi vỏ sò
+    const tex = new THREE.TextureLoader().load(import.meta.env.BASE_URL + 'items/shell.webp'); tex.colorSpace = THREE.SRGBColorSpace;
+    shellMat = new THREE.SpriteMaterial({ map: tex, transparent: true, alphaTest: 0.3 });
+  }
+  const sp = new THREE.Sprite(shellMat);
+  sp.center.set(0.5, 0); sp.scale.set(0.8, 0.8, 1);
+  const g = new THREE.Group(); g.add(sp); return g;
+}
+function beachBody(kind) {
+  if (kind === 'crab') { const c = bodyOf('crab', 'pets/animal-crab', { h: 0.42 }); if (c.userData.isArt) c.scale.setScalar(1.4); return c; } // hình cua (thú cưng) dùng tạm
+  return kind === 'shell' ? shell() : starfish();
+}
+export function beachPos(spot) { const p = cellToWorld(spot.x, spot.z); p.y = SAND_Y; return p; }
+// Thêm view cho món mới, bỏ view của món đã nhặt
+export function syncBeach(spots) {
+  const list = S.beach || [], ids = new Set(list.map(b => b.id));
+  for (const [id, v] of BEACH_VIEWS) if (!ids.has(id) && !v.leaving) { W.farm.remove(v.root); W.pickables.splice(W.pickables.indexOf(v.root), 1); BEACH_VIEWS.delete(id); }
+  for (const b of list) {
+    if (BEACH_VIEWS.has(b.id) || !spots[b.spot]) continue;
+    const root = new THREE.Group(), body = beachBody(b.t);
+    root.add(body);
+    const hit = new THREE.Mesh(hitGeo ||= new THREE.SphereGeometry(0.6, 8, 6), hitMat); hit.position.y = 0.3; root.add(hit);
+    const st = sparkle(); st.position.y = 0.9; root.add(st);
+    root.position.copy(beachPos(spots[b.spot]));
+    root.userData.oid = 'beach:' + b.id;
+    root.scale.setScalar(0.01);
+    W.farm.add(root); W.pickables.push(root);
+    BEACH_VIEWS.set(b.id, { root, body, st, kind: b.t, ph: b.id * 1.7, t0: performance.now() });
+  }
+}
+export const beachRoot = id => BEACH_VIEWS.get(id)?.root;
+// Nhặt: món nảy lên rồi thu nhỏ biến mất
+export function pickBeachView(id) {
+  const v = BEACH_VIEWS.get(id); if (!v) return;
+  v.leaving = performance.now();
+  W.pickables.splice(W.pickables.indexOf(v.root), 1);
+}
+export function updateBeach(t) {
+  const n = performance.now();
+  for (const [id, v] of BEACH_VIEWS) {
+    if (v.leaving) {
+      const f = (n - v.leaving) / 380;
+      if (f >= 1) { W.farm.remove(v.root); BEACH_VIEWS.delete(id); continue; }
+      v.root.scale.setScalar(1 + f * 0.4 - f * f * 1.35); v.body.position.y = Math.sin(f * Math.PI) * 0.6;
+      continue;
+    }
+    const g = Math.min(1, (n - v.t0) / 450); // dạt vào: lớn dần, nảy nhẹ
+    v.root.scale.setScalar(g < 1 ? g * (1 + Math.sin(g * Math.PI) * 0.25) : 1);
+    v.st.position.y = 0.9 + Math.sin(t * 3 + v.ph) * 0.08;
+    if (v.kind === 'crab') { v.body.position.x = Math.sin(t * 1.3 + v.ph) * 0.18; if (v.body.userData.isArt) animateArt(v.body, t, 'walk', v.ph); }
+    else if (v.kind === 'starfish') v.body.rotation.y = Math.sin(t * 0.8 + v.ph) * 0.25;
+    else v.body.position.y = Math.abs(Math.sin(t * 2 + v.ph)) * 0.05;
+  }
+}

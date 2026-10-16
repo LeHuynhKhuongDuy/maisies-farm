@@ -1,6 +1,6 @@
 import { ICONS } from './assets.js';
 import { S, now, energyNextIn, currentQuest } from './state.js';
-import { xpNeed, ENERGY_MAX, QUESTS, ITEMS } from './data.js';
+import { xpNeed, energyMax, QUESTS, ITEMS } from './data.js';
 
 export const $ = s => document.querySelector(s);
 export const img = k => `<img src="${ICONS[k] || ''}" alt="">`;
@@ -95,7 +95,10 @@ export function renderHUD() {
   $('#xptxt').textContent = `${S.xp}/${need}`;
   $('#coins').textContent = short(S.coins);
   $('#gems').textContent = short(S.gems);
-  $('#energy').textContent = `${S.energy}/${ENERGY_MAX}`;
+  const emax = energyMax(S.level);
+  $('#energy').textContent = `${S.energy}/${emax}`;
+  $('#efill').style.width = Math.min(100, S.energy / emax * 100) + '%';
+  $('#energyPill').classList.toggle('low', S.energy < 1);
   const q = currentQuest();
   $('#questBtn').hidden = !q;
   if (q) {
@@ -105,4 +108,4 @@ export function renderHUD() {
   }
   $('#btnGift').hidden = S.lastDaily === new Date().toDateString();
 }
-export function energyHint() { return S.energy >= ENERGY_MAX ? 'Đầy năng lượng' : `+1 sau ${fmt(energyNextIn())}`; }
+export function energyHint() { return S.energy >= energyMax(S.level) ? 'Đầy năng lượng' : `+1 sau ${fmt(energyNextIn())}`; }
