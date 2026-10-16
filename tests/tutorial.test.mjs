@@ -188,3 +188,27 @@ test('nearestObstacle: vật cản gần nhất (theo dist) trong vùng mở th�
   assert.equal(nearestObstacle(() => false, cellDist(CX, CZ)), null);
   assert.ok(basicDrop({ t: 'bush' }) && basicDrop({ t: 'logs' }) && basicDrop({ t: 'rock' }) && !basicDrop({ t: 'claymound' }) && !basicDrop({ t: 'bamboo' }));
 });
+
+// ---- Nhiệm vụ ngẫu nhiên "dọn 3 chướng ngại vật" chỉ khi còn vật cản trong vùng mở ----
+const pastChain = () => { fresh({ tut: 999, level: 12 }); S.quest = QUESTS.length; S.gq = null; S.qprog = 0; };
+const clearOpen = () => { S.objs = S.objs.filter(o => !(o.k === 'obstacle' && isOpenCell(o.x, o.z))); };
+test('vùng mở hết vật cản (chỉ còn rừng dưới mây): không bao giờ ra nhiệm vụ dọn dẹp', () => {
+  pastChain(); clearOpen();
+  assert.ok(S.objs.some(o => o.k === 'obstacle')); // rừng dưới mây vẫn còn
+  for (let i = 0; i < 300; i++) { S.gq = null; assert.notEqual(currentQuest().ev, 'clear'); }
+});
+test('còn vật cản trong vùng mở thì có lúc ra nhiệm vụ dọn dẹp', () => {
+  pastChain();
+  let seen = false;
+  for (let i = 0; i < 300 && !seen; i++) { S.gq = null; seen = currentQuest().ev === 'clear'; }
+  assert.ok(seen);
+});
+test('đang làm nhiệm vụ dọn dẹp mà vùng mở hết vật cản: đổi nhiệm vụ khác, không kẹt; làm xong rồi thì giữ để nhận thưởng', () => {
+  pastChain();
+  S.gq = { who: 'maisie', text: 'Dọn thêm 3', ev: 'clear', n: 3, coins: 1, xp: 1, gems: 0 }; S.qprog = 1;
+  clearOpen();
+  const q = currentQuest();
+  assert.notEqual(q.ev, 'clear'); assert.equal(S.qprog, 0); assert.equal(S.gq, q);
+  S.gq = { who: 'maisie', text: 'Dọn thêm 3', ev: 'clear', n: 3, coins: 1, xp: 1, gems: 0 }; S.qprog = 3;
+  assert.equal(currentQuest().ev, 'clear'); assert.ok(claimQuest());
+});

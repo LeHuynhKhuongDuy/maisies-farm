@@ -164,9 +164,13 @@ export function currentQuest() {
   }
   const q = QUESTS[S.quest];
   if (q) return (q.lv && S.level > 0 && S.level < q.lv) ? null : q;
+  // nhiệm vụ dọn dẹp chưa xong mà vùng mở hết vật cản (chỉ còn rừng dưới mây): đổi nhiệm vụ khác, không bắt bé chờ
+  if (S.gq?.ev === 'clear' && S.qprog < S.gq.n && !openObstacle()) { S.gq = null; S.qprog = 0; }
   if (!S.gq) S.gq = genQuest();
   return S.gq;
 }
+// Còn vật cản bé chặt được (trong vùng đã mở)
+const openObstacle = () => S.objs.some(o => o.k === 'obstacle' && isOpenCell(o.x, o.z));
 // Nhiệm vụ ngẫu nhiên sau khi xong chuỗi hướng dẫn
 function genQuest() {
   const who = pick(PEOPLE).id, L = S.level, opts = [];
@@ -179,7 +183,7 @@ function genQuest() {
   const pens = S.objs.filter(o => o.k === 'pen' && !o.site && o.animals.length);
   if (pens.length) { const p = PENS[pick(pens).t], k = 3 + rnd(4); opts.push({ text: `Thu ${k} ${ITEMS[p.prod].n.toLowerCase()} từ chuồng ${p.an.toLowerCase()} nhé!`, ev: 'collect', key: p.prod, n: k }); }
   opts.push({ text: `Hôm nay nhiều người đặt hàng lắm. Giao ${2 + rnd(3)} đơn hàng nhé!`, ev: 'deliver', n: 2 + rnd(3) });
-  if (S.objs.some(o => o.k === 'obstacle')) opts.push({ text: 'Dọn thêm 3 chướng ngại vật để đảo rộng hơn nào!', ev: 'clear', n: 3 });
+  if (openObstacle()) opts.push({ text: 'Dọn thêm 3 chướng ngại vật để đảo rộng hơn nào!', ev: 'clear', n: 3 });
   const q = pick(opts);
   if (q.ev === 'deliver') q.text = q.text.replace(/\d+ đơn/, q.n + ' đơn');
   return { who, ...q, coins: 20 + L * 8, xp: 6 + L * 2, gems: Math.random() < 0.3 ? 1 : 0 };
