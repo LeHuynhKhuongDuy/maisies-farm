@@ -1,6 +1,7 @@
 import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, QUESTS, TUTORIAL, RUINS, STARTER_DECOR,
   xpNeed, energyMax, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
 import { seeded, outerJungle, migrateV1, placeGates, isOpenCell } from './island.js';
+import { normalizeSites } from './build.js';
 
 const KEY = 'maisies-farm-v1';
 export const now = () => Date.now();
@@ -297,6 +298,7 @@ function fixV2(s) {
   const boat = s.objs.find(o => o.k === 'boat');
   if (!boat) { if (!(s.tut >= TUTORIAL.length)) s.tut = 999; s.boatFixed = true; }
   else if (!boat.site) s.boatFixed = true;
+  normalizeSites(s); // công trường đã qua giai đoạn cuối (bảng BUILD đổi) thì xong luôn, không kẹt
   return placeGates(s);
 }
 // Nông trại cũ: thêm đường gạch, luống hoa vào chỗ còn trống (chỉ một lần)

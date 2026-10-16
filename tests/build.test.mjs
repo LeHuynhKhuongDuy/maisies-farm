@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fresh, put } from './helpers.mjs';
-import { S, have, producible } from '../src/state.js';
+import { fresh, put, memStorage } from './helpers.mjs';
+import { S, have, producible, load, resetGame } from '../src/state.js';
 import { BUILD, FACTORIES, PENS, ITEMS, OBSTACLES, HELPERS } from '../src/data.js';
-import { startSite, keyOf, siteReq, contribute, tryAdvance, isBuilt, unlockLevel, obtainableAt, renewableAt, matHint } from '../src/build.js';
+import { startSite, keyOf, siteReq, contribute, tryAdvance, isBuilt, unlockLevel, obtainableAt, renewableAt, matHint, pastLastStage } from '../src/build.js';
 
 test('góp đủ giai đoạn thì sang giai đoạn sau, xong thì hết site', () => {
   fresh(); S.inv = { wood: 20, stone: 20, planks: 10, palmleaf: 10 };
@@ -98,4 +98,31 @@ test('matHint: thô thì chặt, bậc 2 thì làm ở xưởng', () => {
   assert.equal(matHint('liana'), 'Chặt bụi tre để có dây leo');
   assert.equal(matHint('stone'), 'Chặt tảng đá để có đá'); assert.equal(matHint('clay'), 'Chặt gò đất sét để có đất sét');
   assert.equal(matHint('planks'), 'Làm ở Xưởng mộc'); assert.equal(matHint('rope'), 'Làm ở Nhà đan lát');
+});
+
+// ---- Công trường đã qua giai đoạn cuối (bảng BUILD bị rút ngắn): không kẹt ----
+test('tryAdvance: công trường qua giai đoạn cuối thì xong luôn (không cộng xp), báo nhiệm vụ build', () => {
+  fresh({ xp: 0, level: 5, tut: 999 }); S.quest = 1e6; S.gq = { ev: 'build', key: 'fac:carpentry', n: 1 }; S.qprog = 0;
+  const o = put({ k: 'fac', t: 'carpentry', jobs: [] }); startSite(o); o.site.stage = 3; // bảng chỉ có 1 giai đoạn
+  assert.ok(pastLastStage(o)); assert.deepEqual(siteReq(o), {});
+  assert.equal(tryAdvance(o), 'done'); assert.equal(o.site, undefined); assert.ok(isBuilt(o));
+  assert.equal(S.xp, 0); assert.equal(S.qprog, 1);
+});
+test('tryAdvance: cổng qua giai đoạn cuối mở vùng khi đủ cấp, chưa đủ cấp thì chờ', () => {
+  fresh({ level: 2 }); const g = S.objs.find(o => o.k === 'gate' && o.t === 'bridge_w'); g.site.stage = 2;
+  assert.equal(tryAdvance(g), 'none'); assert.ok(g.site); assert.equal(S.zones.west, false);
+  S.level = 4; assert.equal(tryAdvance(g), 'done'); assert.equal(g.site, undefined); assert.equal(S.zones.west, true);
+});
+test('load() bản v2: công trường qua giai đoạn cuối được hoàn tất (cổng mở vùng, thuyền đã sửa)', () => {
+  memStorage({}); resetGame();
+  const s = JSON.parse(localStorage.getItem('maisies-farm-v1'));
+  const g = s.objs.find(o => o.k === 'gate' && o.t === 'bridge_n'); g.site = { stage: 9, got: {} };
+  const b = s.objs.find(o => o.k === 'boat'); b.site.stage = 4;
+  const f = s.objs.find(o => o.k === 'fac' && o.t === 'bakery'); // tàn tích lò bánh đang dở: giữ nguyên
+  memStorage({ 'maisies-farm-v1': JSON.stringify(s) }); load();
+  const g2 = S.objs.find(o => o.id === g.id), b2 = S.objs.find(o => o.id === b.id), f2 = S.objs.find(o => o.id === f.id);
+  assert.equal(g2.site, undefined); assert.equal(S.zones.north, true);
+  assert.equal(b2.site, undefined); assert.equal(S.boatFixed, true);
+  assert.deepEqual(f2.site, f.site);
+  assert.equal(S.objs.filter(o => o.k === 'gate' && o.t === 'bridge_n').length, 1); // không đặt thêm cổng
 });

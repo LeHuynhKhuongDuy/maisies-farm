@@ -46,19 +46,39 @@ export function contribute(o, item) {
   return n;
 }
 
+// Công trường đã qua giai đoạn cuối (bảng BUILD bị rút ngắn sau khi bé đã góp): coi như đã xây xong
+export const pastLastStage = o => !!o.site && o.site.stage >= stageCount(o);
+
 // Đủ hết thì sang giai đoạn sau (xp 10 * (giai đoạn + 1)); xong giai đoạn cuối thì hết công trường
 export function tryAdvance(o) {
+  if (pastLastStage(o) && !gateLock(o)) return finishSite(o);
   const req = siteReq(o), ks = Object.keys(req);
   if (gateLock(o) || !ks.length || ks.some(k => req[k].got < req[k].need)) return 'none';
-  const key = keyOf(o); // lấy trước khi xóa site: đồ đổ nát sửa xong vẫn báo 'ruin:*'
   addXP(10 * (o.site.stage + 1));
   o.site.stage++; o.site.got = {};
-  if (o.site.stage < stagesOf(o).length) return 'stage';
+  if (o.site.stage < stageCount(o)) return 'stage';
+  return finishSite(o);
+}
+function finishSite(o) {
+  const key = keyOf(o); // lấy trước khi xóa site: đồ đổ nát sửa xong vẫn báo 'ruin:*'
   delete o.site;
   if (key === 'ruin:boat') S.boatFixed = true; // thuyền sửa xong: mở nút Phiêu lưu
   questEvent('build', key);
   if (o.k === 'gate') openZone(zoneOfGate(o.t).id); // cổng xong: mây tan, vùng mở
   return 'done';
+}
+
+// Lúc tải bản lưu: công trường đã qua giai đoạn cuối thì hoàn tất luôn (không báo nhiệm vụ),
+// cổng như vậy thì mở vùng của nó. Làm trên bản lưu `s` (chưa gán vào S)
+export function normalizeSites(s) {
+  for (const o of s.objs) {
+    if (!pastLastStage(o)) continue;
+    const key = keyOf(o);
+    delete o.site;
+    if (key === 'ruin:boat') s.boatFixed = true;
+    if (o.k === 'gate') { const Z = zoneOfGate(o.t); if (Z) (s.zones ||= {})[Z.id] = true; }
+  }
+  return s;
 }
 
 // Cấp mở công trình: lv của nhà máy/chuồng, lv của vùng mà cổng dẫn vào, tàn tích thì cấp 1
