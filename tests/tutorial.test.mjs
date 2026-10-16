@@ -1,7 +1,7 @@
 // Task 7: ván mới bắt đầu bằng sửa nhà đổ nát, hướng dẫn 10 bước
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fresh, memStorage, v1Save } from './helpers.mjs';
+import { fresh, memStorage, v1Save, obstacle } from './helpers.mjs';
 import { S, load, have, add, take, footprint, producible, currentQuest, claimQuest, questEvent, resetGame } from '../src/state.js';
 import { TUTORIAL, QUESTS, OFF, CORE, OBSTACLES, FACTORIES, ITEMS } from '../src/data.js';
 import { keyOf, siteReq, contribute, tryAdvance, startSite } from '../src/build.js';
@@ -211,4 +211,15 @@ test('đang làm nhiệm vụ dọn dẹp mà vùng mở hết vật cản: đ�
   assert.notEqual(q.ev, 'clear'); assert.equal(S.qprog, 0); assert.equal(S.gq, q);
   S.gq = { who: 'maisie', text: 'Dọn thêm 3', ev: 'clear', n: 3, coins: 1, xp: 1, gems: 0 }; S.qprog = 3;
   assert.equal(currentQuest().ev, 'clear'); assert.ok(claimQuest());
+});
+test('nhát chặt vật cản cuối cùng trong vùng mở vẫn tính cho nhiệm vụ dọn dẹp (không bị đổi nhiệm vụ mất)', () => {
+  pastChain(); clearOpen();
+  const o = obstacle('grass'); assert.ok(isOpenCell(o.x, o.z));
+  S.gq = { who: 'maisie', text: 'Dọn thêm 3', ev: 'clear', n: 3, coins: 1, xp: 1, gems: 0 }; const gq = S.gq; S.qprog = 2;
+  S.energy = 9; let r; while (!(r = hitObstacle(o, () => 0.99)).done) { /* chặt tới hết */ }
+  assert.ok(!S.objs.includes(o));
+  questEvent('clear');
+  assert.equal(S.gq, gq); assert.equal(S.qprog, 3);
+  assert.equal(currentQuest(), gq); // xong rồi thì giữ để nhận thưởng
+  assert.equal(claimQuest(), gq);
 });

@@ -163,7 +163,9 @@ function builtKey(key) {
   const [k, t] = key.split(':'), kind = k === 'ruin' ? RUINS[t] : k;
   return S.objs.some(o => o.k === kind && o.t === t && !o.site);
 }
-export function currentQuest() {
+// reroll = false: questEvent áp sự kiện vào đúng nhiệm vụ đang có, không đổi nhiệm vụ giữa chừng
+// (nhát chặt vật cản cuối cùng vừa xóa nó khỏi S.objs vẫn phải được tính cho nhiệm vụ dọn dẹp)
+export function currentQuest(reroll = true) {
   if (inTutorial()) {
     const q = TUTORIAL[S.tut];
     // bé đã xây xong từ trước khi tới bước này: bước tự xong, không phải chờ sự kiện không bao giờ tới
@@ -173,7 +175,7 @@ export function currentQuest() {
   const q = QUESTS[S.quest];
   if (q) return (q.lv && S.level > 0 && S.level < q.lv) ? null : q;
   // nhiệm vụ dọn dẹp chưa xong mà vùng mở hết vật cản (chỉ còn rừng dưới mây): đổi nhiệm vụ khác, không bắt bé chờ
-  if (S.gq?.ev === 'clear' && S.qprog < S.gq.n && !openObstacle()) { S.gq = null; S.qprog = 0; }
+  if (reroll && S.gq?.ev === 'clear' && S.qprog < S.gq.n && !openObstacle()) { S.gq = null; S.qprog = 0; }
   if (!S.gq) S.gq = genQuest();
   return S.gq;
 }
@@ -206,7 +208,7 @@ export function claimQuest() {
 }
 export function questEvent(ev, key, n = 1) {
   emit('act', ev, key, n);
-  const q = currentQuest();
+  const q = currentQuest(false);
   if (!q || q.ev !== ev || (q.key && q.key !== key)) return;
   S.qprog = Math.min(q.n, S.qprog + n);
   emit('quest');
