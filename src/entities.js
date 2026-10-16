@@ -431,8 +431,8 @@ export function setHp(oid, frac) { const v = VIEWS.get(oid); if (v?.hp) hpFill(v
 export function shake(oid) { const v = VIEWS.get(oid); if (v) v.shakeT = performance.now(); }
 
 // Hình tạm cho loại mới (tới khi có hình vẽ riêng): [hình, màu tô, phóng to]
-const OBSTACLE_ART = { bush: ['bush'], rock: ['rock'], tree: ['leafytree'], stump: ['stump'], logs: ['logs'],
-  grass: ['grasstuft'], bamboo: ['hedge', 0xc8e86a], claymound: ['rock', 0xe0a070], bigtree: ['leafytree', null, 1.4], bigrock: ['rock', null, 1.4] };
+const OBSTACLE_ART = { bush: ['bush'], rock: ['rock'], tree: ['jungletree'], stump: ['stump'], logs: ['logs'],
+  grass: ['grasstuft'], bamboo: ['bamboo'], claymound: ['rock', 0xe0a070], bigtree: ['jungletree', null, 1.4], bigrock: ['rock', null, 1.4] };
 // Không có hình 2D thì dùng mô hình 3D của loại cũ gần nghĩa
 const OBSTACLE_BASE = { grass: 'bush', bamboo: 'bush', claymound: 'rock', bigtree: 'tree', bigrock: 'rock' };
 function obstacleView(o) {
@@ -504,6 +504,9 @@ function boatView() {
 const RUIN_TINT = new THREE.Color(0x8c7a68);
 function ruinView(o) {
   const root = new THREE.Group(), [w, d] = footprint(o), s = Math.min(w, d);
+  // có hình vẽ tay riêng của nhà đổ nát thì dùng luôn, không cần tô tối và làm nghiêng
+  const pic = o.k === 'house' && art('ruin_house', w, d);
+  if (pic) { root.add(pic); return { root }; }
   const body = createView({ ...o, site: undefined }).root; root.add(body);
   body.traverse(m => {
     if (!m.isMesh || !m.material) return;
