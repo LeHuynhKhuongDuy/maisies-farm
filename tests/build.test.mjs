@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, put } from './helpers.mjs';
 import { S, have, producible } from '../src/state.js';
-import { BUILD, FACTORIES, PENS, ITEMS } from '../src/data.js';
-import { startSite, keyOf, siteReq, contribute, tryAdvance, isBuilt, unlockLevel, obtainableAt, matHint } from '../src/build.js';
+import { BUILD, FACTORIES, PENS, ITEMS, OBSTACLES, HELPERS } from '../src/data.js';
+import { startSite, keyOf, siteReq, contribute, tryAdvance, isBuilt, unlockLevel, obtainableAt, renewableAt, matHint } from '../src/build.js';
 
 test('góp đủ giai đoạn thì sang giai đoạn sau, xong thì hết site', () => {
   fresh(); S.inv = { wood: 20, stone: 20, planks: 10, palmleaf: 10 };
@@ -38,18 +38,29 @@ test('mọi nhà máy và chuồng đều có công trường; nhà máy lạ d�
   assert.deepEqual(BUILD['fac:bakery'], [{ wood: 8, stone: 6 }, { planks: 4, palmleaf: 6 }]);
   assert.deepEqual(BUILD['gate:stairs_old'][2], { reedmat: 6, rack: 4 });
 });
-test('mọi vật liệu của mọi giai đoạn là vật liệu và lấy được ở cấp mở (không kẹt)', () => {
-  // giai đoạn sau có thể cần cấp cao hơn chút, nhưng không vượt cấp mở + 3
+test('mọi vật liệu của mọi giai đoạn là vật liệu và lấy được lâu dài ngay ở cấp mở (không kẹt)', () => {
   for (const [key, stages] of Object.entries(BUILD)) for (const st of stages) for (const item of Object.keys(st)) {
     assert.ok(ITEMS[item]?.mat, `${key}: ${item} không phải vật liệu`);
-    assert.ok(obtainableAt(item, unlockLevel(key) + 3), `${key} cần ${item}`);
+    assert.ok(obtainableAt(item, unlockLevel(key)), `${key} cần ${item} ở cấp ${unlockLevel(key)}`);
   }
 });
-test('obtainableAt: thô luôn được; ván gỗ cấp 1; dây thừng cần cấp 4; giỏ cần cấp 3', () => {
-  assert.ok(obtainableAt('liana', 1)); assert.ok(obtainableAt('planks', 1));
+test('obtainableAt: thô cần nguồn không cạn; ván gỗ cấp 1; dây thừng cần cấp 4; giỏ cần cấp 3', () => {
+  for (const k of ['wood', 'stone', 'bamboo', 'palmleaf', 'clay', 'liana']) assert.ok(obtainableAt(k, 1), k);
+  assert.ok(obtainableAt('planks', 1));
   assert.ok(!obtainableAt('rope', 3)); assert.ok(obtainableAt('rope', 4));
   assert.ok(!obtainableAt('basket', 2)); assert.ok(obtainableAt('basket', 3));
   assert.ok(!obtainableAt('wheat', 99));
+});
+test('obtainableAt: thô chỉ có trong rừng (không mọc lại, không ai gom) thì không tính là lấy được', () => {
+  const rare = OBSTACLES.bamboo.rare, gives = HELPERS.lumberjack.gives;
+  try {
+    delete OBSTACLES.bamboo.rare; // dây leo chỉ còn ở cây rừng (không mọc lại) và nhà tiều phu (cấp 2)
+    assert.ok(!renewableAt('liana', 1)); assert.ok(!obtainableAt('liana', 1));
+    assert.ok(obtainableAt('liana', 2)); // nhà tiều phu gom dây leo từ cấp 2
+    HELPERS.lumberjack.gives = ['wood'];
+    assert.ok(!obtainableAt('liana', 99)); assert.ok(!obtainableAt('rope', 99));
+  } finally { OBSTACLES.bamboo.rare = rare; HELPERS.lumberjack.gives = gives; }
+  assert.ok(obtainableAt('liana', 1));
 });
 test('siteReq báo đã góp / cần; góp món không cần thì 0', () => {
   fresh(); S.inv = { wood: 4, bamboo: 9 }; const o = put({ k: 'fac', t: 'carpentry', jobs: [] }); startSite(o);
@@ -83,5 +94,8 @@ test('nhà máy / chuồng đang xây không làm ra món cho đơn hàng', () =
 });
 test('matHint: thô thì chặt, bậc 2 thì làm ở xưởng', () => {
   assert.match(matHint('wood'), /^Chặt .* để có gỗ$/);
+  // dây leo, đá, đất sét: chỉ tới vật cản mọc lại (vùng lõi dọn sạch vẫn có), không chỉ tới cây rừng
+  assert.equal(matHint('liana'), 'Chặt bụi tre để có dây leo');
+  assert.equal(matHint('stone'), 'Chặt tảng đá để có đá'); assert.equal(matHint('clay'), 'Chặt gò đất sét để có đất sét');
   assert.equal(matHint('planks'), 'Làm ở Xưởng mộc'); assert.equal(matHint('rope'), 'Làm ở Nhà đan lát');
 });

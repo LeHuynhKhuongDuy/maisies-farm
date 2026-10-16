@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, obstacle, fillBarnToCap, put } from './helpers.mjs';
 import { S, have, barnUsed, barnRoom } from '../src/state.js';
-import { OBSTACLES, ITEMS, JUNGLE_MIX } from '../src/data.js';
+import { OBSTACLES, ITEMS, JUNGLE_MIX, REGROW_MIX } from '../src/data.js';
 import { hitObstacle, rollChest, openChest, regrowTick } from '../src/clearing.js';
 import { isOpenCell, zoneAt } from '../src/island.js';
 
@@ -53,7 +53,7 @@ test('openChest: nhận quà đúng một lần, xóa rương', () => {
 });
 
 test('mọc lại khi vùng mở còn ít bụi', () => { fresh(); S.objs = S.objs.filter(o => o.k !== 'obstacle'); S.regrowAt = 0;
-  const o = regrowTick(200_000, () => 0.5); assert.ok(o && ['grass','bush','bamboo'].includes(o.t)); assert.ok(isOpenCell(o.x, o.z)); });
+  const o = regrowTick(200_000, () => 0.5); assert.ok(o && REGROW_MIX.includes(o.t)); assert.ok(isOpenCell(o.x, o.z)); });
 test('không mọc khi chưa tới giờ hoặc đã đủ', () => { fresh(); S.regrowAt = 1e12; assert.equal(regrowTick(0), null); });
 test('không mọc vào vùng đóng', () => {
   fresh(); S.objs = S.objs.filter(o => !(o.k === 'obstacle' && OBSTACLES[o.t].regrow && isOpenCell(o.x, o.z))); S.regrowAt = 0;

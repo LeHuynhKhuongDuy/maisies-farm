@@ -181,7 +181,7 @@ export const FACTORIES = {
 // every: giây giữa hai món; gives: thứ tự các món gom được (lặp vòng); cap[lvl]: túi chứa tối đa;
 // up[lvl]: vật liệu nâng từ cấp lvl lên lvl + 1
 export const HELPERS = {
-  lumberjack: { n: 'Nhà tiều phu', lv: 2, cost: 80, every: 90, gives: ['wood', 'wood', 'bamboo', 'palmleaf'], cap: [10, 20, 30],
+  lumberjack: { n: 'Nhà tiều phu', lv: 2, cost: 80, every: 90, gives: ['wood', 'wood', 'bamboo', 'palmleaf', 'liana'], cap: [10, 20, 30],
     up: [{ planks: 6, rope: 2 }, { planks: 12, rack: 4 }] },
 };
 
@@ -255,20 +255,25 @@ export const DECOR = {
 
 // ---------- Chướng ngại vật (chặt nhiều nhát, mỗi nhát tốn 1 năng lượng) ----------
 // hp: số nhát; drop: vật liệu rơi mỗi nhát {món: [min, max]}; rare: xác suất rơi thêm mỗi nhát;
-// chest: xác suất ra rương khi chặt xong; regrow: mọc lại sau khi bị chặt.
+// chest: xác suất ra rương khi chặt xong; regrow: có thể mọc lại trong vùng mở (xem REGROW_MIX).
 // Hình (proc/model/fit) chỉ có ở 5 loại cũ; loại mới dùng hình tạm trong entities.js
 export const OBSTACLES = {
   grass:     { n: 'Bụi cỏ',     hp: 2,  drop: { palmleaf: [1, 1] }, chest: 0,    regrow: true },
   bush:      { n: 'Bụi rậm',    hp: 2,  drop: { palmleaf: [1, 1] }, chest: 0.05, regrow: true, proc: 'bush' },
-  bamboo:    { n: 'Bụi tre',    hp: 3,  drop: { bamboo: [1, 1] },   chest: 0.05, regrow: true },
-  stump:     { n: 'Gốc cây',    hp: 3,  drop: { wood: [1, 1] },     chest: 0.1,  model: 'nature/stump_round', fit: { size: 0.6 } },
+  bamboo:    { n: 'Bụi tre',    hp: 3,  drop: { bamboo: [1, 1] },   rare: { liana: 0.15 }, chest: 0.05, regrow: true },
+  stump:     { n: 'Gốc cây',    hp: 3,  drop: { wood: [1, 1] },     chest: 0.1,  regrow: true, model: 'nature/stump_round', fit: { size: 0.6 } },
   logs:      { n: 'Đống gỗ',    hp: 3,  drop: { wood: [1, 2] },     chest: 0.1,  model: 'kk/decoration/props/resource_lumber.gltf', fit: { size: 0.8 } },
-  rock:      { n: 'Tảng đá',    hp: 4,  drop: { stone: [1, 1] },    chest: 0.15, model: 'kk/decoration/nature/rock_single_B.gltf', fit: { size: 0.85 } },
-  claymound: { n: 'Gò đất sét', hp: 4,  drop: { clay: [1, 1] },     chest: 0.15 },
+  rock:      { n: 'Tảng đá',    hp: 4,  drop: { stone: [1, 1] },    chest: 0.15, regrow: true, model: 'kk/decoration/nature/rock_single_B.gltf', fit: { size: 0.85 } },
+  claymound: { n: 'Gò đất sét', hp: 4,  drop: { clay: [1, 1] },     chest: 0.15, regrow: true },
   tree:      { n: 'Cây rừng',   hp: 6,  drop: { wood: [1, 1] },     rare: { liana: 0.25 }, chest: 0.3, proc: 'tree' },
   bigtree:   { n: 'Cây cổ thụ', hp: 12, drop: { wood: [1, 2] },     rare: { liana: 0.3 },  chest: 0.6 },
   bigrock:   { n: 'Tảng đá lớn', hp: 12, drop: { stone: [1, 2] },   chest: 0.6 },
 };
+
+// Vật cản mọc lại trong vùng đang mở (lặp lại một loại = hay mọc hơn): nguồn vật liệu thô không bao giờ cạn,
+// kể cả bản cũ đã dọn sạch vùng lõi (dây leo rơi hiếm từ bụi tre; đá, đất sét, gỗ thỉnh thoảng mới có).
+// Mọi loại ở đây phải có regrow: true (có test)
+export const REGROW_MIX = ['grass', 'bush', 'bamboo', 'grass', 'bush', 'bamboo', 'stump', 'rock', 'claymound'];
 
 // Loại vật cản mọc ở từng vùng (lặp lại một loại = tỉ lệ cao hơn)
 const MIX_LOW = ['grass', 'bush', 'bamboo', 'stump', 'logs', 'rock', 'claymound', 'tree'];

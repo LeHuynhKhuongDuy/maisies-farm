@@ -1,6 +1,6 @@
 // Công trường: mua xong chỉ mới là giàn giáo, bé góp vật liệu từng giai đoạn để xây xong.
 // Chỉ logic thuần (không Three/DOM) để chạy được trong node --test
-import { ITEMS, FACTORIES, PENS, HELPERS, ZONES, OBSTACLES, BUILD } from './data.js';
+import { ITEMS, FACTORIES, PENS, HELPERS, ZONES, OBSTACLES, BUILD, REGROW_MIX } from './data.js';
 import { S, have, add, addXP, questEvent } from './state.js';
 import { openZone, zoneOfGate } from './island.js';
 
@@ -71,12 +71,18 @@ export function unlockLevel(key) {
   return 1; // ruin:*
 }
 
-// Vật liệu lấy được ở cấp lv: thô (mat 1) luôn được (chặt vật cản ở vùng lõi);
+// Vật liệu thô `item` có nguồn không bao giờ cạn ở cấp lv: vật cản mọc lại trong vùng mở rơi ra nó (thường hoặc hiếm),
+// hoặc một người giúp việc mở ở cấp ≤ lv gom được nó. (Rừng dưới mây hay vùng lõi chưa dọn thì có thể đã hết.)
+const regrowSource = item => REGROW_MIX.find(t => OBSTACLES[t]?.drop[item]) || REGROW_MIX.find(t => OBSTACLES[t]?.rare?.[item]);
+export const renewableAt = (item, lv) =>
+  !!regrowSource(item) || Object.values(HELPERS).some(H => H.lv <= lv && H.gives.includes(item));
+
+// Vật liệu lấy được (lâu dài) ở cấp lv: thô thì phải có nguồn không cạn (renewableAt);
 // bậc 2 thì cần một xưởng mở ở cấp ≤ lv có công thức cấp ≤ lv, và nguyên liệu vật liệu của công thức cũng lấy được
 export function obtainableAt(item, lv, seen = new Set()) {
   const I = ITEMS[item];
   if (!I?.mat) return false;
-  if (I.mat === 1) return true;
+  if (I.mat === 1) return renewableAt(item, lv);
   if (seen.has(item)) return false; // vòng lặp công thức
   const path = new Set(seen).add(item);
   return Object.values(FACTORIES).some(F => F.lv <= lv && F.rec.some(r => r.out === item && r.lv <= lv &&
@@ -87,7 +93,8 @@ export function obtainableAt(item, lv, seen = new Set()) {
 export function matHint(item) {
   const I = ITEMS[item]; if (!I) return '';
   if (I.mat === 1) {
-    const O = Object.values(OBSTACLES).find(O => O.drop[item]) || Object.values(OBSTACLES).find(O => O.rare?.[item]);
+    // ưu tiên vật cản mọc lại (luôn có trong vùng mở), rồi mới tới rừng
+    const t = regrowSource(item), O = t ? OBSTACLES[t] : Object.values(OBSTACLES).find(O => O.drop[item]) || Object.values(OBSTACLES).find(O => O.rare?.[item]);
     return O ? `Chặt ${O.n.toLowerCase()} để có ${I.n.toLowerCase()}` : '';
   }
   const F = Object.values(FACTORIES).find(F => F.rec.some(r => r.out === item));

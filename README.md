@@ -12,12 +12,12 @@ Sau lần mở đầu tiên, game chơi được cả khi không có mạng. Ti�
 
 ## Cách chơi
 - **Ván mới:** nhà, lò bánh và chiếc thuyền bị bão làm đổ nát; làm theo hướng dẫn 10 bước (bàn tay chỉ đường) để chặt cây, góp vật liệu và sửa lại từng thứ.
-- **Chặt cây, dọn đảo:** chạm (hoặc giữ ngón tay) vào bụi cỏ, cây, đá, gò đất sét để chặt; mỗi nhát tốn năng lượng. Vật cản rơi ra **vật liệu** (gỗ, đá, tre, lá cọ, đất sét, dây leo), thỉnh thoảng có rương, và một số loại mọc lại.
+- **Chặt cây, dọn đảo:** chạm (hoặc giữ ngón tay) vào bụi cỏ, cây, đá, gò đất sét để chặt; mỗi nhát tốn năng lượng. Vật cản rơi ra **vật liệu** (gỗ, đá, tre, lá cọ, đất sét, dây leo), thỉnh thoảng có rương. Bụi cỏ, bụi rậm, bụi tre (đôi khi rơi dây leo), gốc cây, tảng đá, gò đất sét mọc lại trong vùng đã mở, nên vật liệu thô không bao giờ hết.
 - **Năng lượng** nằm ở giữa phía trên màn hình, tự hồi theo thời gian (tối đa tăng theo cấp). Hết thì **nhặt sao biển, vỏ sò, cua trên bãi cát** quanh đảo, hoặc ăn bánh, súp, pizza.
 - **Xây theo giai đoạn:** công trình mới hiện ra thành công trường; chạm để góp đủ vật liệu cho từng giai đoạn là xây xong. Vật liệu nằm trong thẻ Vật liệu của Kho, không tính vào sức chứa.
 - **Xưởng mộc, nhà đan lát:** làm ván, củi, giá gỗ, giỏ, chiếu, dây thừng, đuốc từ vật liệu thô.
 - **Mở rừng dưới mây:** rừng phía Tây, phía Bắc và Rừng già bị mây che. Sửa cầu tre, cầu gỗ, bậc đá (mũi tên cam chỉ chỗ) thì mây tan, có thêm đất để dọn và xây.
-- **Nhà tiều phu:** người đốn gỗ tự gom vật liệu vào túi, chạm để lấy; nâng cấp để túi to hơn.
+- **Nhà tiều phu:** người đốn gỗ tự gom gỗ, tre, lá cọ, dây leo vào túi, chạm để lấy; nâng cấp để túi to hơn.
 - **Ruộng:** chạm ô trống để chọn hạt, kéo ngón tay qua nhiều ô để gieo liền; cây chín thì chạm hoặc kéo qua để thu hoạch.
 - **Chuồng gà, bò, heo, vườn ong:** máy xay làm thức ăn; chạm chuồng để cho ăn, chạm lại để nhặt trứng, sữa, nấm, mật ong.
 - **Nhà máy:** lò bánh, xưởng sữa, quầy nước ép, quán hải sản, bếp nấu, tiệm bánh ngọt, nhà làm mứt.

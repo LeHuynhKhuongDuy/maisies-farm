@@ -12,7 +12,7 @@ const mk = (over = {}) => put({ k: 'helper', t: 'lumberjack', lvl: 0, bag: {}, a
 test('dữ liệu nhà tiều phu đúng thông số', () => {
   const H = HELPERS.lumberjack;
   assert.equal(H.n, 'Nhà tiều phu'); assert.equal(H.lv, 2); assert.equal(H.cost, 80); assert.equal(H.every, 90);
-  assert.deepEqual(H.gives, ['wood', 'wood', 'bamboo', 'palmleaf']);
+  assert.deepEqual(H.gives, ['wood', 'wood', 'bamboo', 'palmleaf', 'liana']);
   assert.deepEqual(H.cap, [10, 20, 30]);
   assert.deepEqual(H.up, [{ planks: 6, rope: 2 }, { planks: 12, rack: 4 }]);
   assert.deepEqual(BUILD['helper:lumberjack'], [{ wood: 8, stone: 4 }]);
@@ -27,7 +27,7 @@ test('tắt game 10 phút: đúng floor(600/90) = 6 món, lần lượt theo giv
   fresh(); const o = mk();
   assert.equal(helperTick(o, T0 + 600 * 1000), 6);
   assert.equal(helperCount(o), 6);
-  assert.deepEqual(o.bag, { wood: 4, bamboo: 1, palmleaf: 1 });
+  assert.deepEqual(o.bag, { wood: 3, bamboo: 1, palmleaf: 1, liana: 1 });
 });
 test('gọi lại nhiều lần không tính trùng; phần dư giây được giữ', () => {
   fresh(); const o = mk();
@@ -56,8 +56,8 @@ test('helperCollect đổ túi vào kho (kể cả khi Kho nông sản đầy) v
   fresh({ inv: { wood: 1 } }); const o = mk();
   helperTick(o, T0 + 600 * 1000);
   const got = helperCollect(o);
-  assert.deepEqual(got, { wood: 4, bamboo: 1, palmleaf: 1 });
-  assert.equal(have('wood'), 5); assert.equal(have('bamboo'), 1); assert.equal(have('palmleaf'), 1);
+  assert.deepEqual(got, { wood: 3, bamboo: 1, palmleaf: 1, liana: 1 });
+  assert.equal(have('wood'), 4); assert.equal(have('bamboo'), 1); assert.equal(have('palmleaf'), 1); assert.equal(have('liana'), 1);
   assert.deepEqual(o.bag, {}); assert.equal(helperCount(o), 0);
   assert.deepEqual(helperCollect(o), {});
 });

@@ -1,5 +1,5 @@
 // Chặt vật cản nhiều nhát: trừ năng lượng, rơi vật liệu, rương, mọc lại. Chỉ logic thuần (không Three/DOM) để chạy được trong node
-import { GRID, OFF, ITEMS, OBSTACLES } from './data.js';
+import { GRID, OFF, ITEMS, OBSTACLES, REGROW_MIX } from './data.js';
 import { S, add, addXP, footprint, occupancy, newId, questEvent } from './state.js';
 import { isOpenCell } from './island.js';
 
@@ -69,8 +69,7 @@ export const basicDrop = o => ['wood', 'stone', 'palmleaf'].some(k => OBSTACLES[
 
 // ---------- Mọc lại ----------
 export const REGROW_EVERY = 180, REGROW_MIN = 8; // giây; số vật cản mọc lại tối thiểu trong các vùng đang mở
-const REGROW_TYPES = ['grass', 'bush', 'bamboo'];
-// Cứ REGROW_EVERY giây xem một lần: vùng mở còn ít bụi thì mọc một bụi ở ô trống, không sát công trình.
+// Cứ REGROW_EVERY giây xem một lần: vùng mở còn ít bụi thì mọc một vật cản (theo REGROW_MIX) ở ô trống, không sát công trình.
 // S.regrowAt = mốc lần xem tới (ms). Trả về vật cản mới (đã vào S.objs) hoặc null.
 export function regrowTick(t, rand = Math.random) {
   if (S.regrowAt == null) { S.regrowAt = t + REGROW_EVERY * 1000; return null; }
@@ -94,7 +93,7 @@ export function regrowTick(t, rand = Math.random) {
   }
   if (!cells.length) return null;
   const [x, z] = cells[Math.min(cells.length - 1, Math.floor(rand() * cells.length))];
-  const type = REGROW_TYPES[Math.min(REGROW_TYPES.length - 1, Math.floor(rand() * REGROW_TYPES.length))];
+  const type = REGROW_MIX[Math.min(REGROW_MIX.length - 1, Math.floor(rand() * REGROW_MIX.length))];
   const o = { id: newId(), k: 'obstacle', t: type, x, z, r: Math.floor(rand() * 4) % 4, hp: OBSTACLES[type].hp };
   S.objs.push(o);
   return o;
