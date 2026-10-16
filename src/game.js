@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES, FAC_SPRITE,
+import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, HELPERS, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES, FAC_SPRITE,
   fieldCost, xpNeed, energyMax, barnUpgradeCost } from './data.js';
 import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
@@ -10,6 +10,7 @@ import { ICONS } from './assets.js';
 import { hitObstacle, openChest, regrowTick, nearestObstacle, basicDrop } from './clearing.js';
 import { beachSpots, beachTick, pickBeach } from './beach.js';
 import { isOpenCell, zoneAt, gateFor, zoneOfGate, GATES, canReach } from './island.js';
+import { helperTick, helperCollect, helperUpgrade, helperCount, helperCap, helperFull, helperNextUp } from './helper.js';
 import { startSite, siteReq, contribute, tryAdvance, stageCount, matHint, gateLock, keyOf } from './build.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
@@ -71,6 +72,7 @@ export function tapObject(oid, sx, sy) {
     case 'tree': return tapTree(o, sx, sy);
     case 'pen': return tapPen(o, sx, sy);
     case 'fac': return tapFactory(o, sx, sy);
+    case 'helper': return tapHelper(o, sx, sy);
     case 'board': sfx('tap'); return openOrders();
     case 'market': if (collectMarket(sx, sy)) { VIEWS.get(o.id).refresh(); return; } sfx('tap'); return openMarket();
     case 'barn': sfx('tap'); return openBarn();
@@ -269,6 +271,7 @@ function siteName(o) {
   if (o.k === 'boat') return 'Thuyền nhỏ';
   if (o.k === 'fac') return FACTORIES[o.t].n;
   if (o.k === 'pen') return PENS[o.t].n;
+  if (o.k === 'helper') return HELPERS[o.t].n;
   if (o.k === 'gate') return GATES[o.t]?.n || 'Cổng';
   return 'Công trình';
 }
@@ -308,6 +311,47 @@ function giveSite(o, k, x, y) {
   if (r === 'stage') { sfx('build'); toast(`Xong giai đoạn ${stage + 1}! Cố lên nào`); redrawModal(); return; }
   sfx('level'); closeModal(); toast(`${siteName(o)} đã ${ruin ? 'sửa' : 'xây'} xong!`);
   focusOn(VIEWS.get(o.id).root.position);
+}
+
+// ============ Người giúp việc ============
+// Có đồ trong túi thì chạm là nhận hết; túi rỗng thì mở bảng để xem và nâng cấp
+function tapHelper(o, sx, sy) {
+  helperTick(o, now());
+  if (helperCount(o)) return takeHelper(o, sx, sy);
+  sfx('tap'); openHelper(o);
+}
+function takeHelper(o, sx, sy) {
+  const got = helperCollect(o);
+  if (!Object.keys(got).length) return false;
+  for (const [k, n] of Object.entries(got)) flyItem(sx, sy, k, n);
+  plus(sx, sy - 30, '+' + Object.values(got).reduce((a, n) => a + n, 0));
+  gainLine(got); sfx('collect');
+  VIEWS.get(o.id)?.refresh(now()); save();
+  return true;
+}
+function openHelper(o) {
+  const H = HELPERS[o.t];
+  M_draw = () => {
+    helperTick(o, now());
+    const c = helperCount(o), cap = helperCap(o), up = helperNextUp(o);
+    const bag = Object.entries(o.bag || {}).map(([k, n]) => `<span class="hbag">${img(k)}<b>${n}</b></span>`).join('') || '<small>Túi đang rỗng</small>';
+    const next = helperFull(o) ? 'Túi đầy rồi!' : `Món tiếp theo sau <span data-rt="${o.at + H.every * 1000}">${fmt(o.at + H.every * 1000 - now())}</span>`;
+    const upRows = up ? `<p class="hint">Nâng cấp để túi chứa ${H.cap[(o.lvl || 0) + 1]} món:</p><div class="mats">${
+      Object.entries(up).map(([k, n]) => `<div class="mat ${have(k) >= n ? 'ok' : 'lack'}">${img(k)}<b>${nameOf(k)}</b><span class="q">${Math.min(have(k), n)}/${n}</span>${have(k) >= n ? '' : `<small>${esc(matHint(k))}</small>`}</div>`).join('')
+    }</div><div class="hbtns"><button class="btn ${Object.entries(up).every(([k, n]) => have(k) >= n) ? '' : 'gray'}" data-act="helperup" data-oid="${o.id}">Nâng cấp</button></div>`
+      : '<p class="hint">Đã nâng cấp tối đa!</p>';
+    return `<p class="hint">Cấp ${(o.lvl || 0) + 1} · Túi ${c}/${cap}</p><div class="hbags">${bag}</div>
+      <p class="hint">${next}</p>
+      ${c ? `<div class="hbtns"><button class="btn" data-act="helpertake" data-oid="${o.id}">Nhận hết</button></div>` : ''}${upRows}`;
+  };
+  M_sig = () => JSON.stringify([o.bag, o.lvl]) + JSON.stringify(S.inv);
+  openModal('helper', H.n, M_draw(), { sig: M_sig(), oid: o.id });
+}
+function upgradeHelper(o, x, y) {
+  if (!o) return;
+  if (!helperUpgrade(o)) { const need = helperNextUp(o) || {}, k = Object.keys(need).find(k => have(k) < need[k]); toast(k ? `Chưa đủ ${nameOf(k).toLowerCase()}. ${matHint(k)}` : 'Đã nâng cấp tối đa!'); sfx('no'); return; }
+  confetti(18); plus(x, y - 30, 'Túi to hơn!'); bounce(o.id); sfx('level');
+  VIEWS.get(o.id)?.refresh(now()); redrawModal(); save();
 }
 
 // ============ Dọn chướng ngại vật ============
@@ -522,6 +566,10 @@ function shopItems(tab) {
       const owned = S.objs.find(o => o.k === 'fac' && o.t === k);
       out.push({ id: 'fac:' + k, icon: 'fac:' + k, n: F.n, cost: F.cost, lv: F.lv, note: owned ? (owned.site ? 'Đang xây' : 'Đã có') : F.rec.map(r => nameOf(r.out)).slice(0, 2).join(', '), max: !!owned });
     }
+    for (const [k, H] of Object.entries(HELPERS)) {
+      const owned = S.objs.find(o => o.k === 'helper' && o.t === k);
+      out.push({ id: 'helper:' + k, icon: 'helper:' + k, n: H.n, cost: H.cost, lv: H.lv, note: owned ? (owned.site ? 'Đang xây' : 'Đã có') : 'Tự gom gỗ, tre, lá cọ', max: !!owned });
+    }
   } else {
     for (const [k, n] of Object.entries(S.store || {})) if (n > 0) out.push({ id: 'stored:' + k, icon: 'decor:' + k, n: DECOR[k].n, cost: 0, lv: 1, note: `Đã cất · có ${n}`, stored: true });
     for (const [k, D] of Object.entries(DECOR)) if (!D.gift) out.push({ id: 'decor:' + k, icon: 'decor:' + k, n: D.n, cost: D.cost, lv: D.lv, note: D.pet ? 'Biết đi dạo' : '' });
@@ -558,6 +606,7 @@ function buy(id) {
   else if (kind === 'tree') obj = { k: 'tree', t, s: now(), e: now() + TREES[t].t * 1000 };
   else if (kind === 'pen') obj = { k: 'pen', t, animals: [{ s: 0, e: 0 }] };
   else if (kind === 'fac') obj = { k: 'fac', t, jobs: [], slots: 2 };
+  else if (kind === 'helper') obj = { k: 'helper', t, lvl: 0, bag: {}, at: now() };
   else obj = { k: 'decor', t };
   obj.r = 0;
   startPlace(obj, true, it.cost);
@@ -650,6 +699,7 @@ function placeConfirm() {
     if (fromStore) S.store[fromStore]--;
     removeView('ghost');
     obj.id = newId(); S.objs.push(obj);
+    if (obj.k === 'helper') obj.at = now();
     startSite(obj); // nhà máy, chuồng: thành công trường, góp vật liệu để xây
     addView(obj);
     if (obj.site) toast('Chạm vào công trường để góp vật liệu nhé!');
@@ -861,6 +911,8 @@ const ACT = {
     startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t;
   },
   make(b, x, y) { makeRecipe(byId(+b.dataset.oid), +b.dataset.i, x, y); },
+  helperup(b, x, y) { upgradeHelper(byId(+b.dataset.oid), x, y); },
+  helpertake(b, x, y) { const o = byId(+b.dataset.oid); if (o && takeHelper(o, x, y)) redrawModal(); },
   give(b, x, y) { giveSite(byId(+b.dataset.oid), b.dataset.k, x, y); },
   collectfac(b, x, y) { collectJobs(byId(+b.dataset.oid), x, y); redrawModal(); },
   speedjob(b) {
@@ -1008,6 +1060,8 @@ function buildBubbles() {
     } else if (o.k === 'fac') {
       const done = o.jobs.filter(j => t >= j.e);
       if (done.length) list.push({ oid: o.id, y: 2.6, icon: FACTORIES[o.t].rec[done[0].r].out, n: done.length > 1 ? done.length : null });
+    } else if (o.k === 'helper') {
+      if (helperCount(o)) list.push({ oid: o.id, y: 1.9, icon: 'wood', n: helperCount(o) });
     } else if (o.k === 'market') {
       if (soldCount()) list.push({ oid: o.id, y: 1.9, html: coinI, n: soldCount() });
     } else if (o.k === 'board') {
@@ -1047,7 +1101,7 @@ const nearestSeen = pred => nearestObstacle(pred, o => {
   const off = x < PLAY.l || x > innerWidth - PLAY.r || y < PLAY.t || y > innerHeight - PLAY.b; // ngoài vùng chơi: bị các nút HUD che
   return Math.hypot(x - innerWidth / 2, y - innerHeight / 2) + (off ? 1e4 : 0);
 });
-const HAND_Y = { house: 2.6, fac: 2.2, pen: 1.8, boat: 1.3, gate: 1.3, obstacle: 0.9 };
+const HAND_Y = { house: 2.6, fac: 2.2, helper: 1.8, pen: 1.8, boat: 1.3, gate: 1.3, obstacle: 0.9 };
 const at = o => ({ oid: o.id, y: o.site && !o.site.ruin && o.k !== 'gate' ? 1.5 // giàn giáo thấp hơn công trình thật
   : (HAND_Y[o.k] || 1.4) * (o.k === 'fac' && FAC_SPRITE[o.t]?.scale || 1) }); // xưởng mượn hình thu nhỏ
 const inModal = sel => ({ el: '#mBody ' + sel });
@@ -1165,6 +1219,7 @@ export function positionBubbles() {
 let lastSave = 0;
 export function tick() {
   const t = now();
+  for (const o of S.objs) if (o.k === 'helper') helperTick(o, t);
   energyTick(); shipTick(); visitorsTick(); marketTick();
   const g = regrowTick(t); if (g) { addView(g); bounce(g.id); }
   beachTick(t); syncBeach(beachSpots()); // đồ dạt vào bãi biển

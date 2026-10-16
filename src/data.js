@@ -177,6 +177,14 @@ export const FACTORIES = {
   ]},
 };
 
+// ---------- Người giúp việc (2x2): tự gom vật liệu, kể cả lúc tắt game ----------
+// every: giây giữa hai món; gives: thứ tự các món gom được (lặp vòng); cap[lvl]: túi chứa tối đa;
+// up[lvl]: vật liệu nâng từ cấp lvl lên lvl + 1
+export const HELPERS = {
+  lumberjack: { n: 'Nhà tiều phu', lv: 2, cost: 80, every: 90, gives: ['wood', 'wood', 'bamboo', 'palmleaf'], cap: [10, 20, 30],
+    up: [{ planks: 6, rope: 2 }, { planks: 12, rack: 4 }] },
+};
+
 // ---------- Công trường: vật liệu cần góp theo từng giai đoạn ----------
 // key '<k>:<t>' (xem keyOf trong build.js). Giai đoạn 1 chỉ dùng thứ lấy được ở cấp mở công trình (có test)
 const FAC_LATE = [{ planks: 10, stone: 10 }, { rope: 3, basket: 4 }, { torch: 4, reedmat: 4 }];
@@ -196,6 +204,7 @@ export const BUILD = {
   'gate:bridge_w':   [{ wood: 10, bamboo: 8 }, { planks: 6, rope: 2 }],
   'gate:bridge_n':   [{ planks: 12, rope: 4 }, { stone: 20, torch: 3 }],
   'gate:stairs_old': [{ stone: 30, planks: 15 }, { rope: 6, torch: 6 }, { reedmat: 6, rack: 4 }],
+  'helper:lumberjack': [{ wood: 8, stone: 4 }],
   'ruin:house':  [{ wood: 4, palmleaf: 4 }],
   'ruin:bakery': [{ wood: 4, stone: 3 }],
   'ruin:boat':   [{ planks: 3, palmleaf: 5 }],
@@ -440,6 +449,10 @@ export const BUILDING_MODELS = {
 export const FAC_SPRITE = {
   carpentry: { sprite: 'barn', scale: 0.75 },
   weaving: { sprite: 'market', scale: 0.75 },
+};
+// Hình 2D tạm của người giúp việc: mượn hình có sẵn, thu nhỏ
+export const HELPER_SPRITE = {
+  lumberjack: { sprite: 'tent', scale: 1.5 },
 };
 
 // Đường gạch và luống hoa trang trí sẵn quanh nhà (kiểu Family Farm)

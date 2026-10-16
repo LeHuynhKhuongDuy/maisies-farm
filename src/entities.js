@@ -5,7 +5,8 @@ import { picketFence, fenceRing, brickTile, flowerBed, planterBase, raisedBed, l
 import { W, cellToWorld, AZ, EL } from './world.js';
 import { S, footprint, occupancy, now, rnd, on } from './state.js';
 import { isOpenCell, zoneAt, seeded, GATES, canReach } from './island.js';
-import { ZONES, GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE, FAC_SPRITE } from './data.js';
+import { helperCount, helperCap } from './helper.js';
+import { ZONES, GRID, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, BUILDING_MODELS, SPRITE_ART, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE, MODEL_SPRITE, FAC_SPRITE, HELPER_SPRITE, HELPERS } from './data.js';
 
 // Hình 2D nếu đã có ảnh, không thì trả về null
 export function art(name, w = 1, d = 1, extra = {}) {
@@ -285,6 +286,21 @@ function facView(o) {
       if (pic) { const b = working ? Math.abs(Math.sin(t * 4)) * 0.025 : 0; pic.userData.plane.scale.set(1 + b * 0.5, 1 - b, 1); }
       if (puff?.visible) puff.userData.tick(t);
     },
+  };
+}
+
+// Nhà tiều phu (hình tạm: lều + đống gỗ). Túi có đồ thì chất thêm gỗ cho bé thấy
+function helperView(o) {
+  const root = new THREE.Group();
+  root.add(yardPatch(1.9));
+  const alias = HELPER_SPRITE[o.t];
+  const pic = art(alias.sprite, 2, 2, { scale: alias.scale }); if (pic) root.add(pic);
+  const mk = (x, z, sc) => { const l = art('logs', 0.7, 0.7, { scale: sc }) || make('kk/decoration/props/resource_lumber.gltf', { size: 0.6 }); l.position.set(x, 0, z); root.add(l); return l; };
+  mk(-0.6, 0.6, 0.8); // đống gỗ sẵn có
+  const more = [mk(0.65, 0.65, 0.9), mk(0.35, 0.85, 0.7)]; more.forEach(m => m.visible = false);
+  return {
+    root,
+    refresh() { const c = helperCount(o), cap = helperCap(o); more[0].visible = c > 0; more[1].visible = c >= cap / 2; },
   };
 }
 
@@ -656,6 +672,7 @@ export function createView(o) {
     case 'tree': return treeView(o);
     case 'pen': return penView(o);
     case 'fac': return facView(o);
+    case 'helper': return helperView(o);
     case 'house': return mainHouseView(o);
     case 'barn': return barnView(o);
     case 'board': return boardView(o);
@@ -820,6 +837,7 @@ export function buildingIcons() {
   const list = [];
   const view = o => { const v = createView(o); v.refresh?.(now()); return v.root; };
   for (const k of Object.keys(FACTORIES)) list.push(['fac:' + k, { obj: () => view({ k: 'fac', t: k, jobs: [] }), rotY: 0.2 }]);
+  for (const k of Object.keys(HELPERS)) list.push(['helper:' + k, { obj: () => view({ k: 'helper', t: k, lvl: 0, bag: {} }), rotY: 0.2 }]);
   for (const k of Object.keys(PENS)) list.push(['pen:' + k, { obj: () => view({ k: 'pen', t: k, animals: [{ s: 0, e: 0 }, { s: 0, e: 0 }] }), rotY: 0.2 }]);
   list.push(['b:field', { obj: () => view({ k: 'field', crop: 'wheat', s: 0, e: 1 }), rotY: 0.2 }]);
   for (const k of Object.keys(TREES)) list.push(['tree:' + k, { obj: () => { const r = view({ k: 'tree', t: k, s: 0, e: 1 }); r.children.filter(c => c.isSprite).forEach(c => c.visible = false); return r; }, rotY: 0.3 }]);

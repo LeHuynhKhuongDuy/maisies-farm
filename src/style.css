@@ -476,3 +476,9 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 @keyframes logo-bob { 50% { transform: rotate(-4deg) translateY(-8px) scale(1.03); } }
 
 img { object-fit: contain; }
+
+/* Nhà tiều phu: túi đồ gom được */
+.hbags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0; }
+.hbag { display: inline-flex; align-items: center; gap: 4px; background: #fff7e6; border-radius: 12px; padding: 4px 8px; }
+.hbag img { width: 28px; height: 28px; object-fit: contain; }
+.hbtns { display: flex; justify-content: center; margin: 8px 0 4px; }

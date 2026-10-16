@@ -1,6 +1,6 @@
 // Công trường: mua xong chỉ mới là giàn giáo, bé góp vật liệu từng giai đoạn để xây xong.
 // Chỉ logic thuần (không Three/DOM) để chạy được trong node --test
-import { ITEMS, FACTORIES, PENS, ZONES, OBSTACLES, BUILD } from './data.js';
+import { ITEMS, FACTORIES, PENS, HELPERS, ZONES, OBSTACLES, BUILD } from './data.js';
 import { S, have, add, addXP, questEvent } from './state.js';
 import { openZone, zoneOfGate } from './island.js';
 
@@ -66,6 +66,7 @@ export function unlockLevel(key) {
   const [k, t] = key.split(':');
   if (k === 'fac') return FACTORIES[t]?.lv ?? 1;
   if (k === 'pen') return PENS[t]?.lv ?? 1;
+  if (k === 'helper') return HELPERS[t]?.lv ?? 1;
   if (k === 'gate') return ZONES.find(z => z.gate === t)?.lv ?? 1;
   return 1; // ruin:*
 }
