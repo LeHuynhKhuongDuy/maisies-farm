@@ -1,8 +1,8 @@
 import { W, panBy, setZoom } from './world.js';
-import { onTap, onLongPress, beginDrag, dragMove, endDrag } from './game.js';
+import { onTap, onLongPress, onRelease, beginDrag, dragMove, endDrag } from './game.js';
 
 // Cử chỉ: 1 ngón kéo = di chuyển bản đồ (hoặc gieo/thu hoạch liên tục), 2 ngón = phóng to/thu nhỏ,
-// chạm = chọn, giữ lâu = di chuyển nhà/đồ
+// chạm = chọn, giữ lâu = di chuyển nhà/đồ (trên vật cản: chặt liên tục tới khi nhấc tay)
 export function initInput(canvas) {
   const pts = new Map();
   let start = null, moved = false, mode = null, longT = 0, pinch = null, inertia = { x: 0, y: 0 }, lastMove = 0;
@@ -18,7 +18,7 @@ export function initInput(canvas) {
       clearTimeout(longT);
       longT = setTimeout(() => { if (!moved && pts.size === 1 && mode === 'pan') { mode = 'none'; onLongPress(start.x, start.y); } }, 550);
     } else if (pts.size === 2) {
-      clearTimeout(longT);
+      clearTimeout(longT); onRelease();
       if (mode === 'drag') endDrag(true, 0, 0);
       mode = 'pinch';
       const [a, b] = [...pts.values()];
@@ -48,6 +48,7 @@ export function initInput(canvas) {
     if (!pts.has(e.pointerId)) return;
     pts.delete(e.pointerId);
     clearTimeout(longT);
+    if (!pts.size) onRelease();
     if (mode === 'pinch') { if (pts.size === 0) mode = null; start = null; return; }
     if (pts.size) return;
     if (mode === 'drag') endDrag(moved, e.clientX, e.clientY);

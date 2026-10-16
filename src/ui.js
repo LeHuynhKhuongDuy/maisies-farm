@@ -1,6 +1,6 @@
 import { ICONS } from './assets.js';
-import { S, now, energyNextIn, currentQuest } from './state.js';
-import { xpNeed, ENERGY_MAX, QUESTS } from './data.js';
+import { S, now, energyNextIn, energyLabel, currentQuest } from './state.js';
+import { xpNeed, energyMax, QUESTS, ITEMS } from './data.js';
 
 export const $ = s => document.querySelector(s);
 export const img = k => `<img src="${ICONS[k] || ''}" alt="">`;
@@ -27,6 +27,22 @@ export function plus(x, y, text) {
   e.style.left = x + 'px'; e.style.top = y + 'px'; $('#fx').appendChild(e); setTimeout(() => e.remove(), 1000);
 }
 
+// Dòng "+3 Gỗ +1 Dây leo" ở góc dưới phải: gom các lần rơi cách nhau dưới 1,2 giây
+let gain = null;
+export function gainLine(drops) {
+  const ks = Object.keys(drops || {}).filter(k => drops[k] > 0); if (!ks.length) return;
+  if (!gain) {
+    const el = document.createElement('div'); el.className = 'gain'; $('#fx').appendChild(el);
+    gain = { el, sum: {} };
+  }
+  const g = gain;
+  for (const k of ks) g.sum[k] = (g.sum[k] || 0) + drops[k];
+  g.el.innerHTML = Object.entries(g.sum).map(([k, n]) => `<span>+${n} ${img(k)}${esc(ITEMS[k]?.n || k)}</span>`).join(' ');
+  g.el.classList.remove('bump'); void g.el.offsetWidth; g.el.classList.add('bump');
+  clearTimeout(g.t);
+  g.t = setTimeout(() => { if (gain === g) gain = null; g.el.classList.add('out'); setTimeout(() => g.el.remove(), 400); }, 1200);
+}
+
 // Biểu tượng bay từ chỗ chạm về nút trên HUD
 export function flyTo(x, y, target, html, delay = 0) {
   const el = typeof target === 'string' ? $(target) : target;
@@ -49,10 +65,10 @@ export const flyCoins = (x, y, n) => { for (let i = 0; i < Math.min(5, Math.ceil
 export const flyGems = (x, y) => flyTo(x, y, '#gemPill', gemI);
 export const flyXP = (x, y) => flyTo(x, y, '#lvlBox', xpI);
 
-export function confetti() {
+export function confetti(n = 50) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const cols = ['#ff6b5b', '#ffd23f', '#3aa7e8', '#62c43f', '#ff8ad8', '#a06cff'];
-  for (let j = 0; j < 50; j++) {
+  for (let j = 0; j < n; j++) {
     const s = document.createElement('span'); s.className = 'conf';
     s.style.left = Math.random() * 100 + 'vw'; s.style.background = cols[j % cols.length];
     s.style.animationDuration = (1.6 + Math.random() * 1.6) + 's'; s.style.animationDelay = Math.random() * 0.4 + 's';
@@ -79,7 +95,10 @@ export function renderHUD() {
   $('#xptxt').textContent = `${S.xp}/${need}`;
   $('#coins').textContent = short(S.coins);
   $('#gems').textContent = short(S.gems);
-  $('#energy').textContent = `${S.energy}/${ENERGY_MAX}`;
+  const emax = energyMax(S.level);
+  $('#energy').textContent = energyLabel(S.energy, emax);
+  $('#efill').style.width = Math.min(100, S.energy / emax * 100) + '%';
+  $('#energyPill').classList.toggle('low', S.energy < 1);
   const q = currentQuest();
   $('#questBtn').hidden = !q;
   if (q) {
@@ -89,4 +108,4 @@ export function renderHUD() {
   }
   $('#btnGift').hidden = S.lastDaily === new Date().toDateString();
 }
-export function energyHint() { return S.energy >= ENERGY_MAX ? 'Đầy năng lượng' : `+1 sau ${fmt(energyNextIn())}`; }
+export function energyHint() { return S.energy >= energyMax(S.level) ? 'Đầy năng lượng' : `+1 sau ${fmt(energyNextIn())}`; }

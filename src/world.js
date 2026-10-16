@@ -8,7 +8,7 @@ export const worldToCell = (p) => [Math.floor(p.x + GRID / 2), Math.floor(p.z + 
 export const W = {
   renderer: null, scene: null, camera: null, target: new THREE.Vector3(0, 0, 2),
   zoom: 1.7, clock: new THREE.Clock(), waterTex: null, pickables: [],
-  mode: 'farm', farm: null, advPick: [], bounds: { x0: -14, x1: 14, z0: -14, z1: 18 },
+  mode: 'farm', farm: null, advPick: [], sun: null, bounds: { x0: -GRID / 2 - 1, x1: GRID / 2 + 1, z0: -GRID / 2 - 1, z1: GRID / 2 + 5 }, // bao cả đảo
 };
 
 // Góc nhìn chéo 2:1 kiểu game nông trại (nâng 30°)
@@ -42,7 +42,7 @@ export function initWorld(canvas) {
   sun.shadow.mapSize.set(2048, 2048);
   const sc = sun.shadow.camera; sc.left = -20; sc.right = 20; sc.top = 20; sc.bottom = -20; sc.near = 1; sc.far = 80;
   sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sun.shadow.intensity = 0.42; sun.shadow.radius = 3;
-  scene.add(sun);
+  scene.add(sun, sun.target); W.sun = sun; // nắng đi theo chỗ đang nhìn để bóng đổ luôn có quanh màn hình
 
   W.farm = new THREE.Group(); scene.add(W.farm);
   buildIsland(scene);
@@ -154,6 +154,7 @@ export function updateCamera() {
     W.target.y + DIST * Math.sin(EL),
     W.target.z + DIST * Math.cos(EL) * Math.cos(AZ));
   cam.lookAt(W.target);
+  if (W.sun) { W.sun.position.set(W.target.x - 14, 26, W.target.z + 10); W.sun.target.position.copy(W.target); }
   cam.updateProjectionMatrix();
 }
 
@@ -161,6 +162,7 @@ export function setZoom(z) { W.zoom = THREE.MathUtils.clamp(z, 0.55, 2.6); updat
 
 // Kéo màn hình: đổi pixel -> dịch chuyển trên mặt đất
 export function panBy(dx, dy) {
+  flight++; // bé tự kéo màn hình thì thôi bay
   const cam = W.camera, h = window.innerHeight;
   const unitsPerPx = (cam.top - cam.bottom) / h;
   const right = new THREE.Vector3(Math.cos(AZ), 0, -Math.sin(AZ));
@@ -187,9 +189,9 @@ export function pickAt(sx, sy, prefer) {
   const hits = ray.intersectObjects(W.mode === 'farm' ? W.pickables : W.advPick, true);
   let first = null;
   for (const h of hits) {
-    let o = h.object;
-    while (o && o.userData.oid === undefined) o = o.parent;
-    if (!o) continue;
+    let o = h.object, hidden = !o.visible;
+    while (o && o.userData.oid === undefined) { o = o.parent; hidden ||= o ? !o.visible : false; }
+    if (!o || hidden || !o.visible) continue; // vật đang ẩn (dưới mây) không chạm được
     if (!prefer) return o.userData.oid;
     if (prefer(o.userData.oid)) return o.userData.oid;
     if (first === null) first = o.userData.oid;
@@ -203,3 +205,15 @@ export function toScreen(v) {
   return [(tmp.x + 1) / 2 * window.innerWidth, (1 - tmp.y) / 2 * window.innerHeight, tmp.z < 1];
 }
 export function focusOn(v) { W.target.set(v.x, 0, v.z); updateCamera(); }
+// Camera bay êm tới điểm v trong `ms` mili giây (chạm mới thì thay đường bay cũ)
+let flight = 0;
+export function flyCamTo(v, ms = 700) {
+  const from = W.target.clone(), to = new THREE.Vector3(v.x, 0, v.z), t0 = performance.now(), me = ++flight;
+  const step = () => {
+    if (me !== flight) return;
+    const f = Math.min(1, (performance.now() - t0) / ms), e = f * f * (3 - 2 * f);
+    W.target.lerpVectors(from, to, e); updateCamera();
+    if (f < 1) requestAnimationFrame(step);
+  };
+  step();
+}

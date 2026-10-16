@@ -1,5 +1,7 @@
-import { GRID, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, OBSTACLES, PEOPLE, QUESTS, STARTER_DECOR,
-  xpNeed, ENERGY_MAX, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
+import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, QUESTS, TUTORIAL, RUINS, STARTER_DECOR,
+  xpNeed, energyMax, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
+import { seeded, outerJungle, migrateV1, placeGates, isOpenCell } from './island.js';
+import { normalizeSites } from './build.js';
 
 const KEY = 'maisies-farm-v1';
 export const now = () => Date.now();
@@ -18,8 +20,8 @@ export function footprint(o) {
   switch (o.k) {
     case 'field': case 'tree': return [1, 1];
     case 'pen': case 'house': return [3, 3];
-    case 'fac': case 'barn': case 'market': return [2, 2];
-    case 'board': return [2, 1];
+    case 'fac': case 'barn': case 'market': case 'boat': case 'helper': return [2, 2];
+    case 'board': case 'gate': return [2, 1];
     case 'decor': { const d = DECOR[o.t]; const w = d.w || 1, h = d.d || 1; return o.r % 2 ? [h, w] : [w, h]; }
     case 'obstacle': return [1, 1];
   }
@@ -35,29 +37,35 @@ export function occupancy(ignoreId) {
   }
   return g;
 }
+// Ô trống: trong đảo, không có vật, và thuộc vùng đã mở (ô dưới mây coi như vướng)
 export function isFree(x, z, w, d, ignoreId) {
   if (x < 0 || z < 0 || x + w > GRID || z + d > GRID) return false;
   const g = occupancy(ignoreId);
-  for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) if (g.has((x + i) + ',' + (z + j))) return false;
+  for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) if (g.has((x + i) + ',' + (z + j)) || !isOpenCell(x + i, z + j)) return false;
   return true;
 }
-export function findFree(w, d, nearX = GRID / 2, nearZ = GRID / 2) {
+export function findFree(w, d, nearX = OFF + CORE / 2, nearZ = OFF + CORE / 2) {
   let best = null, bd = 1e9;
   const g = occupancy();
   for (let x = 0; x <= GRID - w; x++) for (let z = 0; z <= GRID - d; z++) {
     let ok = true;
-    for (let i = 0; i < w && ok; i++) for (let j = 0; j < d && ok; j++) if (g.has((x + i) + ',' + (z + j))) ok = false;
+    for (let i = 0; i < w && ok; i++) for (let j = 0; j < d && ok; j++) if (g.has((x + i) + ',' + (z + j)) || !isOpenCell(x + i, z + j)) ok = false;
     if (!ok) continue;
     const dist = Math.hypot(x - nearX, z - nearZ);
     if (dist < bd) { bd = dist; best = [x, z]; }
   }
   return best;
 }
+// Không còn chỗ trống w x d nào trong vùng mở: câu giải thích cho bé thay vì để bé kéo mãi không đặt được (null nếu còn chỗ)
+export function noRoom(w, d) {
+  if (findFree(w, d)) return null;
+  return `Đảo chưa còn chỗ trống ${w}×${d} ô. Chặt bớt bụi cây, hoặc cất bớt đồ trang trí vào túi 📦 rồi đặt nhé!`;
+}
 
 // ---------- Kho ----------
 export const have = k => S.inv[k] || 0;
 export const barnCap = () => BARN_BASE + S.barnLvl * BARN_STEP;
-export const barnUsed = () => Object.values(S.inv).reduce((a, b) => a + b, 0);
+export const barnUsed = () => Object.entries(S.inv).reduce((a, [k, n]) => a + (ITEMS[k]?.mat ? 0 : n), 0); // vật liệu không chiếm chỗ Kho
 export const barnRoom = () => barnCap() - barnUsed();
 export function add(k, n) {
   S.inv[k] = (S.inv[k] || 0) + n;
@@ -74,31 +82,35 @@ export function addXP(n) {
     S.level++;
     const bonus = { coins: 20 + S.level * 10, gems: 2 };
     S.coins += bonus.coins; S.gems += bonus.gems;
-    S.energy = Math.max(S.energy, ENERGY_MAX);
+    S.energy = Math.max(S.energy, energyMax(S.level));
     emit('levelup', S.level, bonus);
   }
 }
 export function energyTick() {
   const t = now();
-  if (S.energy >= ENERGY_MAX) { S.energyAt = t; return; }
+  const max = energyMax(S.level);
+  if (S.energy >= max) { S.energyAt = t; return; } // đầy (hoặc vượt nhờ quà): không hồi, không cắt bớt
   const gained = Math.floor((t - S.energyAt) / (ENERGY_REGEN * 1000));
   if (gained > 0) {
-    S.energy = Math.min(ENERGY_MAX, S.energy + gained);
+    S.energy = Math.min(max, S.energy + gained);
     S.energyAt += gained * ENERGY_REGEN * 1000;
   }
 }
-export const energyNextIn = () => S.energy >= ENERGY_MAX ? 0 : S.energyAt + ENERGY_REGEN * 1000 - now();
+// Chữ trên viên năng lượng: từ 100 trở lên (quà, rương, bãi biển cộng vượt mức) chỉ hiện "99+" để viên không lấn khối cấp ở màn 375px
+export const energyLabel = (e, max) => e >= 100 ? '99+' : `${e}/${max}`;
+export const energyNextIn = () => S.energy >= energyMax(S.level) ? 0 : S.energyAt + ENERGY_REGEN * 1000 - now();
 
 // ---------- Những gì người chơi làm ra được ----------
 export function producible() {
   const L = S.level, set = new Set();
   for (const [k, c] of Object.entries(CROPS)) if (c.lv <= L) set.add(k);
   for (const o of S.objs) {
+    if (o.site) continue; // công trường chưa xây xong chưa làm ra gì
     if (o.k === 'tree') set.add(TREES[o.t].yield);
     if (o.k === 'pen' && o.animals.length) set.add(PENS[o.t].prod);
     if (o.k === 'fac') for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed')) set.add(r.out);
   }
-  return [...set];
+  return [...set].filter(k => !ITEMS[k].mat); // vật liệu không bao giờ thành món đơn hàng
 }
 
 // ---------- Đơn hàng ----------
@@ -143,12 +155,32 @@ export function shipTick() {
 }
 
 // ---------- Nhiệm vụ ----------
-export function currentQuest() {
+// Ván mới đi hết TUTORIAL (S.tut) trước, rồi mới tới chuỗi QUESTS (S.quest) và nhiệm vụ ngẫu nhiên.
+// Bản cũ chuyển sang có S.tut = 999 nên bỏ qua hướng dẫn.
+export const inTutorial = () => S.tut < TUTORIAL.length;
+// Công trình của khóa `key` ('ruin:bakery', 'fac:carpentry'...) đã xây / sửa xong chưa
+function builtKey(key) {
+  const [k, t] = key.split(':'), kind = k === 'ruin' ? RUINS[t] : k;
+  return S.objs.some(o => o.k === kind && o.t === t && !o.site);
+}
+// reroll = false: questEvent áp sự kiện vào đúng nhiệm vụ đang có, không đổi nhiệm vụ giữa chừng
+// (nhát chặt vật cản cuối cùng vừa xóa nó khỏi S.objs vẫn phải được tính cho nhiệm vụ dọn dẹp)
+export function currentQuest(reroll = true) {
+  if (inTutorial()) {
+    const q = TUTORIAL[S.tut];
+    // bé đã xây xong từ trước khi tới bước này: bước tự xong, không phải chờ sự kiện không bao giờ tới
+    if (q.ev === 'build' && S.qprog < q.n && builtKey(q.key)) S.qprog = q.n;
+    return q;
+  }
   const q = QUESTS[S.quest];
   if (q) return (q.lv && S.level > 0 && S.level < q.lv) ? null : q;
+  // nhiệm vụ dọn dẹp chưa xong mà vùng mở hết vật cản (chỉ còn rừng dưới mây): đổi nhiệm vụ khác, không bắt bé chờ
+  if (reroll && S.gq?.ev === 'clear' && S.qprog < S.gq.n && !openObstacle()) { S.gq = null; S.qprog = 0; }
   if (!S.gq) S.gq = genQuest();
   return S.gq;
 }
+// Còn vật cản bé chặt được (trong vùng đã mở)
+const openObstacle = () => S.objs.some(o => o.k === 'obstacle' && isOpenCell(o.x, o.z));
 // Nhiệm vụ ngẫu nhiên sau khi xong chuỗi hướng dẫn
 function genQuest() {
   const who = pick(PEOPLE).id, L = S.level, opts = [];
@@ -156,26 +188,27 @@ function genQuest() {
   const c = pick(crops), n = 4 + rnd(6);
   opts.push({ text: `Mình cần ${n} ${ITEMS[c].n.toLowerCase()} cho bữa tiệc. Bạn thu hoạch giúp nhé!`, ev: 'harvest', key: c, n });
   const made = [];
-  for (const o of S.objs) if (o.k === 'fac') for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed')) made.push(r.out);
+  for (const o of S.objs) if (o.k === 'fac' && !o.site) for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed') && !ITEMS[r.out].mat) made.push(r.out);
   if (made.length) { const m = pick(made), k = 1 + rnd(3); opts.push({ text: `Làm giúp mình ${k} ${ITEMS[m].n.toLowerCase()} được không?`, ev: 'make', key: m, n: k }); }
-  const pens = S.objs.filter(o => o.k === 'pen' && o.animals.length);
+  const pens = S.objs.filter(o => o.k === 'pen' && !o.site && o.animals.length);
   if (pens.length) { const p = PENS[pick(pens).t], k = 3 + rnd(4); opts.push({ text: `Thu ${k} ${ITEMS[p.prod].n.toLowerCase()} từ chuồng ${p.an.toLowerCase()} nhé!`, ev: 'collect', key: p.prod, n: k }); }
   opts.push({ text: `Hôm nay nhiều người đặt hàng lắm. Giao ${2 + rnd(3)} đơn hàng nhé!`, ev: 'deliver', n: 2 + rnd(3) });
-  if (S.objs.some(o => o.k === 'obstacle')) opts.push({ text: 'Dọn thêm 3 chướng ngại vật để đảo rộng hơn nào!', ev: 'clear', n: 3 });
+  if (openObstacle()) opts.push({ text: 'Dọn thêm 3 chướng ngại vật để đảo rộng hơn nào!', ev: 'clear', n: 3 });
   const q = pick(opts);
   if (q.ev === 'deliver') q.text = q.text.replace(/\d+ đơn/, q.n + ' đơn');
   return { who, ...q, coins: 20 + L * 8, xp: 6 + L * 2, gems: Math.random() < 0.3 ? 1 : 0 };
 }
 export function claimQuest() {
   const q = currentQuest(); if (!q || S.qprog < q.n) return null;
-  S.coins += q.coins || 0; S.gems += q.gems || 0; addXP(q.xp || 0);
-  if (QUESTS[S.quest]) S.quest++; else S.gq = null;
+  const tut = inTutorial();
+  S.coins += q.coins || 0; S.gems += q.gems || 0; S.energy += q.energy || 0; addXP(q.xp || 0);
+  if (tut) S.tut++; else if (QUESTS[S.quest]) S.quest++; else S.gq = null;
   S.qprog = 0;
   return q;
 }
 export function questEvent(ev, key, n = 1) {
   emit('act', ev, key, n);
-  const q = currentQuest();
+  const q = currentQuest(false);
   if (!q || q.ev !== ev || (q.key && q.key !== key)) return;
   S.qprog = Math.min(q.n, S.qprog + n);
   emit('quest');
@@ -185,55 +218,72 @@ export function questEvent(ev, key, n = 1) {
 let nextId = 1;
 export const newId = () => (S.nextId = (S.nextId || 1) + 1);
 
-function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
-
 function freshState() {
   const t = now();
   const objs = [];
   const id = () => objs.length + 1;
-  objs.push({ id: id(), k: 'house', t: 'house', x: 11, z: 4, r: 0 });
-  objs.push({ id: id(), k: 'barn', t: 'barn', x: 15, z: 5, r: 0 });
+  const c = (x, z) => ({ x: x + OFF, z: z + OFF }); // toạ độ cũ (đảo 26x26) -> vùng lõi
+  // nhà, lò bánh, thuyền nhỏ ở bến bị bão làm đổ nát: bé góp vật liệu để sửa (hướng dẫn đầu game)
+  const ruin = () => ({ stage: 0, got: {}, ruin: true });
+  objs.push({ id: id(), k: 'house', t: 'house', ...c(11, 4), r: 0, site: ruin() });
+  objs.push({ id: id(), k: 'barn', t: 'barn', ...c(15, 5), r: 0 });
   // 6 ô ruộng, 3 ô đang có lúa mì sắp chín
   const fields = [[8, 9], [9, 9], [10, 9], [8, 10], [9, 10], [10, 10]];
-  fields.forEach(([x, z], i) => objs.push({ id: id(), k: 'field', t: 'field', x, z, r: 0,
+  fields.forEach(([x, z], i) => objs.push({ id: id(), k: 'field', t: 'field', ...c(x, z), r: 0,
     crop: i < 3 ? 'wheat' : null, s: t - 18000, e: t + 2000 + i * 1500 }));
-  objs.push({ id: id(), k: 'pen', t: 'coop', x: 14, z: 9, r: 0, animals: [{ s: 0, e: 0 }, { s: 0, e: 0 }] });
-  objs.push({ id: id(), k: 'fac', t: 'feedmill', x: 12, z: 13, r: 0, jobs: [] });
-  objs.push({ id: id(), k: 'board', t: 'board', x: 8, z: 13, r: 0 });
-  objs.push({ id: id(), k: 'tree', t: 'palm', x: 17, z: 14, r: 0, s: t - 100000, e: t });
-  STARTER_DECOR.forEach(([t, x, z]) => objs.push({ id: id(), k: 'decor', t, x, z, r: 0 }));
-  objs.push({ id: id(), k: 'decor', t: 'bush', x: 18, z: 6, r: 0 });
+  objs.push({ id: id(), k: 'pen', t: 'coop', ...c(14, 9), r: 0, animals: [{ s: 0, e: 0 }, { s: 0, e: 0 }] });
+  objs.push({ id: id(), k: 'fac', t: 'feedmill', ...c(12, 13), r: 0, jobs: [] });
+  objs.push({ id: id(), k: 'board', t: 'board', ...c(8, 13), r: 0 });
+  objs.push({ id: id(), k: 'tree', t: 'palm', ...c(17, 14), r: 0, s: t - 100000, e: t });
+  STARTER_DECOR.forEach(([t, x, z]) => objs.push({ id: id(), k: 'decor', t, ...c(x, z), r: 0 }));
+  objs.push({ id: id(), k: 'decor', t: 'bush', ...c(18, 6), r: 0 });
+  objs.push({ id: id(), k: 'fac', t: 'bakery', ...c(15, 14), r: 0, jobs: [], site: ruin() });
+  objs.push({ id: id(), k: 'boat', t: 'boat', ...c(18, 24), r: 0, site: ruin() }); // sát bờ Nam, ngay cạnh bến tàu
 
-  // chướng ngại vật quanh mép đảo
+  // chướng ngại vật quanh mép vùng lõi (cách sinh cũ, dời theo OFF)
   const rand = seeded(20240611);
   const taken = new Set();
   for (const o of objs) { const [w, d] = footprint(o); for (let i = -1; i <= w; i++) for (let j = -1; j <= d; j++) taken.add((o.x + i) + ',' + (o.z + j)); }
-  const types = Object.keys(OBSTACLES);
-  for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) {
+  const types = JUNGLE_MIX.core;
+  for (let x = 0; x < CORE; x++) for (let z = 0; z < CORE; z++) {
     const inCore = x >= 6 && x <= 19 && z >= 2 && z <= 16;
-    if (inCore || taken.has(x + ',' + z)) continue;
-    const edge = Math.min(x, z, GRID - 1 - x, GRID - 1 - z);
-    const p = edge < 1 ? 0.12 : 0.24;
-    if (rand() < p) objs.push({ id: id(), k: 'obstacle', t: types[Math.floor(rand() * types.length)], x, z, r: Math.floor(rand() * 4) });
+    if (inCore || taken.has((x + OFF) + ',' + (z + OFF))) continue;
+    const edge = Math.min(x, z, CORE - 1 - x, CORE - 1 - z);
+    // nửa Tây vùng lõi (ngoài khu nhà / ruộng) rừng dày: đủ gỗ, đá, lá cọ cho các bước hướng dẫn đầu
+    const west = x < 13, p = edge < 1 ? (west ? 0.3 : 0.12) : (west ? 0.6 : 0.24);
+    if (rand() < p) objs.push({ id: id(), k: 'obstacle', t: types[Math.floor(rand() * types.length)], ...c(x, z), r: Math.floor(rand() * 4) });
   }
+  // rừng ở 3 vùng ngoài
+  const j = outerJungle(objs.length + 1);
+  objs.push(...j.objs);
 
   const st = {
     ffsDeco: true,
-    v: 1, coins: 150, gems: 10, xp: 0, level: 1, energy: ENERGY_MAX, energyAt: t,
-    inv: { wheat: 4, chickenfeed: 2 }, barnLvl: 0,
-    objs, nextId: objs.length + 1,
+    v: 2, coins: 150, gems: 10, xp: 0, level: 1, energy: energyMax(1), energyAt: t,
+    inv: { wheat: 4, chickenfeed: 2, wood: 4, palmleaf: 4 }, barnLvl: 0,
+    objs, nextId: j.nextId,
     orders: [null, null, null, null, null, null],
     ship: null, quest: 0, qprog: 0,
     lastDaily: '', sound: true, music: true, seed: 'wheat',
+    zones: { core: true, west: false, north: false, old: false },
+    beach: [], // sao biển, vỏ sò, cua trên bãi cát (beach.js)
+    tut: 0, boatFixed: false, // thuyền hỏng: sửa xong (bước 9) mới ra khơi được
   };
-  return st;
+  return placeGates(st); // cầu / bậc đá mở các vùng rừng
 }
 
 export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
+// Trước khi chuyển bản v1 sang v2: giữ nguyên chuỗi v1 gốc ở khóa riêng (chỉ lần đầu, không ghi đè),
+// để lỡ phải quay về bản game cũ thì vẫn lấy lại được nông trại
+export const BACKUP_KEY = KEY + '-backup';
+function backupV1(str) {
+  try { if (localStorage.getItem(BACKUP_KEY) == null) localStorage.setItem(BACKUP_KEY, str); } catch (e) { }
+}
 export function load() {
-  let raw = null;
-  try { raw = JSON.parse(localStorage.getItem(KEY)); } catch (e) { }
-  S = raw && raw.v === 1 && Array.isArray(raw.objs) ? raw : freshState();
+  let raw = null, str = null;
+  try { str = localStorage.getItem(KEY); raw = JSON.parse(str); } catch (e) { }
+  if (raw && raw.v === 1 && Array.isArray(raw.objs)) { backupV1(str); S = migrateV1(raw); save(); }
+  else S = raw && raw.v === 2 && Array.isArray(raw.objs) ? fixV2(raw) : freshState();
   if (!S.ship) S.ship = newShip();
   refreshOrders();
   return S;
@@ -241,15 +291,26 @@ export function load() {
 // Mã sao lưu để chuyển nông trại sang máy khác
 export const exportSave = () => btoa(unescape(encodeURIComponent(JSON.stringify(S))));
 export function importSave(code) {
-  const o = JSON.parse(decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))));
-  if (!o || o.v !== 1 || !Array.isArray(o.objs)) throw new Error('bad');
-  S = o; save();
+  const str = decodeURIComponent(escape(atob(code.replace(/\s+/g, '')))), o = JSON.parse(str);
+  if (!o || (o.v !== 1 && o.v !== 2) || !Array.isArray(o.objs)) throw new Error('bad');
+  if (o.v === 1) backupV1(str);
+  S = o.v === 1 ? migrateV1(o) : fixV2(o); save();
+}
+// Bản v2 lưu trước khi có hướng dẫn mới (không có thuyền đổ nát): coi như đã xong hướng dẫn và thuyền đã sửa
+// (không thì bé kẹt ở bước sửa thuyền không có); bản v2 cũ chưa có cổng thì thêm cổng
+function fixV2(s) {
+  const boat = s.objs.find(o => o.k === 'boat');
+  if (!boat) { if (!(s.tut >= TUTORIAL.length)) s.tut = 999; s.boatFixed = true; }
+  else if (!boat.site) s.boatFixed = true;
+  normalizeSites(s); // công trường đã qua giai đoạn cuối (bảng BUILD đổi) thì xong luôn, không kẹt
+  return placeGates(s);
 }
 // Nông trại cũ: thêm đường gạch, luống hoa vào chỗ còn trống (chỉ một lần)
 export function ensureStarterDecor(addView) {
   if (S.ffsDeco) return;
   S.ffsDeco = true;
-  for (const [t, x, z] of STARTER_DECOR) {
+  for (const [t, cx, cz] of STARTER_DECOR) {
+    const x = cx + OFF, z = cz + OFF;
     if (!isFree(x, z, 1, 1)) continue;
     const o = { id: newId(), k: 'decor', t, x, z, r: 0 };
     S.objs.push(o); addView(o);

@@ -1,6 +1,15 @@
 // Toàn bộ dữ liệu cân bằng game. Thời gian tính bằng giây.
 
-export const GRID = 26; // đảo 26 x 26 ô
+export const GRID = 40; // đảo 40 x 40 ô
+export const CORE = 26; // vùng lõi (nông trại cũ) 26 x 26 ô
+export const OFF = 14; // vùng lõi chiếm ô x,z từ 14 tới 39 (góc Đông Nam): bờ Nam và Đông không đổi
+// Các vùng của đảo, rect = [x, z, rộng, sâu]. Vùng ngoài lõi bị rừng phủ, mở dần theo cấp
+export const ZONES = [
+  { id: 'core',  n: 'Vùng lõi',       rect: [14, 14, 26, 26], open: true },
+  { id: 'west',  n: 'Rừng phía Tây',  rect: [0, 14, 14, 26], gate: 'bridge_w', lv: 4 },
+  { id: 'north', n: 'Rừng phía Bắc',  rect: [14, 0, 26, 14], gate: 'bridge_n', lv: 7 },
+  { id: 'old',   n: 'Rừng già',       rect: [0, 0, 14, 14], gate: 'stairs_old', lv: 11 },
+];
 
 // ---------- Vật phẩm ----------
 // icon: đường dẫn mô hình dùng để vẽ biểu tượng; tint: tô màu lại mô hình (bao thức ăn)
@@ -25,8 +34,8 @@ export const ITEMS = {
   cowfeed:    { n: 'Thức ăn bò',    icon: 'food/bag', tint: 0x7cc46a, v: 3 },
   pigfeed:    { n: 'Thức ăn heo',   icon: 'food/bag', tint: 0xd98a5a, v: 4 },
 
-  bread:      { n: 'Bánh mì',       icon: 'food/loaf', v: 10 },
-  cookie:     { n: 'Bánh quy',      icon: 'food/cookie', v: 14 },
+  bread:      { n: 'Bánh mì',       icon: 'food/loaf', v: 10, energy: 4 },
+  cookie:     { n: 'Bánh quy',      icon: 'food/cookie', v: 14, energy: 5 },
   cake:       { n: 'Bánh kem',      icon: 'food/cake', v: 30 },
   applepie:   { n: 'Bánh táo',      icon: 'food/pie', v: 24 },
   cheese:     { n: 'Phô mai',       icon: 'food/cheese', v: 20 },
@@ -59,6 +68,20 @@ export const ITEMS = {
   bigfish:    { n: 'Cá vàng to',    icon: 'food/fish', tint: 0xffa040, v: 16 },
   grilledfish:{ n: 'Cá xiên nướng', icon: 'food/skewer', v: 30, energy: 8 },
   sushi:      { n: 'Sushi',         icon: 'food/sushi-salmon', v: 34, energy: 9 },
+  // Vật liệu: mat 1 = thô (chặt vật cản mà có), mat 2 = bậc 2 (làm ở xưởng). Không tính vào sức chứa Kho
+  wood:       { n: 'Gỗ',            v: 2, mat: 1 },
+  stone:      { n: 'Đá',            v: 2, mat: 1 },
+  bamboo:     { n: 'Tre',           v: 2, mat: 1 },
+  palmleaf:   { n: 'Lá cọ',         v: 1, mat: 1 },
+  clay:       { n: 'Đất sét',       v: 2, mat: 1 },
+  liana:      { n: 'Dây leo',       v: 2, mat: 1 },
+  planks:     { n: 'Ván gỗ',        v: 6, mat: 2 },
+  rack:       { n: 'Giá gỗ',        v: 8, mat: 2 },
+  firewood:   { n: 'Củi',           v: 4, mat: 2 },
+  basket:     { n: 'Giỏ đan',       v: 8, mat: 2 },
+  reedmat:    { n: 'Chiếu',         v: 8, mat: 2 },
+  rope:       { n: 'Dây thừng',     v: 6, mat: 2 },
+  torch:      { n: 'Đuốc',          v: 10, mat: 2 },
 };
 
 // ---------- Cây trồng (ruộng 1x1) ----------
@@ -97,13 +120,25 @@ export const PENS = {
 
 // ---------- Nhà máy (2x2) ----------
 export const FACTORIES = {
+  // Hai xưởng làm vật liệu cho công trường (bậc 2)
+  carpentry: { n: 'Xưởng mộc', lv: 1, cost: 40, rec: [
+    { out: 'planks',   qty: 2, in: { wood: 3 }, t: 30, lv: 1 },
+    { out: 'firewood', qty: 2, in: { wood: 1 }, t: 20, lv: 1 },
+    { out: 'rack',     in: { wood: 2, liana: 1 }, t: 45, lv: 2 },
+  ]},
+  weaving: { n: 'Nhà đan lát', lv: 3, cost: 120, rec: [
+    { out: 'basket', in: { palmleaf: 3 }, t: 30, lv: 3 },
+    { out: 'reedmat', in: { palmleaf: 2, bamboo: 2 }, t: 45, lv: 3 },
+    { out: 'rope',   in: { liana: 1, palmleaf: 2 }, t: 60, lv: 4 },
+    { out: 'torch',  in: { firewood: 1, palmleaf: 1 }, t: 40, lv: 4 },
+  ]},
   feedmill: { n: 'Máy xay thức ăn', lv: 1, cost: 60, rec: [
     { out: 'chickenfeed', qty: 3, in: { wheat: 2 }, t: 20, lv: 1 },
     { out: 'cowfeed',     qty: 3, in: { corn: 2 },  t: 30, lv: 4 },
     { out: 'pigfeed',     qty: 3, in: { carrot: 2 }, t: 40, lv: 7 },
   ]},
   bakery: { n: 'Lò bánh', lv: 2, cost: 120, rec: [
-    { out: 'bread',    in: { wheat: 3 }, t: 40, lv: 2 },
+    { out: 'bread',    in: { wheat: 3 }, t: 40, lv: 1 }, // cấp 1: lò bánh đổ nát sửa xong ở hướng dẫn là nướng được ngay
     { out: 'cookie',   in: { wheat: 2, egg: 1 }, t: 60, lv: 3 },
     { out: 'applepie', in: { wheat: 2, apple: 2 }, t: 80, lv: 5 },
     { out: 'cake',     in: { wheat: 2, egg: 2, milk: 1 }, t: 100, lv: 6 },
@@ -141,6 +176,41 @@ export const FACTORIES = {
     { out: 'lemontea', in: { lemon: 2, honey: 1 }, t: 80, lv: 10 },
   ]},
 };
+
+// ---------- Người giúp việc (2x2): tự gom vật liệu, kể cả lúc tắt game ----------
+// every: giây giữa hai món; gives: thứ tự các món gom được (lặp vòng); cap[lvl]: túi chứa tối đa;
+// up[lvl]: vật liệu nâng từ cấp lvl lên lvl + 1
+export const HELPERS = {
+  lumberjack: { n: 'Nhà tiều phu', lv: 2, cost: 80, every: 90, gives: ['wood', 'wood', 'bamboo', 'palmleaf', 'liana'], cap: [10, 20, 30],
+    up: [{ planks: 6, rope: 2 }, { planks: 12, rack: 4 }] },
+};
+
+// ---------- Công trường: vật liệu cần góp theo từng giai đoạn ----------
+// key '<k>:<t>' (xem keyOf trong build.js). Giai đoạn 1 chỉ dùng thứ lấy được ở cấp mở công trình (có test)
+const FAC_LATE = [{ planks: 10, stone: 10 }, { rope: 3, basket: 4 }, { torch: 4, reedmat: 4 }];
+export const BUILD = {
+  'fac:carpentry': [{ wood: 6, stone: 3 }],
+  'fac:feedmill':  [{ wood: 6, palmleaf: 4 }],
+  'fac:bakery':    [{ wood: 8, stone: 6 }, { planks: 4, palmleaf: 6 }],
+  'fac:weaving':   [{ wood: 10, bamboo: 6 }, { planks: 6, palmleaf: 8 }],
+  'fac:dairy':     [{ planks: 6, stone: 10 }, { reedmat: 3, firewood: 6 }],
+  'fac:juicebar':  [{ planks: 8, bamboo: 8 }, { basket: 4, rope: 2 }],
+  'fac:kitchen':   [{ stone: 14, planks: 8 }, { firewood: 8, clay: 6 }, { torch: 3, reedmat: 3 }],
+  'fac:seafood':   FAC_LATE, 'fac:sweets': FAC_LATE, 'fac:jammaker': FAC_LATE,
+  'pen:coop':      [{ wood: 6, palmleaf: 6 }],
+  'pen:cowpen':    [{ wood: 12, planks: 4 }, { rope: 2, palmleaf: 10 }],
+  'pen:pigpen':    [{ wood: 12, stone: 8 }, { planks: 6, rope: 3 }],
+  'pen:beehive':   [{ planks: 6, basket: 3 }],
+  'gate:bridge_w':   [{ wood: 10, bamboo: 8 }, { planks: 6, rope: 2 }],
+  'gate:bridge_n':   [{ planks: 12, rope: 4 }, { stone: 20, torch: 3 }],
+  'gate:stairs_old': [{ stone: 30, planks: 15 }, { rope: 6, torch: 6 }, { reedmat: 6, rack: 4 }],
+  'helper:lumberjack': [{ wood: 8, stone: 4 }],
+  'ruin:house':  [{ wood: 4, palmleaf: 4 }],
+  'ruin:bakery': [{ wood: 4, stone: 3 }],
+  'ruin:boat':   [{ planks: 3, palmleaf: 5 }],
+};
+// nhà máy chưa có trong bảng thì dùng giai đoạn của quán hải sản
+for (const t of Object.keys(FACTORIES)) BUILD['fac:' + t] ||= FAC_LATE;
 
 // ---------- Trang trí ----------
 // fit: cách thu phóng mô hình ({size}: bề ngang, {h}: chiều cao)
@@ -183,19 +253,46 @@ export const DECOR = {
   lighthouse:  { n: 'Ngọn hải đăng', lv: 10, cost: 600, model: 'pirate/tower-complete-small', fit: { size: 1.9 }, w: 2, d: 2 },
 };
 
-// ---------- Chướng ngại vật (dọn bằng năng lượng) ----------
+// ---------- Chướng ngại vật (chặt nhiều nhát, mỗi nhát tốn 1 năng lượng) ----------
+// hp: số nhát; drop: vật liệu rơi mỗi nhát {món: [min, max]}; rare: xác suất rơi thêm mỗi nhát;
+// chest: xác suất ra rương khi chặt xong; regrow: có thể mọc lại trong vùng mở (xem REGROW_MIX).
+// Hình (proc/model/fit) chỉ có ở 5 loại cũ; loại mới dùng hình tạm trong entities.js
 export const OBSTACLES = {
-  bush:  { n: 'Bụi rậm',  proc: 'bush', energy: 2, xp: 1 },
-  rock:  { n: 'Tảng đá',  model: 'kk/decoration/nature/rock_single_B.gltf', fit: { size: 0.85 }, energy: 4, xp: 2 },
-  stump: { n: 'Gốc cây',  model: 'nature/stump_round', fit: { size: 0.6 }, energy: 3, xp: 1 },
-  tree:  { n: 'Cây rừng', proc: 'tree', energy: 5, xp: 2 },
-  logs:  { n: 'Đống gỗ',  model: 'kk/decoration/props/resource_lumber.gltf', fit: { size: 0.8 }, energy: 3, xp: 1 },
+  grass:     { n: 'Bụi cỏ',     hp: 2,  drop: { palmleaf: [1, 1] }, chest: 0,    regrow: true },
+  bush:      { n: 'Bụi rậm',    hp: 2,  drop: { palmleaf: [1, 1] }, chest: 0.05, regrow: true, proc: 'bush' },
+  bamboo:    { n: 'Bụi tre',    hp: 3,  drop: { bamboo: [1, 1] },   rare: { liana: 0.15 }, chest: 0.05, regrow: true },
+  stump:     { n: 'Gốc cây',    hp: 3,  drop: { wood: [1, 1] },     chest: 0.1,  regrow: true, model: 'nature/stump_round', fit: { size: 0.6 } },
+  logs:      { n: 'Đống gỗ',    hp: 3,  drop: { wood: [1, 2] },     chest: 0.1,  model: 'kk/decoration/props/resource_lumber.gltf', fit: { size: 0.8 } },
+  rock:      { n: 'Tảng đá',    hp: 4,  drop: { stone: [1, 1] },    chest: 0.15, regrow: true, model: 'kk/decoration/nature/rock_single_B.gltf', fit: { size: 0.85 } },
+  claymound: { n: 'Gò đất sét', hp: 4,  drop: { clay: [1, 1] },     chest: 0.15, regrow: true },
+  tree:      { n: 'Cây rừng',   hp: 6,  drop: { wood: [1, 1] },     rare: { liana: 0.25 }, chest: 0.3, proc: 'tree' },
+  bigtree:   { n: 'Cây cổ thụ', hp: 12, drop: { wood: [1, 2] },     rare: { liana: 0.3 },  chest: 0.6 },
+  bigrock:   { n: 'Tảng đá lớn', hp: 12, drop: { stone: [1, 2] },   chest: 0.6 },
 };
+
+// Vật cản mọc lại trong vùng đang mở (lặp lại một loại = hay mọc hơn): nguồn vật liệu thô không bao giờ cạn,
+// kể cả bản cũ đã dọn sạch vùng lõi (dây leo rơi hiếm từ bụi tre; đá, đất sét, gỗ thỉnh thoảng mới có).
+// Mọi loại ở đây phải có regrow: true (có test)
+export const REGROW_MIX = ['grass', 'bush', 'bamboo', 'grass', 'bush', 'bamboo', 'stump', 'rock', 'claymound'];
+
+// Loại vật cản mọc ở từng vùng (lặp lại một loại = tỉ lệ cao hơn)
+const MIX_LOW = ['grass', 'bush', 'bamboo', 'stump', 'logs', 'rock', 'claymound', 'tree'];
+const MIX_HIGH = [...MIX_LOW, 'bigtree', 'bigrock'];
+export const JUNGLE_MIX = { core: MIX_LOW, west: MIX_LOW, north: MIX_HIGH, old: MIX_HIGH };
 
 // Giá mua ô ruộng thứ n (n tính từ 0)
 export const fieldCost = n => (n < 6 ? 0 : 10 + (n - 6) * 6);
 export const xpNeed = l => 10 + l * 12;
-export const ENERGY_MAX = 30, ENERGY_REGEN = 30; // giây hồi 1 năng lượng
+// Năng lượng tự hồi tới giới hạn theo cấp (quà, rương, bãi biển, món ăn thì được vượt)
+export const energyMax = level => 30 + Math.floor(level / 2);
+export const ENERGY_REGEN = 30; // giây hồi 1 năng lượng
+// Đồ nhặt trên bãi cát quanh đảo: chạm để nhận năng lượng
+export const BEACH = {
+  starfish: { n: 'Sao biển', energy: 2 },
+  shell:    { n: 'Vỏ sò',    energy: 3 },
+  crab:     { n: 'Cua nhỏ',  energy: 5 },
+};
+export const BEACH_MAX = 6, BEACH_EVERY = 240; // tối đa 6 món; cứ 240 giây thêm một món
 export const BARN_BASE = 60, BARN_STEP = 25;
 export const barnUpgradeCost = lvl => 50 + lvl * 60;
 
@@ -239,6 +336,24 @@ export const QUESTS = [
   { who: 'ben', text: 'Tiệm bánh ngọt mở cửa! Làm 2 chiếc bánh vòng nào.', ev: 'make', key: 'donut', n: 2, coins: 120, xp: 28, lv: 9 },
   { who: 'maisie', text: 'Làm mứt dâu tặng mọi người trên đảo nhé! Làm 2 hũ.', ev: 'make', key: 'jam', n: 2, coins: 140, xp: 30, gems: 3, lv: 10 },
 ];
+
+// ---------- Hướng dẫn đầu game (chỉ ván mới) ----------
+// Cùng cấu trúc QUESTS; ev 'build' với key công trình (xem keyOf trong build.js), 'sail' đếm khi mở màn Phiêu lưu.
+// energy: thưởng thêm năng lượng. Xong hết thì chạy tiếp QUESTS từ đầu.
+export const TUTORIAL = [
+  { who: 'maisie', text: 'Bão làm nhà mình hỏng mất rồi! Góp gỗ và lá cọ để sửa nhà nhé.', ev: 'build', key: 'ruin:house', n: 1, coins: 20, xp: 6, energy: 10 },
+  { who: 'maisie', text: 'Nhà đẹp lại rồi! Thu hoạch 3 lúa mì nào.', ev: 'harvest', key: 'wheat', n: 3, coins: 15, xp: 5 },
+  { who: 'tom', text: 'Gà đói rồi! Ra máy xay làm thức ăn rồi cho gà ăn nhé.', ev: 'feed', n: 1, coins: 20, xp: 6 },
+  { who: 'maisie', text: 'Chặt 3 bụi cây hoặc cây rừng để lấy vật liệu nhé.', ev: 'clear', n: 3, coins: 20, xp: 6 },
+  { who: 'ben', text: 'Lò bánh bị đổ rồi. Sửa giúp anh nhé!', ev: 'build', key: 'ruin:bakery', n: 1, coins: 30, xp: 8, energy: 10 },
+  { who: 'ben', text: 'Nướng 1 ổ bánh mì. Ăn bánh mì sẽ có thêm năng lượng đó!', ev: 'make', key: 'bread', n: 1, coins: 25, xp: 8 },
+  { who: 'sam', text: 'Mua Xưởng mộc ở cửa hàng và xây xong nhé.', ev: 'build', key: 'fac:carpentry', n: 1, coins: 30, xp: 10 },
+  { who: 'sam', text: 'Làm 3 tấm ván gỗ ở Xưởng mộc.', ev: 'make', key: 'planks', n: 3, coins: 30, xp: 10 },
+  { who: 'sam', text: 'Sửa chiếc thuyền ở bến để ra khơi!', ev: 'build', key: 'ruin:boat', n: 1, coins: 40, xp: 12, energy: 10 },
+  { who: 'maisie', text: 'Thuyền xong rồi! Mình cùng ra khơi phiêu lưu nào!', ev: 'sail', n: 1, coins: 40, xp: 12 },
+];
+// Đồ đổ nát của ván mới: t -> k của vật sau khi sửa (khóa công trường 'ruin:<t>')
+export const RUINS = { house: 'house', bakery: 'fac', boat: 'boat' };
 
 // ---------- Đảo phiêu lưu ----------
 // Mỗi đảo là lưới w x h; bắt đầu ở mép trước (gần bến thuyền), đích ở cuối đảo.
@@ -331,9 +446,22 @@ export const BUILDING_MODELS = {
   kitchen:  { model: KK('home_A', 'green'), size: 1.6, rot: 0 },
   sweets:   { model: KK('market', 'yellow'), size: 1.9, rot: 0 },
   jammaker: { model: KK('home_B', 'yellow'), size: 1.6, rot: 0 },
+  // Hình tạm cho hai xưởng vật liệu: nhà kho / chợ thu nhỏ
+  carpentry: { model: KK('home_A', 'red'), size: 1.4, rot: 0 },
+  weaving:   { model: KK('market', 'red'), size: 1.5, rot: 0 },
+};
+// Hình 2D tạm của nhà máy chưa có ảnh riêng: mượn hình có sẵn, thu nhỏ
+export const FAC_SPRITE = {
+  carpentry: { sprite: 'barn', scale: 0.75 },
+  weaving: { sprite: 'market', scale: 0.75 },
+};
+// Hình 2D tạm của người giúp việc: mượn hình có sẵn, thu nhỏ
+export const HELPER_SPRITE = {
+  lumberjack: { sprite: 'tent', scale: 1.5 },
 };
 
 // Đường gạch và luống hoa trang trí sẵn quanh nhà (kiểu Family Farm)
+// Tọa độ ô theo vùng lõi cũ; khi dùng phải cộng OFF
 export const STARTER_DECOR = [
   ...[7, 8, 9, 10, 11].map(z => ['path', 12, z]),
   ...[7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18].map(x => ['path', x, 12]),
