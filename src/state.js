@@ -55,6 +55,11 @@ export function findFree(w, d, nearX = OFF + CORE / 2, nearZ = OFF + CORE / 2) {
   }
   return best;
 }
+// Không còn chỗ trống w x d nào trong vùng mở: câu giải thích cho bé thay vì để bé kéo mãi không đặt được (null nếu còn chỗ)
+export function noRoom(w, d) {
+  if (findFree(w, d)) return null;
+  return `Đảo chưa còn chỗ trống ${w}×${d} ô. Chặt bớt bụi cây, hoặc cất bớt đồ trang trí vào túi 📦 rồi đặt nhé!`;
+}
 
 // ---------- Kho ----------
 export const have = k => S.inv[k] || 0;

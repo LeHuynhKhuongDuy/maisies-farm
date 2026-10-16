@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, HELPERS, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES, FAC_SPRITE,
   fieldCost, xpNeed, energyMax, barnUpgradeCost } from './data.js';
-import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, have, add, hasAll, take,
+import { S, now, rnd, pick, emit, on, save, footprint, isFree, findFree, noRoom, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
   currentQuest, questEvent, claimQuest, inTutorial, newId, resetGame, exportSave, importSave } from './state.js';
 import { W, groundAt, pickAt, toScreen, worldToCell, cellToWorld, focusOn, flyCamTo } from './world.js';
@@ -595,7 +595,7 @@ function openShop(tab = shopTab) {
 }
 function buy(id) {
   const it = shopItems(shopTab).find(x => x.id === id); if (!it) return;
-  if (it.stored) { const t = id.split(':')[1]; startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t; return; }
+  if (it.stored) { const t = id.split(':')[1]; if (startPlace({ k: 'decor', t, r: 0 }, true, 0)) placing.fromStore = t; return; }
   if (S.level < it.lv) { toast(`Mở ở cấp ${it.lv}`); sfx('no'); return; }
   if (it.max) { toast(it.note); sfx('no'); return; }
   if (S.coins < it.cost) { toast(`Cần thêm ${it.cost - S.coins} xu nữa`); sfx('no'); return; }
@@ -628,6 +628,7 @@ function buyAnimal(t, penId) {
 // ============ Đặt / di chuyển vật thể ============
 let placing = null, marker = null;
 function startPlace(obj, isNew, cost = 0) {
+  if (isNew) { const [w, d] = footprint(obj), msg = noRoom(w, d); if (msg) { toast(msg); sfx('no'); return; } }
   closeModal(); closeTray(); closeTimer();
   if (isNew) {
     const [w, d] = footprint(obj);
@@ -648,6 +649,7 @@ function startPlace(obj, isNew, cost = 0) {
   updateGhost();
   focusOn(placing.view.root.position);
   drawPlaceTray();
+  return true;
 }
 // Vật đang đặt: vẽ sau ô đánh dấu và không bị vật đứng trước che; chỗ vướng thì hình 2D ửng đỏ
 function ghostLook(v, on, ok = true) {
@@ -908,7 +910,7 @@ const ACT = {
   claimdaily(b, x, y) { claimDaily(x, y); },
   placestored(b) {
     const t = b.dataset.k; if (!(S.store?.[t] > 0)) return;
-    startPlace({ k: 'decor', t, r: 0 }, true, 0); placing.fromStore = t;
+    if (startPlace({ k: 'decor', t, r: 0 }, true, 0)) placing.fromStore = t;
   },
   make(b, x, y) { makeRecipe(byId(+b.dataset.oid), +b.dataset.i, x, y); },
   helperup(b, x, y) { upgradeHelper(byId(+b.dataset.oid), x, y); },

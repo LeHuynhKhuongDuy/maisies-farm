@@ -69,7 +69,8 @@ export const basicDrop = o => ['wood', 'stone', 'palmleaf'].some(k => OBSTACLES[
 
 // ---------- Mọc lại ----------
 export const REGROW_EVERY = 180, REGROW_MIN = 8; // giây; số vật cản mọc lại tối thiểu trong các vùng đang mở
-// Cứ REGROW_EVERY giây xem một lần: vùng mở còn ít bụi thì mọc một vật cản (theo REGROW_MIX) ở ô trống, không sát công trình.
+// Cứ REGROW_EVERY giây xem một lần: vùng mở còn ít bụi thì mọc một vật cản (theo REGROW_MIX) ở ô trống,
+// ưu tiên ô không sát công trình; nông trại kín đồ thì mọc sát cũng được.
 // S.regrowAt = mốc lần xem tới (ms). Trả về vật cản mới (đã vào S.objs) hoặc null.
 export function regrowTick(t, rand = Math.random) {
   if (S.regrowAt == null) { S.regrowAt = t + REGROW_EVERY * 1000; return null; }
@@ -77,20 +78,24 @@ export function regrowTick(t, rand = Math.random) {
   S.regrowAt = t + REGROW_EVERY * 1000;
   const n = S.objs.filter(o => o.k === 'obstacle' && OBSTACLES[o.t]?.regrow && isOpenCell(o.x, o.z)).length;
   if (n >= REGROW_MIN) return null;
-  // ô bị chiếm, và vòng 1 ô quanh mọi công trình (mọi thứ không phải vật cản)
-  const taken = occupancy(), near = new Set();
+  // ô bị chiếm; chỗ khách đứng, chân bến tàu, cầu câu cá không bao giờ mọc;
+  // ưu tiên ô không kề công trình (vòng 1 ô quanh mọi thứ không phải vật cản)
+  const taken = occupancy(), keep = new Set(), near = new Set();
   for (const o of S.objs) {
     if (o.k === 'obstacle') continue;
     const [w, d] = footprint(o);
     for (let i = -1; i <= w; i++) for (let j = -1; j <= d; j++) near.add((o.x + i) + ',' + (o.z + j));
   }
-  for (const v of S.visitors || []) near.add(v.x + ',' + v.z);
-  near.add((17 + OFF) + ',' + (GRID - 1)); near.add((GRID - 1) + ',' + (9 + OFF)); // chân bến tàu, cầu câu cá
-  const cells = [];
+  for (const v of S.visitors || []) keep.add(v.x + ',' + v.z);
+  keep.add((17 + OFF) + ',' + (GRID - 1)); keep.add((GRID - 1) + ',' + (9 + OFF)); // chân bến tàu, cầu câu cá
+  const strict = [], relaxed = [];
   for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) {
     const key = x + ',' + z;
-    if (!taken.has(key) && !near.has(key) && isOpenCell(x, z)) cells.push([x, z]);
+    if (taken.has(key) || keep.has(key) || !isOpenCell(x, z)) continue;
+    (near.has(key) ? relaxed : strict).push([x, z]);
   }
+  // nông trại cũ kín đồ (trang trí, ruộng sát nhau): không còn ô xa công trình thì mọc sát cũng được, để không bao giờ cạn vật liệu
+  const cells = strict.length ? strict : relaxed;
   if (!cells.length) return null;
   const [x, z] = cells[Math.min(cells.length - 1, Math.floor(rand() * cells.length))];
   const type = REGROW_MIX[Math.min(REGROW_MIX.length - 1, Math.floor(rand() * REGROW_MIX.length))];

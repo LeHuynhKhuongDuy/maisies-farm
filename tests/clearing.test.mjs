@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, obstacle, fillBarnToCap, put } from './helpers.mjs';
-import { S, have, barnUsed, barnRoom } from '../src/state.js';
-import { OBSTACLES, ITEMS, JUNGLE_MIX, REGROW_MIX } from '../src/data.js';
+import { S, have, barnUsed, barnRoom, occupancy, findFree, noRoom } from '../src/state.js';
+import { GRID, OBSTACLES, ITEMS, JUNGLE_MIX, REGROW_MIX } from '../src/data.js';
 import { hitObstacle, rollChest, openChest, regrowTick } from '../src/clearing.js';
 import { isOpenCell, zoneAt } from '../src/island.js';
 
@@ -103,4 +103,34 @@ test('chặt liên tục tới hết năng lượng thì dừng, không âm', ()
   fresh({ energy: 3 }); const o = obstacle('bigtree'); let n = 0;
   while (hitObstacle(o, () => 0.99)) n++;
   assert.equal(n, 3); assert.equal(S.energy, 0); assert.equal(o.hp, 9);
+});
+
+// ---- Nông trại cũ kín đồ: mọi ô trống đều kề công trình / đồ trang trí ----
+function packCore() {
+  fresh(); S.objs = S.objs.filter(o => !(o.k === 'obstacle' && isOpenCell(o.x, o.z))); S.visitors = [];
+  const occ = occupancy();
+  for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++)
+    if ((x + z) % 2 === 0 && isOpenCell(x, z) && !occ.has(x + ',' + z)) S.objs.push({ id: ++S.nextId, k: 'decor', t: 'path', x, z, r: 0 });
+}
+test('nông trại kín đồ (ô trống nào cũng kề đồ trang trí): vẫn mọc lại được, vào ô trống của vùng mở', () => {
+  packCore(); S.regrowAt = 0;
+  const occ = occupancy();
+  const o = regrowTick(200_000, () => 0.5);
+  assert.ok(o, 'phải mọc được ở chỗ kề đồ trang trí'); assert.ok(isOpenCell(o.x, o.z)); assert.ok(!occ.has(o.x + ',' + o.z));
+  assert.ok(REGROW_MIX.includes(o.t));
+});
+test('mọc lại không bao giờ vào chỗ khách đứng, chân bến tàu, cầu câu cá (kể cả khi kín đồ)', () => {
+  packCore(); const occ = occupancy(), free = [];
+  for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) if (isOpenCell(x, z) && !occ.has(x + ',' + z)) free.push([x, z]);
+  // chặn hết chỉ chừa một ô cho khách đứng: không mọc
+  const [vx, vz] = free.pop();
+  for (const [x, z] of free) S.objs.push({ id: ++S.nextId, k: 'decor', t: 'path', x, z, r: 0 });
+  S.visitors = [{ id: 1, x: vx, z: vz }]; S.regrowAt = 0;
+  assert.equal(regrowTick(200_000, () => 0.5), null);
+});
+test('nông trại kín đồ: không có chỗ 2x2 thì cửa hàng báo rõ cho bé (noRoom), còn chỗ 1x1 thì không báo', () => {
+  packCore();
+  assert.equal(findFree(2, 2), null);
+  assert.match(noRoom(2, 2), /chỗ trống 2×2/); assert.match(noRoom(2, 2), /cất bớt đồ trang trí/);
+  assert.equal(noRoom(1, 1), null);
 });
