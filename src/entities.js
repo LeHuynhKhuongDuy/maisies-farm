@@ -114,8 +114,10 @@ export function cropStage(o, t) {
 
 function fieldView(o) {
   const root = new THREE.Group();
-  root.add(raisedBed());
-  const plant = new THREE.Group(); plant.position.y = 0.12; root.add(plant);
+  // hình vẽ tay đã có sẵn luống gỗ: ô trống = 'soil', đang lớn = 'sprout', chín = hình cây trồng
+  const beds = hasSprite('soil');
+  if (!beds) root.add(raisedBed());
+  const plant = new THREE.Group(); plant.position.y = beds ? 0 : 0.12; root.add(plant);
   const star = sparkle(); star.visible = false; root.add(star);
   let key = '';
   return {
@@ -125,6 +127,11 @@ function fieldView(o) {
       if (k === key) return;
       key = k; plant.clear();
       star.visible = st === 3;
+      if (beds) {
+        const name = st < 0 ? 'soil' : st === 3 && hasSprite(o.crop) ? o.crop : 'sprout';
+        plant.add(art(name, 1, 1, { shadow: false }));
+        return;
+      }
       if (st < 0) return;
       const c = CROPS[o.crop], model = c.stages[st === 3 ? 2 : st];
       const sp = st === 3 ? (hasSprite(o.crop) ? o.crop : null) : (hasSprite('sprout') ? 'sprout' : null);
