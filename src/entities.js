@@ -553,7 +553,10 @@ function gateView(o) {
   const n = o.site ? o.site.stage : 9; // số giai đoạn đã xong (9 = xây xong)
   const bamboo = o.t === 'bridge_w', plank = bamboo ? 0xc9b25a : 0xb07a45, post = bamboo ? 0x8fa83a : 0x7a4f26;
   const g = new THREE.Group(); root.add(g);
-  if (stairs) { // bậc đá lên Rừng già (phía -z)
+  // có hình vẽ tay thì dùng: bản hỏng khi đang sửa, bản lành khi đã sửa xong
+  const pic = art(o.site ? o.t + '_broken' : o.t, 2, 1);
+  if (pic) g.add(pic);
+  else if (stairs) { // bậc đá lên Rừng già (phía -z)
     const steps = o.site ? 1 + n : 3;
     for (let i = 0; i < 3; i++) {
       const ok = i < steps, st = box(1.7 - i * 0.12, 0.22 * (i + 1), 0.32, ok ? 0xb9b4a8 : 0x9a958a);
