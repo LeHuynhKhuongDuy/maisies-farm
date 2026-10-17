@@ -508,7 +508,8 @@ const RUIN_TINT = new THREE.Color(0x8c7a68);
 function ruinView(o) {
   const root = new THREE.Group(), [w, d] = footprint(o), s = Math.min(w, d);
   // có hình vẽ tay riêng của nhà đổ nát thì dùng luôn, không cần tô tối và làm nghiêng
-  const pic = o.k === 'house' && art('ruin_house', w, d);
+  const ruinArt = o.k === 'house' ? 'ruin_house' : o.k === 'boat' ? 'ruin_boat' : o.k === 'fac' && o.t === 'bakery' ? 'ruin_bakery' : null;
+  const pic = ruinArt && art(ruinArt, w, d);
   if (pic) { root.add(pic); return { root }; }
   const body = createView({ ...o, site: undefined }).root; root.add(body);
   body.traverse(m => {
