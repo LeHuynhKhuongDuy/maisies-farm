@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Maisie's Farm</title>
+  <meta name="theme-color" content="#5fd0e0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Maisie's Farm">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap">
+  <script type="module" crossorigin src="/maisies-farm/assets/index-63CG_qRt.js"></script>
+  <link rel="stylesheet" crossorigin href="/maisies-farm/assets/index-ngwn8mTs.css">
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="loading">
+    <div class="logo">Maisie's<br><span>Farm</span></div>
+    <div class="loadbar"><i id="loadfill"></i></div>
+    <p id="loadtxt">Đang chuẩn bị nông trại…</p>
+  </div>
+
+  <div id="bubbles" aria-hidden="true"></div>
+
+  <div id="hud" hidden>
+    <div class="tl">
+      <div class="lvl" id="lvlBox">
+        <span class="star"><b id="lv">1</b></span>
+        <div class="xpbar"><i id="xpfill"></i><span id="xptxt">0/22</span></div>
+      </div>
+      <button class="questbtn" id="questBtn" aria-label="Nhiệm vụ"><img id="questFace" alt=""><span class="badge" id="questBadge">!</span></button>
+      <button class="sidebtn" id="btnEvent" aria-label="Lễ hội Biển"><img id="evIco" alt=""><b id="evPts">0</b><span class="badge" id="evBadge" hidden>!</span><small>Lễ hội</small></button>
+      <button class="sidebtn" id="btnColl" aria-label="Sổ sưu tập"><span class="ico book"></span><span class="badge ok" id="collBadge" hidden>✓</span><small>Sưu tập</small></button>
+    </div>
+    <div class="tr">
+      <div class="pill" id="coinPill"><span class="ico coin"></span><b id="coins">0</b></div>
+      <div class="pill" id="gemPill"><span class="ico gem"></span><b id="gems">0</b></div>
+    </div>
+    <div class="tc">
+      <button class="pill energy" id="energyPill" aria-label="Năng lượng"><span class="efill"><i id="efill"></i></span><span class="ico bolt"></span><b id="energy">30/30</b></button>
+    </div>
+    <div class="br">
+      <button class="rbtn small" id="btnSet" aria-label="Cài đặt"><span class="ico gear"></span></button>
+      <button class="rbtn" id="btnBarn" aria-label="Kho"><img id="barnIco" alt=""><small>Kho</small></button>
+      <button class="rbtn big" id="btnShop" aria-label="Cửa hàng"><span class="ico cart"></span><small>Cửa hàng</small></button>
+    </div>
+    <button class="rbtn advbtn nbbtn" id="btnNb" aria-label="Hàng xóm"><span class="ico friends"></span><small>Hàng xóm</small></button>
+    <button class="rbtn advbtn" id="btnAdv" aria-label="Phiêu lưu"><span class="ico map"></span><small>Phiêu lưu</small></button>
+    <button class="giftbtn" id="btnGift" hidden aria-label="Quà mỗi ngày">🎁</button>
+  </div>
+
+  <div id="advHud" hidden></div>
+  <div id="tray" hidden></div>
+
+  <div id="modal" hidden>
+    <div class="scrim" data-close></div>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet-head"><h2 id="mTitle"></h2><button class="xbtn" data-close aria-label="Đóng">✕</button></div>
+      <div class="sheet-body" id="mBody"></div>
+    </div>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="fx" aria-hidden="true"></div>
+
+</body>
+</html>
