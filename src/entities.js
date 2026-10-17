@@ -917,7 +917,10 @@ function shell() {
   const g = new THREE.Group(); g.add(sp); return g;
 }
 function beachBody(kind) {
-  if (kind === 'crab') { const c = bodyOf('crab', 'pets/animal-crab', { h: 0.42 }); if (c.userData.isArt) c.scale.setScalar(1.4); return c; } // hình cua (thú cưng) dùng tạm
+  if (kind === 'crab') { const c = bodyOf('crab', 'pets/animal-crab', { h: 0.42 }); if (c.userData.isArt) c.scale.setScalar(1.4); return c; }
+  // sao biển, vỏ sò vẽ tay (vỏ sò bãi biển tên 'beachshell' để khỏi trùng biểu tượng vật phẩm 'shell')
+  const pic = art(kind === 'shell' ? 'beachshell' : 'starfish', 1, 1, { shadow: false });
+  if (pic) return pic;
   return kind === 'shell' ? shell() : starfish();
 }
 export function beachPos(spot) { const p = cellToWorld(spot.x, spot.z); p.y = SAND_Y; return p; }
@@ -958,7 +961,7 @@ export function updateBeach(t) {
     v.root.scale.setScalar(g < 1 ? g * (1 + Math.sin(g * Math.PI) * 0.25) : 1);
     v.st.position.y = 0.9 + Math.sin(t * 3 + v.ph) * 0.08;
     if (v.kind === 'crab') { v.body.position.x = Math.sin(t * 1.3 + v.ph) * 0.18; if (v.body.userData.isArt) animateArt(v.body, t, 'walk', v.ph); }
-    else if (v.kind === 'starfish') v.body.rotation.y = Math.sin(t * 0.8 + v.ph) * 0.25;
+    else if (v.kind === 'starfish' && !v.body.userData.plane) v.body.rotation.y = Math.sin(t * 0.8 + v.ph) * 0.25;
     else v.body.position.y = Math.abs(Math.sin(t * 2 + v.ph)) * 0.05;
   }
 }

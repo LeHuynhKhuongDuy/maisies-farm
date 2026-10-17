@@ -467,7 +467,7 @@ export const STARTER_DECOR = [
 
 // Hình 2D vẽ tay (AI vẽ, ảnh trong public/sprites). width: bề rộng ảnh tính theo ô đất.
 export const SPRITE_ART = {
-  house: { width: 3.7 }, ruin_house: { width: 3.7 }, carpentry: { width: 2.6 }, weaving: { width: 2.6 }, lumberjack: { width: 2.5 }, scaffold: { width: 2.2 }, ruin_bakery: { width: 2.6 }, ruin_boat: { width: 1.9 }, bridge_w: { width: 2.3 }, bridge_w_broken: { width: 2.3 }, bridge_n: { width: 2.3 }, bridge_n_broken: { width: 2.3 }, stairs_old: { width: 2.1 }, stairs_old_broken: { width: 2.1 }, jungletree: { width: 1.85 }, bigtree: { width: 2.4 }, claymound: { width: 1.0 }, bigrock: { width: 1.5 }, bamboo: { width: 1.05 }, barn: { width: 2.7 }, feedmill: { width: 2.9 }, bakery: { width: 2.6 },
+  house: { width: 3.7 }, ruin_house: { width: 3.7 }, carpentry: { width: 2.6 }, weaving: { width: 2.6 }, lumberjack: { width: 2.5 }, scaffold: { width: 2.2 }, ruin_bakery: { width: 2.6 }, ruin_boat: { width: 1.9 }, bridge_w: { width: 2.3 }, bridge_w_broken: { width: 2.3 }, bridge_n: { width: 2.3 }, bridge_n_broken: { width: 2.3 }, stairs_old: { width: 2.1 }, stairs_old_broken: { width: 2.1 }, jungletree: { width: 1.85 }, bigtree: { width: 2.4 }, claymound: { width: 1.0 }, bigrock: { width: 1.5 }, starfish: { width: 0.6 }, beachshell: { width: 0.55 }, bamboo: { width: 1.05 }, barn: { width: 2.7 }, feedmill: { width: 2.9 }, bakery: { width: 2.6 },
   market: { width: 2.7 }, board: { width: 2.0 }, coop: { width: 1.25 }, cowshed: { width: 1.7 }, pigsty: { width: 1.6 },
   chicken: { width: 0.55 }, cow: { width: 1.05 }, pig: { width: 0.85 },
   wheat: { width: 1.35 }, corn: { width: 1.35 }, carrot: { width: 1.35 }, sprout: { width: 1.35 },
