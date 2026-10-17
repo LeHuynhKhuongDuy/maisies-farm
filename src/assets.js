@@ -80,10 +80,7 @@ const B_ICON = { windmill: 'feedmill', 'stall-red': 'market', 'stall-green': 'ju
 // Biểu tượng vẽ tay (nếu có) thay cho ảnh chụp mô hình 3D
 const ITEM_DIR = import.meta.env.BASE_URL + 'items/';
 const sp = name => (name && hasSprite(name) ? spriteUrl(name) : null);
-// Vật liệu chưa có hình vẽ tay: tạm dùng sprite gần nghĩa (xóa dòng khi đã có public/items/<id>.webp)
-const ITEM_ART_FALLBACK = { reedmat: 'haysack', basket: 'haysack', rope: 'fishingrod', torch: 'campfire' };
 function paintedIcon(id) {
-  if (ITEM_ART_FALLBACK[id]) return sp(ITEM_ART_FALLBACK[id]);
   if (ITEMS[id]) return ITEM_DIR + id + '.webp';
   const [kind, key] = id.split(':');
   switch (kind) {
