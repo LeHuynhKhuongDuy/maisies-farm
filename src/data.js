@@ -453,9 +453,7 @@ export const BUILDING_MODELS = {
 // Hình 2D tạm của nhà máy chưa có ảnh riêng: mượn hình có sẵn, thu nhỏ
 export const FAC_SPRITE = {}; // xưởng nào chưa có hình riêng thì mượn hình có sẵn: { sprite, scale }
 // Hình 2D tạm của người giúp việc: mượn hình có sẵn, thu nhỏ
-export const HELPER_SPRITE = {
-  lumberjack: { sprite: 'tent', scale: 1.5 },
-};
+export const HELPER_SPRITE = {}; // người giúp việc chưa có hình riêng thì mượn hình có sẵn: { sprite, scale }
 
 // Đường gạch và luống hoa trang trí sẵn quanh nhà (kiểu Family Farm)
 // Tọa độ ô theo vùng lõi cũ; khi dùng phải cộng OFF
@@ -469,7 +467,7 @@ export const STARTER_DECOR = [
 
 // Hình 2D vẽ tay (AI vẽ, ảnh trong public/sprites). width: bề rộng ảnh tính theo ô đất.
 export const SPRITE_ART = {
-  house: { width: 3.7 }, ruin_house: { width: 3.7 }, carpentry: { width: 2.6 }, weaving: { width: 2.6 }, jungletree: { width: 1.7 }, bamboo: { width: 1.05 }, barn: { width: 2.7 }, feedmill: { width: 2.9 }, bakery: { width: 2.6 },
+  house: { width: 3.7 }, ruin_house: { width: 3.7 }, carpentry: { width: 2.6 }, weaving: { width: 2.6 }, lumberjack: { width: 2.5 }, jungletree: { width: 1.7 }, bamboo: { width: 1.05 }, barn: { width: 2.7 }, feedmill: { width: 2.9 }, bakery: { width: 2.6 },
   market: { width: 2.7 }, board: { width: 2.0 }, coop: { width: 1.25 }, cowshed: { width: 1.7 }, pigsty: { width: 1.6 },
   chicken: { width: 0.55 }, cow: { width: 1.05 }, pig: { width: 0.85 },
   wheat: { width: 1.3 }, corn: { width: 1.3 }, carrot: { width: 1.3 }, sprout: { width: 1.2 },

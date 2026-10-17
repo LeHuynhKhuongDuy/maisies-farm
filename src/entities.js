@@ -294,7 +294,7 @@ function helperView(o) {
   const root = new THREE.Group();
   root.add(yardPatch(1.9));
   const alias = HELPER_SPRITE[o.t];
-  const pic = art(alias.sprite, 2, 2, { scale: alias.scale }); if (pic) root.add(pic);
+  const pic = alias ? art(alias.sprite, 2, 2, { scale: alias.scale }) : art(o.t, 2, 2); if (pic) root.add(pic);
   const mk = (x, z, sc) => { const l = art('logs', 0.7, 0.7, { scale: sc }) || make('kk/decoration/props/resource_lumber.gltf', { size: 0.6 }); l.position.set(x, 0, z); root.add(l); return l; };
   mk(-0.6, 0.6, 0.8); // đống gỗ sẵn có
   const more = [mk(0.65, 0.65, 0.9), mk(0.35, 0.85, 0.7)]; more.forEach(m => m.visible = false);
