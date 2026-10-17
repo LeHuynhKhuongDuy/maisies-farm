@@ -432,7 +432,7 @@ export function shake(oid) { const v = VIEWS.get(oid); if (v) v.shakeT = perform
 
 // Hình tạm cho loại mới (tới khi có hình vẽ riêng): [hình, màu tô, phóng to]
 const OBSTACLE_ART = { bush: ['bush'], rock: ['rock'], tree: ['jungletree'], stump: ['stump'], logs: ['logs'],
-  grass: ['grasstuft'], bamboo: ['bamboo'], claymound: ['rock', 0xe0a070], bigtree: ['bigtree'], bigrock: ['rock', null, 1.4] };
+  grass: ['grasstuft'], bamboo: ['bamboo'], claymound: ['claymound'], bigtree: ['bigtree'], bigrock: ['bigrock'] };
 // Không có hình 2D thì dùng mô hình 3D của loại cũ gần nghĩa
 const OBSTACLE_BASE = { grass: 'bush', bamboo: 'bush', claymound: 'rock', bigtree: 'tree', bigrock: 'rock' };
 function obstacleView(o) {
