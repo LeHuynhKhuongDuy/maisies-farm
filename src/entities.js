@@ -473,6 +473,9 @@ function lootView(o) {
 function siteView(o) {
   const root = new THREE.Group(), [w, d] = footprint(o), s = Math.min(w, d);
   root.add(yardPatch(s * 0.95));
+  // có hình giàn giáo vẽ tay: to dần theo giai đoạn, cỡ theo ô đất của công trình
+  const pic = art('scaffold', w, d, { scale: (s / 2) * (0.85 + 0.1 * Math.min(o.site.stage || 0, 2)) });
+  if (pic) { root.add(pic); return { root }; }
   const g = new THREE.Group(); root.add(g);
   const side = s * 0.5, h = 0.8 + 0.3 * (o.site.stage || 0), wood = 0xb07a45, dark = 0x8a5a2b;
   for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { // cột
