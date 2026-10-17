@@ -626,6 +626,10 @@ function cloudTexture() {
   sh.addColorStop(0, 'rgba(160,185,215,0)'); sh.addColorStop(0.55, 'rgba(160,185,215,.18)'); sh.addColorStop(1, 'rgba(140,165,200,.6)');
   x.fillStyle = sh; x.fillRect(0, 0, 128, 128);
   cloudTex = new THREE.CanvasTexture(c); cloudTex.colorSpace = THREE.SRGBColorSpace;
+  // Có ảnh mây vẽ tay thì vẽ đè lên tấm mây dựng sẵn
+  const ci = new Image();
+  ci.onload = () => { c.width = ci.width; c.height = ci.height; x.drawImage(ci, 0, 0); cloudTex.dispose(); cloudTex.needsUpdate = true; };
+  ci.src = import.meta.env.BASE_URL + 'textures/cloud.webp';
   return cloudTex;
 }
 function cloudMesh(Z, i) {
@@ -633,19 +637,19 @@ function cloudMesh(Z, i) {
   const q = new THREE.Object3D(); q.lookAt(Math.sin(AZ) * Math.cos(EL), Math.sin(EL), Math.cos(AZ) * Math.cos(EL));
   const right = new THREE.Vector3(1, 0, 0).applyQuaternion(q.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(q.quaternion);
   const toCam = new THREE.Vector3(0, 0, 1).applyQuaternion(q.quaternion);
-  const step = 1.5;
+  const step = 2.1;
   for (let layer = 0; layer < 2; layer++) for (let gx = x0 + 0.6; gx < x0 + w - 0.2; gx += step) for (let gz = z0 + 0.6; gz < z0 + d - 0.2; gz += step) {
     const px = gx + (rand() - 0.5) * 0.9 + layer * 0.7, pz = gz + (rand() - 0.5) * 0.9 + layer * 0.7;
     if (px > x0 + w - 0.4 || pz > z0 + d - 0.4) continue; // không tràn sang vùng đã mở
     const p = new THREE.Vector3(px - GRID / 2, 0.55 + layer * 0.75 + rand() * 0.35, pz - GRID / 2);
-    puffs.push({ p, s: 2.3 + rand() * 1.2, c: layer ? 1 : 0.9 + rand() * 0.06 });
+    puffs.push({ p, s: 3 + rand() * 1.3, c: layer ? 1 : 0.9 + rand() * 0.06, f: rand() < 0.5 });
   }
   puffs.sort((a, b) => a.p.dot(toCam) - b.p.dot(toCam)); // xa trước, gần sau
   const pos = [], uv = [], col = [], idx = [];
-  puffs.forEach(({ p, s, c }, k) => {
+  puffs.forEach(({ p, s, c, f }, k) => {
     for (const [a, b] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
-      const v = p.clone().addScaledVector(right, a * s).addScaledVector(up, b * s * 0.8);
-      pos.push(v.x, v.y, v.z); uv.push(a + 0.5, b + 0.5); col.push(c * 0.97, c * 0.98, c);
+      const v = p.clone().addScaledVector(right, a * s).addScaledVector(up, b * s * 0.75);
+      pos.push(v.x, v.y, v.z); uv.push(f ? 0.5 - a : a + 0.5, b + 0.5); col.push(c * 0.97, c * 0.98, c); // f: lật ngang cho đỡ lặp
     }
     idx.push(k * 4, k * 4 + 1, k * 4 + 2, k * 4, k * 4 + 2, k * 4 + 3);
   });
