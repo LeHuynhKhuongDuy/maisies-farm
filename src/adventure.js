@@ -101,7 +101,7 @@ function buildScene(A) {
   if (!maisie.userData.isArt) maisie.rotation.y = Math.PI;
   g.add(maisie); cur.maisie = maisie;
   if (A.story) { // thú dẫn đường đi theo Maisie
-    const gv = bodyOf(A.story.guide, 'pets/animal-dog', { h: 0.5 }); gv.userData.isArt = true;
+    const gv = bodyOf(A.story.guide, 'pets/animal-dog', { h: 0.5 });
     gv.position.copy(maisie.position).add(new THREE.Vector3(-0.85, 0, 0.3)); gv.userData.oid = 'a:guide';
     gv.userData.mark = markSprite(gv);
     g.add(gv); cur.pick.push(gv); cur.guide = gv;
@@ -395,6 +395,7 @@ export function advTap(sx, sy) {
   if (typeof oid !== 'string' || !oid.startsWith('a:')) { if (cur.A.story) fogTap(sx, sy); return; }
   const i = cur.A.story ? mainOf(cur.map, +oid.slice(2)) : +oid.slice(2), c = cur.map.cells[i], v = cur.views.get(i);
   if (!v || !v.visible) { if (cur.A.story) fogTap(sx, sy); return; }
+  if (v.userData.vanishing || (c.k === 'chest' && cur.p.chests.includes(i)) || (c.k === 'ob' && cur.p.open.includes(i))) return; // đang tan: chạm thêm không tính lần nữa
   if (c.k === 'npc') { tapNpc(c); return; }
   if (c.k === 'ruin') {
     if (!touchable(cur.map, cur.p, i)) { toast('Dọn đường tới đó trước nhé! Chọn chỗ có vòng vàng.'); sfx('no'); bump(v); return; }
@@ -445,12 +446,16 @@ export function advTap(sx, sy) {
   }
 }
 
-// Công trình cao che mất ô phía sau trên màn hình: khi tia chạm xuyên qua cả hai thì ưu tiên vật chạm được ở phía sau
+// Chọn vật để chạm: vật GẦN nhất mà chạm được thì thắng; vật chạm không được (tối, đang tan, công trình đã sửa xong,
+// vật dưới sương) bị bỏ qua để tia chạm xuyên tới vật chạm được ở phía sau (công trình cao che ô sau lưng nó)
 function preferOid(id) {
   if (typeof id !== 'string' || !id.startsWith('a:')) return false;
   if (isNaN(+id.slice(2))) return true; // thuyền, Maisie, thú dẫn đường
   const i = +id.slice(2), c = cur.map.cells[i], v = cur.views.get(i);
-  return !!v && c.k !== 'ruin' && (c.k === 'npc' || !!v.userData.reach);
+  if (!v || !v.visible || v.userData.vanishing) return false;
+  if (c.k === 'ruin') return !!ruinNeed(cur.A, cur.p) && touchable(cur.map, cur.p, i);
+  if (c.k === 'chest' && cur.p.chests.includes(i)) return false;
+  return c.k === 'npc' || !!v.userData.reach;
 }
 
 // Vật liệu rơi khi dọn vật cản đảo truyện: vào thẳng Kho nhà, biểu tượng bay về nút Về nhà
@@ -501,6 +506,7 @@ function finish(v, sx, sy) {
       <button class="btn wide orange" id="advBack">Về nông trại</button></div>`);
     $('#advBack').onclick = () => { closeModal(); leaveAdventure(); };
     drawAdvHud(); renderHUD(); save();
+    if (A.story && cur?.A === A) claimIsle(null); // bước cuối đã đủ: nhận thưởng luôn, kể cả lời kết (không có gì để nhận thì bỏ qua)
   }, 1200);
 }
 
