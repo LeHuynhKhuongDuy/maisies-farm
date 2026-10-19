@@ -515,7 +515,7 @@ export const ADV_THEMES = {
 };
 
 // Hải đồ: true khi đã có public/items/seachart.webp (khi đó dùng làm nền hải đồ, không thì nền gradient vẽ bằng CSS)
-export const CHART_ART = false;
+export const CHART_ART = true;
 // chart: { x, y } là vị trí đảo trên hải đồ, tính bằng phần trăm (đảo nhà và bến thuyền ở dưới giữa)
 export const ADVENTURES = [
   { id: 'shell', n: 'Bãi Vỏ Sò', lv: 2, w: 9, h: 12, seed: 11, theme: 'beach', chart: { x: 33, y: 83 }, chests: 3,
