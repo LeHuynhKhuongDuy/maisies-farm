@@ -1,5 +1,6 @@
 import { ICONS } from './assets.js';
 import { S, now, energyNextIn, energyLabel, currentQuest } from './state.js';
+import { activeQuests, daily } from './quests.js';
 import { xpNeed, energyMax, ITEMS } from './data.js';
 
 export const $ = s => document.querySelector(s);
@@ -99,13 +100,28 @@ export function renderHUD() {
   $('#energy').textContent = energyLabel(S.energy, emax);
   $('#efill').style.width = Math.min(100, S.energy / emax * 100) + '%';
   $('#energyPill').classList.toggle('low', S.energy < 1);
-  const q = currentQuest();
-  $('#questBtn').hidden = !q;
-  if (q) {
-    $('#questFace').src = ICONS['face:' + q.who] || '';
-    const done = S.qprog >= q.n, b = $('#questBadge');
-    b.textContent = done ? '✓' : '!'; b.classList.toggle('ok', done);
-  }
+  renderQuestCol();
   $('#btnGift').hidden = S.lastDaily === new Date().toDateString();
+}
+// Cột nhiệm vụ bên trái: chỉ vẽ lại khi danh sách đổi (khỏi nuốt cú chạm giữa hai lần vẽ)
+const faceImg = who => ICONS['face:' + who] ? `<img src="${ICONS['face:' + who]}" alt="">` : '';
+let colSig = '';
+function renderQuestCol() {
+  const tut = currentQuest(), list = tut ? [] : activeQuests(); // activeQuests giữ S.qs luôn mới (lên cấp, hết hướng dẫn)
+  const btns = [];
+  if (tut) {
+    const done = S.qprog >= tut.n;
+    btns.push({ id: 'tut', who: tut.who, badge: done ? '✓' : S.qprog === 0 ? '!' : '', ok: done });
+  } else {
+    for (const q of list) btns.push({ id: q.id, who: q.who, badge: q.done ? '✓' : q.seen ? '' : '!', ok: q.done });
+    const d = daily();
+    if (!d.got) btns.push({ id: 'daily', daily: d.tasks.filter(t => t.p >= t.n).length + '/' + d.tasks.length, badge: d.done ? '✓' : '', ok: d.done });
+  }
+  const sig = btns.map(b => [b.id, b.who, b.badge, b.daily].join('~')).join('|') + (tut ? S.tut : '');
+  if (sig === colSig) return;
+  colSig = sig;
+  $('#questCol').innerHTML = btns.map((b, i) => `<button class="qbtn ${b.daily ? 'daily' : ''}" id="qb${i}" data-q="${b.id}" aria-label="${b.daily ? 'Việc hằng ngày' : 'Nhiệm vụ'}">`
+    + (b.daily ? `<span>☀️</span><small>${b.daily}</small>` : faceImg(b.who))
+    + (b.badge ? `<span class="badge ${b.ok ? 'ok' : ''}">${b.badge}</span>` : '') + '</button>').join('');
 }
 export function energyHint() { return S.energy >= energyMax(S.level) ? 'Đầy năng lượng' : `+1 sau ${fmt(energyNextIn())}`; }

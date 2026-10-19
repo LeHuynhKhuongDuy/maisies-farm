@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, HELPERS, DECOR, OBSTACLES, PEOPLE, ADVENTURES, FAC_SPRITE,
+import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, HELPERS, DECOR, OBSTACLES, PEOPLE, ADVENTURES, FAC_SPRITE, talkerName,
   fieldCost, xpNeed, energyMax, barnUpgradeCost } from './data.js';
 import { S, now, on, save, footprint, isFree, findFree, noRoom, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
@@ -18,6 +18,7 @@ import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
 import { nbTap, openNeighbors } from './neighbors.js';
 import { openFishing } from './fishing.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
+import { activeQuests, claimStory, markSeen, reqLabel, daily } from './quests.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint, gainLine } from './ui.js';
 
@@ -801,17 +802,45 @@ function speedUp(o) {
 }
 
 // ============ Nhiệm vụ, lên cấp, quà ============
-function openQuest() {
+// Biểu tượng cho một yêu cầu: hình vật phẩm nếu có, không thì hình tượng trưng
+const REQ_EMOJI = { plant: '🌱', feed: '🐔', deliver: '📦', clear: '🪓', crate: '🚢', buydecor: '🌸', buytree: '🌳', build: '🔨', beach: '🐚', sail: '⛵', harvest: '🌾', make: '🍞', collect: '🥚' };
+const reqIcon = r => ICONS[r.key] ? img(r.key) : (REQ_EMOJI[r.ev] || '⭐');
+const rewardLine = q => `<div class="reward" style="font-size:18px"><span>Thưởng:</span>${q.coins ? `<span>${coinI}${q.coins}</span>` : ''}${q.xp ? `<span>${xpI}${q.xp}</span>` : ''}${q.gems ? `<span>${gemI}${q.gems}</span>` : ''}${q.energy ? `<span>${boltI}${q.energy}</span>` : ''}</div>`;
+// Mở bảng nhiệm vụ `id` ('tut' = bước hướng dẫn). Không có id: hướng dẫn đang chạy thì mở nó, không thì mở nhiệm vụ đã xong / mới nhất
+function openQuest(id) {
+  if (inTutorial() || id === 'tut') return openTutorialQuest();
+  const list = activeQuests();
+  const q = list.find(x => x.id === id) || list.find(x => x.done) || list.find(x => !x.seen) || list[0];
+  if (!q) return;
+  const wasSeen = q.seen; // Task 5: nếu chưa seen thì chạy lời thoại mở đầu
+  markSeen(q.id); renderHUD();
+  const cur = () => activeQuests().find(x => x.id === q.id);
+  M_draw = () => {
+    const c = cur();
+    if (!c) return `<div class="talk">${img('face:' + q.who)}<div class="say">Xong rồi! Cảm ơn bạn nhiều nhé!</div></div><div style="margin-top:14px"><button class="btn wide blue" data-close>Đóng</button></div>`;
+    const rows = c.reqs.map((r, i) => {
+      const p = Math.min(c.p[i] || 0, r.n), ok = p >= r.n;
+      return `<div class="qreq ${ok ? 'ok' : ''}"><span class="qi">${reqIcon(r)}</span>
+        <div class="qm">${esc(reqLabel(r))}<div class="prog"><i style="width:${p / r.n * 100}%"></i><span>${p} / ${r.n}</span></div></div>
+        ${ok ? '<span class="tick">✓</span>' : `<button class="btn small blue" data-act="questgo" data-q="${c.id}" data-r="${i}">Chỉ cho bé</button>`}</div>`;
+    }).join('');
+    return `<div class="talk">${img('face:' + c.who)}<div class="say"><b>${esc(talkerName(c.who))}:</b> ${esc(c.text)}</div></div>${rows}
+      ${rewardLine(c)}
+      ${c.done ? `<div style="margin-top:14px"><button class="btn wide orange" data-act="claimquest" data-q="${c.id}">Nhận thưởng!</button></div>` : ''}`;
+  };
+  M_sig = () => JSON.stringify((S.qs || []).find(e => e.id === q.id)?.p ?? null);
+  openModal('quest', q.title, M_draw(), { sig: M_sig() });
+  if (!q.done) sfx('tap');
+}
+// Bước hướng dẫn đầu game: một yêu cầu, bàn tay chỉ đường
+function openTutorialQuest() {
   const q = currentQuest();
-  if (!q) {
-    openModal('quest', 'Maisie', `<div class="talk">${img('face:maisie')}<div class="say">Bạn làm tốt lắm! Nhiệm vụ tiếp theo sẽ mở khi bạn lên <b>cấp ${S.level + 1}</b>. Cùng chăm sóc nông trại nhé!</div></div>`);
-    return;
-  }
+  if (!q) return;
   const p = PEOPLE.find(x => x.id === q.who), done = S.qprog >= q.n;
   M_draw = () => `<div class="talk">${img('face:' + q.who)}<div class="say"><b>${p.n}:</b> ${esc(q.text)}</div></div>
     <div class="prog"><i style="width:${S.qprog / q.n * 100}%"></i><span>${S.qprog} / ${q.n}</span></div>
-    <div class="reward" style="font-size:18px"><span>Thưởng:</span>${q.coins ? `<span>${coinI}${q.coins}</span>` : ''}${q.xp ? `<span>${xpI}${q.xp}</span>` : ''}${q.gems ? `<span>${gemI}${q.gems}</span>` : ''}${q.energy ? `<span>${boltI}${q.energy}</span>` : ''}</div>
-    <div style="margin-top:14px">${S.qprog >= q.n ? '<button class="btn wide orange" data-act="claimquest">Nhận thưởng!</button>' : '<button class="btn wide blue" data-act="questgo">Mình đi làm ngay!</button>'}</div>`;
+    ${rewardLine(q)}
+    <div style="margin-top:14px">${S.qprog >= q.n ? '<button class="btn wide orange" data-act="claimquest" data-q="tut">Nhận thưởng!</button>' : '<button class="btn wide blue" data-act="questgo" data-q="tut">Mình đi làm ngay!</button>'}</div>`;
   M_sig = () => S.qprog + '/' + S.tut;
   openModal('quest', 'Nhiệm vụ', M_draw(), { sig: M_sig() });
   if (!done) sfx('tap');
@@ -950,11 +979,13 @@ const ACT = {
   shoptab(b) { shopTab = b.dataset.k; redrawModal(); },
   buy(b) { buy(b.dataset.k); },
   claimquest(b, x, y) {
-    const q = claimQuest(); if (!q) return;
+    const tut = inTutorial(), q = tut ? claimQuest() : claimStory(b.dataset.q);
+    if (!q) return;
     flyCoins(x, y, q.coins || 0); flyXP(x, y); if (q.gems) flyGems(x, y);
     for (let i = 0; i < Math.min(q.energy || 0, 4); i++) flyTo(x, y, '#energyPill', boltI, i * 80);
-    sfx('coin'); closeModal(); renderHUD();
-    setTimeout(() => { if (!M) openQuest(); }, 900);
+    sfx('coin'); closeModal(); activeQuests(); renderHUD();
+    // hướng dẫn: mở ngay bước kế; nhiệm vụ truyện: (Task 5 chạy lời thoại kết `outro` ở đây)
+    if (tut && inTutorial()) setTimeout(() => { if (!M) openQuest('tut'); }, 900);
   },
   speed(b) { speedUp(byId(+b.dataset.oid)); },
   // "Mình đi làm ngay!": đóng bảng; chỗ cần làm đang ở ngoài màn hình thì bay camera tới đó
@@ -1005,7 +1036,13 @@ export function initUI() {
   $('#btnShop').onclick = () => { audioUnlock(); sfx('tap'); openShop(); };
   $('#btnBarn').onclick = () => { audioUnlock(); sfx('tap'); openBarn(); };
   $('#btnSet').onclick = () => { audioUnlock(); sfx('tap'); openSettings(); };
-  $('#questBtn').onclick = () => { audioUnlock(); openQuest(); };
+  // Cột nhiệm vụ: một nút cho mỗi nhiệm vụ; ☀️ là việc hằng ngày (bảng riêng làm ở Task 7)
+  $('#questCol').onclick = e => {
+    const b = e.target.closest('.qbtn'); if (!b) return;
+    audioUnlock();
+    if (b.dataset.q === 'daily') { sfx('tap'); const d = daily(); toast(`Việc hôm nay: ${d.tasks.filter(t => t.p >= t.n).length}/${d.tasks.length}`); return; }
+    openQuest(b.dataset.q);
+  };
   $('#btnGift').onclick = () => { audioUnlock(); openGift(); renderHUD(); save(); };
   $('#energyPill').onclick = () => { audioUnlock(); openEnergy(); };
   $('#btnNb').onclick = () => {
@@ -1072,9 +1109,15 @@ function buildBubbles() {
   if (S.ship.st === 'docked' && S.ship.crates.some(c => !c.done && have(c.item) >= c.n)) list.push({ oid: 'ship', y: 3.4, mark: '!' });
   list.push(...visitorBubbles());
   list.push({ oid: 'pier', y: 1.4, mark: '🎣', cls: 'fishmark' });
-  const q = currentQuest();
-  if (q && S.qprog >= q.n) list.push({ oid: 'maisie', y: 1.3, mark: '✓' });
-  else if (q && S.qprog === 0) list.push({ oid: 'maisie', y: 1.3, mark: '!' });
+  if (inTutorial()) {
+    const q = currentQuest();
+    if (q && S.qprog >= q.n) list.push({ oid: 'maisie', y: 1.3, mark: '✓' });
+    else if (q && S.qprog === 0) list.push({ oid: 'maisie', y: 1.3, mark: '!' });
+  } else {
+    const qs = activeQuests();
+    if (qs.some(x => x.done)) list.push({ oid: 'maisie', y: 1.3, mark: '✓' });
+    else if (qs.some(x => !x.seen)) list.push({ oid: 'maisie', y: 1.3, mark: '!' });
+  }
   const sig = list.map(b => b.oid + (b.icon || b.mark || 'h') + b.n + b.cls).join('|');
   if (sig === buildBubbles.sig) return;
   buildBubbles.sig = sig;
@@ -1153,7 +1196,7 @@ function makeTarget(item, left = 1) {
 function questTarget() {
   if (W.mode !== 'farm' || !inTutorial()) return null;
   const q = currentQuest(); if (!q) return null;
-  if (S.qprog >= q.n) return M ? (M.type === 'quest' ? inModal('[data-act="claimquest"]') : { el: '#modal .xbtn' }) : { el: '#questBtn' };
+  if (S.qprog >= q.n) return M ? (M.type === 'quest' ? inModal('[data-act="claimquest"]') : { el: '#modal .xbtn' }) : { el: '#questCol [data-q="tut"]' };
   if (M?.type === 'quest') return inModal('[data-act="questgo"]'); // "Mình đi làm ngay!"
   if (placing) return placing.isNew && q.ev === 'build' ? { el: '#tray [data-act="placeok"]' } : null;
   const t = now(), objs = S.objs;
