@@ -448,7 +448,7 @@ export const STORIES = [
 // Người dân đảo không đi dạo, chỉ có chân dung khi nói chuyện
 export const ISLANDERS = [{ id: 'kai', n: 'Ông Kai' }];
 // id nhân vật đã có hình nửa người public/items/talk-<id>.webp (chưa có thì dùng hình tạm)
-export const TALK_ART = [];
+export const TALK_ART = ['maisie', 'tom', 'lily', 'ben', 'rosa', 'sam', 'kai'];
 // Việc vặt hằng ngày: số việc, thưởng mỗi việc (theo cấp), kim cương và năng lượng khi làm xong cả ngày
 export const DAILY = { count: 5, coins: l => 20 + l * 10, gems: 2, energy: 10 };
 export const talkerName = id => (PEOPLE.find(p => p.id === id) || ISLANDERS.find(p => p.id === id))?.n || '';
