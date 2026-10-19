@@ -1,6 +1,6 @@
 // Nhiệm vụ giai đoạn B: vài nhiệm vụ truyện làm cùng lúc + việc vặt bù cho đủ. Chỉ logic thuần (không Three/DOM).
 // Hướng dẫn đầu game (TUTORIAL) vẫn chạy trong state.js; hết hướng dẫn mới có nhiệm vụ ở đây.
-import { STORIES, PEOPLE, CROPS, ITEMS, FACTORIES, PENS } from './data.js';
+import { STORIES, PEOPLE, CROPS, ITEMS, FACTORIES, PENS, DAILY } from './data.js';
 import { GATES } from './island.js';
 import { S, on, emit, addXP, pick, rnd, inTutorial, builtKey, openObstacle } from './state.js';
 
@@ -128,18 +128,59 @@ export function markSeen(id) {
   const e = (S.qs || []).find(x => x.id === id); if (e) e.seen = true;
 }
 
+// ---------- Việc hằng ngày: 5 việc nhỏ, xong hết thì nhận quà, không đồng hồ ----------
+const dailyDone = d => d.tasks.length > 0 && d.tasks.every(t => t.p >= t.n);
+const dailyGift = () => ({ coins: DAILY.coins(S.level), gems: DAILY.gems, energy: DAILY.energy });
+const giveGift = g => { S.coins += g.coins; S.gems += g.gems; S.energy += g.energy; };
+// Việc nhỏ cho hôm nay: lấy từ việc vặt (nửa số lượng) hoặc ba việc luôn làm được; mỗi việc khác nhau ev+key
+function newDailyTasks() {
+  const fixed = [{ ev: 'feed', n: 2 }, { ev: 'plant', n: 4 }, { ev: 'beach', n: 2 }], tasks = [], seen = new Set();
+  for (let t = 0; t < 200 && tasks.length < DAILY.count; t++) {
+    let r;
+    if (rnd(2)) { const q = newChore().reqs[0]; r = { ev: q.ev, n: Math.max(1, Math.round(q.n / 2)) }; if (q.key) r.key = q.key; }
+    else r = { ...pick(fixed) };
+    const id = r.ev + ':' + (r.key || '');
+    if (['loot', 'buyanimal'].includes(r.ev) || seen.has(id)) continue;
+    seen.add(id); tasks.push({ ...r, p: 0 });
+  }
+  return tasks;
+}
+// Việc hôm nay; qua ngày mới thì làm mới (ngày cũ xong hết mà chưa nhận thì cộng quà luôn)
+export function daily() {
+  const day = new Date().toDateString();
+  if (!S.daily || S.daily.day !== day) {
+    if (S.daily && !S.daily.got && dailyDone(S.daily)) giveGift(dailyGift());
+    S.daily = { day, tasks: newDailyTasks(), got: false };
+  }
+  return { tasks: S.daily.tasks, got: !!S.daily.got, done: dailyDone(S.daily) };
+}
+export function claimDaily() {
+  const d = daily();
+  if (!d.done || d.got) return null;
+  S.daily.got = true;
+  const g = dailyGift(); giveGift(g);
+  return g;
+}
+
 // Mỗi sự kiện của bé cộng cho mọi nhiệm vụ đang mở có yêu cầu khớp (chặn ở n). Không làm mới danh sách ở đây:
 // nhát chặt vật cản cuối cùng vừa xóa nó vẫn phải được tính cho việc vặt dọn dẹp
 on('act', (ev, key, n = 1) => {
-  if (inTutorial()) return;
-  if (!S.qs) activeQuests();
   let changed = false;
-  for (const e of S.qs) {
-    const d = defOf(e); if (!d) continue;
-    d.reqs.forEach((r, i) => {
-      if (r.ev !== ev || (r.key && r.key !== key) || (e.p[i] || 0) >= r.n) return;
-      e.p[i] = Math.min(r.n, (e.p[i] || 0) + n); changed = true;
-    });
+  // việc hằng ngày cộng cả khi đang hướng dẫn; xong rồi (got) thì không đổi nữa
+  const dl = daily();
+  if (!dl.got) for (const t of dl.tasks) {
+    if (t.ev !== ev || (t.key && t.key !== key) || t.p >= t.n) continue;
+    t.p = Math.min(t.n, t.p + n); changed = true;
+  }
+  if (!inTutorial()) {
+    if (!S.qs) activeQuests();
+    for (const e of S.qs) {
+      const d = defOf(e); if (!d) continue;
+      d.reqs.forEach((r, i) => {
+        if (r.ev !== ev || (r.key && r.key !== key) || (e.p[i] || 0) >= r.n) return;
+        e.p[i] = Math.min(r.n, (e.p[i] || 0) + n); changed = true;
+      });
+    }
   }
   if (changed) emit('quest');
 });
