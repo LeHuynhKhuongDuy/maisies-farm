@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ITEMS, TREES, PENS, DECOR, PEOPLE, COLLECTIONS, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE } from './data.js';
+import { ITEMS, TREES, PENS, DECOR, PEOPLE, ISLANDERS, TALK_ART, COLLECTIONS, PEN_SPRITE, TREE_SPRITE, DECOR_SPRITE } from './data.js';
 import { hasSprite, spriteUrl } from './sprites.js';
 
 const cache = new Map(); // key -> gltf (để trống: game không còn tải mô hình 3D nào)
@@ -85,7 +85,8 @@ function paintedIcon(id) {
   const [kind, key] = id.split(':');
   switch (kind) {
     case 'ev': return key === 'token' ? ITEM_DIR + 'shell.webp' : null;
-    case 'face': return PEOPLE.some(p => p.id === key) && hasSprite(key) ? ITEM_DIR + 'face-' + key + '.webp' : null;
+    case 'face': return ISLANDERS.some(p => p.id === key) || (PEOPLE.some(p => p.id === key) && hasSprite(key)) ? ITEM_DIR + 'face-' + key + '.webp' : null;
+    case 'talk': return TALK_ART.includes(key) ? ITEM_DIR + 'talk-' + key + '.webp' : null; // chân dung nửa người (khi đã vẽ)
     case 'decor': return key === 'path' ? import.meta.env.BASE_URL + 'textures/brick.webp' : sp(DECOR_SPRITE[key] || key);
     case 'tree': return sp(TREE_SPRITE[key]);
     case 'animal': return sp(PEN_SPRITE[key]);
@@ -149,6 +150,8 @@ export function iconList() {
   Object.entries(PENS).forEach(([k, p]) => list.push(['animal:' + k, { model: p.animal, rotY: 0.4 }]));
   Object.entries(DECOR).filter(([, d]) => !d.proc).forEach(([k, d]) => list.push(['decor:' + k, { model: d.model, tint: d.tint, paint: d.paint, rotY: d.pet ? 0.4 : -0.5 }]));
   PEOPLE.forEach(p => list.push(['face:' + p.id, { model: p.model, rotY: 0.25, face: true }]));
+  ISLANDERS.forEach(p => list.push(['face:' + p.id, {}])); // chỉ có hình vẽ tay, không có mô hình 3D
+  TALK_ART.forEach(id => list.push(['talk:' + id, {}]));
   list.push(['b:windmill', { model: 'town/windmill', rotY: -0.8 }]);
   list.push(['b:stall-red', { model: 'town/stall-red' }]);
   list.push(['b:stall-green', { model: 'town/stall-green' }]);

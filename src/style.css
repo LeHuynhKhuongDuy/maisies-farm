@@ -502,3 +502,23 @@ img { object-fit: contain; }
 .hbag { display: inline-flex; align-items: center; gap: 4px; background: #fff7e6; border-radius: 12px; padding: 4px 8px; }
 .hbag img { width: 28px; height: 28px; object-fit: contain; }
 .hbtns { display: flex; justify-content: center; margin: 8px 0 4px; }
+
+/* ---------- Hội thoại (lớp phủ toàn màn hình) ---------- */
+#talk { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer;
+  background: linear-gradient(to top, rgba(20,40,60,.55), rgba(20,40,60,.15) 55%, rgba(20,40,60,.05)); animation: talk-in .18s ease-out; }
+@keyframes talk-in { from { opacity: 0; } to { opacity: 1; } }
+#talk .tskip { position: absolute; top: calc(var(--st) + 12px); right: calc(var(--sr) + 12px); min-height: 44px; padding: 6px 18px; border-radius: 16px;
+  background: var(--cream); color: var(--ink); font-weight: 800; font-size: 18px; border: 3px solid var(--white); box-shadow: 0 4px 0 var(--edge-d); }
+#talkFace { position: relative; z-index: 1; align-self: flex-start; width: 160px; height: 160px; margin: 0 0 -26px calc(var(--sl) + 14px);
+  border-radius: 50%; background: var(--cream-d); border: 5px solid var(--white); box-shadow: 0 5px 0 var(--edge-d), 0 8px 18px rgba(0,0,0,.3); object-fit: cover; }
+#talkFace.half { border-radius: 0; background: none; border: 0; box-shadow: none; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+#talk .tbox { position: relative; margin: 0 calc(var(--sr) + 10px) calc(var(--sb) + 14px) calc(var(--sl) + 10px); padding: 30px 18px 18px; min-height: 130px;
+  border-radius: 26px; background: var(--cream); border: 5px solid var(--white); box-shadow: 0 6px 0 var(--edge-d), 0 14px 30px rgba(0,0,0,.35); }
+#talk .tbox b { display: block; margin-bottom: 4px; font-size: 20px; font-weight: 800; color: var(--blue-d); }
+#talk .tbox p { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+#talk .tnext { position: absolute; right: 16px; bottom: 8px; font-size: 20px; color: var(--orange-d); animation: pop .6s ease-in-out infinite; }
+@media (max-height: 460px) { /* khổ ngang: thu nhỏ chân dung cho khỏi che chữ */
+  #talkFace { width: 96px; height: 96px; margin-bottom: -18px; }
+  #talk .tbox { min-height: 0; padding: 22px 16px 12px; }
+  #talk .tbox p, #talk .tbox b { font-size: 18px; }
+}

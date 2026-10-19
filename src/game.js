@@ -18,6 +18,7 @@ import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
 import { nbTap, openNeighbors } from './neighbors.js';
 import { openFishing } from './fishing.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
+import { talk } from './talk.js';
 import { activeQuests, claimStory, markSeen, reqLabel, daily } from './quests.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint, gainLine } from './ui.js';
@@ -812,10 +813,10 @@ function openQuest(id) {
   const list = activeQuests();
   const q = list.find(x => x.id === id) || list.find(x => x.done) || list.find(x => !x.seen) || list[0];
   if (!q) return;
-  const wasSeen = q.seen; // Task 5: nếu chưa seen thì chạy lời thoại mở đầu
+  const wasSeen = q.seen; // chưa xem thì nói chuyện trước rồi mới hiện bảng
   markSeen(q.id); renderHUD();
   const cur = () => activeQuests().find(x => x.id === q.id);
-  M_draw = () => {
+  const draw = () => {
     const c = cur();
     if (!c) return `<div class="talk">${img('face:' + q.who)}<div class="say">Xong rồi! Cảm ơn bạn nhiều nhé!</div></div><div style="margin-top:14px"><button class="btn wide blue" data-close>Đóng</button></div>`;
     const rows = c.reqs.map((r, i) => {
@@ -828,9 +829,15 @@ function openQuest(id) {
       ${rewardLine(c)}
       ${c.done ? `<div style="margin-top:14px"><button class="btn wide orange" data-act="claimquest" data-q="${c.id}">Nhận thưởng!</button></div>` : ''}`;
   };
-  M_sig = () => JSON.stringify((S.qs || []).find(e => e.id === q.id)?.p ?? null);
-  openModal('quest', q.title, M_draw(), { sig: M_sig() });
-  if (!q.done) sfx('tap');
+  const sig = () => JSON.stringify((S.qs || []).find(e => e.id === q.id)?.p ?? null);
+  const intro = !wasSeen && q.arc;
+  const show = () => {
+    if (intro && M) return; // trong lúc nói chuyện bé đã mở bảng khác thì thôi
+    M_draw = draw; M_sig = sig;
+    openModal('quest', q.title, M_draw(), { sig: M_sig() });
+    if (!q.done) sfx('tap');
+  };
+  if (intro) talk(q.talk, show); else show();
 }
 // Bước hướng dẫn đầu game: một yêu cầu, bàn tay chỉ đường
 function openTutorialQuest() {
@@ -984,8 +991,9 @@ const ACT = {
     flyCoins(x, y, q.coins || 0); flyXP(x, y); if (q.gems) flyGems(x, y);
     for (let i = 0; i < Math.min(q.energy || 0, 4); i++) flyTo(x, y, '#energyPill', boltI, i * 80);
     sfx('coin'); closeModal(); activeQuests(); renderHUD();
-    // hướng dẫn: mở ngay bước kế; nhiệm vụ truyện: (Task 5 chạy lời thoại kết `outro` ở đây)
+    // hướng dẫn: mở ngay bước kế; nhiệm vụ truyện: sau khi xu bay xong thì nói lời kết `outro`
     if (tut && inTutorial()) setTimeout(() => { if (!M) openQuest('tut'); }, 900);
+    else if (q.arc && q.outro?.length) setTimeout(() => talk(q.outro), 700);
   },
   speed(b) { speedUp(byId(+b.dataset.oid)); },
   // "Mình đi làm ngay!": đóng bảng; chỗ cần làm đang ở ngoài màn hình thì bay camera tới đó
