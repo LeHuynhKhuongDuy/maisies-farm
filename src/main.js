@@ -12,6 +12,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import './quests.js'; // đăng ký lắng nghe sự kiện 'act' cho nhiệm vụ truyện / việc vặt
 import { advUpdate } from './adventure.js';
 import { initVisitors, visitorsUpdate } from './visitors.js';
 import { buildAmbient, updateAmbient } from './ambient.js';

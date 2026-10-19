@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, put, memStorage } from './helpers.mjs';
-import { S, have, producible, load, resetGame } from '../src/state.js';
+import { S, have, producible, load, resetGame, on } from '../src/state.js';
 import { BUILD, FACTORIES, PENS, ITEMS, OBSTACLES, HELPERS } from '../src/data.js';
 import { startSite, keyOf, siteReq, contribute, tryAdvance, isBuilt, unlockLevel, obtainableAt, renewableAt, matHint, pastLastStage } from '../src/build.js';
 
@@ -71,11 +71,11 @@ test('siteReq báo đã góp / cần; góp món không cần thì 0', () => {
 test('xong giai đoạn cộng xp 10 * (giai đoạn + 1), xong hết báo nhiệm vụ build', () => {
   fresh({ xp: 0, level: 5, tut: 999 }); S.inv = { wood: 20, stone: 20, planks: 10, palmleaf: 10 }; // đã qua hướng dẫn
   const o = put({ k: 'fac', t: 'bakery', jobs: [] }); startSite(o);
-  S.quest = 1e6; S.gq = { ev: 'build', key: 'fac:bakery', n: 1 }; S.qprog = 0; // nhiệm vụ ngẫu nhiên giả
+  const got = []; on('act', (ev, key) => got.push([ev, key])); // nghe sự kiện báo ra
   for (const k of Object.keys(siteReq(o))) contribute(o, k);
   tryAdvance(o); assert.equal(S.xp, 10);
   for (const k of Object.keys(siteReq(o))) contribute(o, k);
-  tryAdvance(o); assert.equal(S.xp, 30); assert.equal(S.qprog, 1);
+  tryAdvance(o); assert.equal(S.xp, 30); assert.deepEqual(got.filter(g => g[0] === 'build'), [['build', 'fac:bakery']]);
 });
 test('vật cũ không có site là đã xây xong; tryAdvance/contribute trên vật đã xây không làm gì', () => {
   fresh(); S.inv = { wood: 9 };
@@ -102,11 +102,11 @@ test('matHint: thô thì chặt, bậc 2 thì làm ở xưởng', () => {
 
 // ---- Công trường đã qua giai đoạn cuối (bảng BUILD bị rút ngắn): không kẹt ----
 test('tryAdvance: công trường qua giai đoạn cuối thì xong luôn (không cộng xp), báo nhiệm vụ build', () => {
-  fresh({ xp: 0, level: 5, tut: 999 }); S.quest = 1e6; S.gq = { ev: 'build', key: 'fac:carpentry', n: 1 }; S.qprog = 0;
+  fresh({ xp: 0, level: 5, tut: 999 }); const got = []; on('act', (ev, key) => got.push([ev, key]));
   const o = put({ k: 'fac', t: 'carpentry', jobs: [] }); startSite(o); o.site.stage = 3; // bảng chỉ có 1 giai đoạn
   assert.ok(pastLastStage(o)); assert.deepEqual(siteReq(o), {});
   assert.equal(tryAdvance(o), 'done'); assert.equal(o.site, undefined); assert.ok(isBuilt(o));
-  assert.equal(S.xp, 0); assert.equal(S.qprog, 1);
+  assert.equal(S.xp, 0); assert.deepEqual(got.filter(g => g[0] === 'build'), [['build', 'fac:carpentry']]);
 });
 test('tryAdvance: cổng qua giai đoạn cuối mở vùng khi đủ cấp, chưa đủ cấp thì chờ', () => {
   fresh({ level: 2 }); const g = S.objs.find(o => o.k === 'gate' && o.t === 'bridge_w'); g.site.stage = 2;

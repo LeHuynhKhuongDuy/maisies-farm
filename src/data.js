@@ -306,40 +306,9 @@ export const PEOPLE = [
   { id: 'sam',    n: 'Chú Sam', model: 'chars/character-male-c' },
 ];
 
-// ---------- Nhiệm vụ của Maisie (chuỗi hướng dẫn) ----------
-// ev: tên sự kiện; key: vật phẩm (tuỳ chọn); n: số lần
-export const QUESTS = [
-  { who: 'maisie', text: 'Chào mừng đến đảo! Mình là Maisie. Mình cùng thu hoạch 3 lúa mì nhé!', ev: 'harvest', key: 'wheat', n: 3, coins: 20, xp: 5 },
-  { who: 'maisie', text: 'Giỏi quá! Giờ gieo hạt vào 4 ô ruộng trống nào.', ev: 'plant', n: 4, coins: 15, xp: 5 },
-  { who: 'tom', text: 'Gà nhà mình đói rồi! Ra máy xay làm 1 mẻ thức ăn cho gà nhé.', ev: 'make', key: 'chickenfeed', n: 1, coins: 20, xp: 6 },
-  { who: 'tom', text: 'Chạm vào chuồng gà để cho các bạn gà ăn.', ev: 'feed', n: 1, coins: 15, xp: 5 },
-  { who: 'tom', text: 'Nhặt 2 quả trứng khi gà đẻ xong nhé.', ev: 'collect', key: 'egg', n: 2, coins: 20, xp: 6 },
-  { who: 'lily', text: 'Bảng đơn hàng có người đặt mua kìa! Giao 1 đơn hàng nhé.', ev: 'deliver', n: 1, coins: 30, xp: 8 },
-  { who: 'maisie', text: 'Đảo còn nhiều bụi rậm lắm. Dọn 2 chướng ngại vật để có thêm đất nhé.', ev: 'clear', n: 2, coins: 20, xp: 6, gems: 2 },
-  { who: 'ben', text: 'Lò bánh đã mở! Nướng 2 ổ bánh mì nào.', ev: 'make', key: 'bread', n: 2, coins: 30, xp: 8, lv: 2 },
-  { who: 'lily', text: 'Trang trí cho đảo thêm xinh: mua 1 món đồ trang trí ở cửa hàng nhé.', ev: 'buydecor', n: 1, coins: 20, xp: 5, lv: 2 },
-  { who: 'sam', text: 'Tàu chở hàng cập bến rồi! Đóng đầy 2 thùng hàng trên tàu nhé.', ev: 'crate', n: 2, coins: 40, xp: 10, lv: 2 },
-  { who: 'rosa', text: 'Bà thích bánh quy lắm. Cháu làm 2 hộp bánh quy nhé?', ev: 'make', key: 'cookie', n: 2, coins: 40, xp: 10, lv: 3 },
-  { who: 'maisie', text: 'Trồng 1 cây táo hoặc cây dừa để có trái cây quanh năm nhé!', ev: 'buytree', n: 1, coins: 30, xp: 8, lv: 3 },
-  { who: 'tom', text: 'Mua thêm 2 bạn gà cho chuồng thêm vui nào.', ev: 'buyanimal', n: 2, coins: 40, xp: 10, gems: 2, lv: 3 },
-  { who: 'sam', text: 'Bến tàu hôm nay đông khách lắm. Giao 3 đơn hàng nhé!', ev: 'deliver', n: 3, coins: 50, xp: 12, lv: 3 },
-  { who: 'maisie', text: 'Mình đi thuyền ra Bãi Vỏ Sò phiêu lưu đi! Dọn 5 chướng ngại vật nhé.', ev: 'clear', n: 5, coins: 40, xp: 12, gems: 2, lv: 3 },
-  { who: 'tom', text: 'Có chuồng bò rồi! Thu 3 hộp sữa nào.', ev: 'collect', key: 'milk', n: 3, coins: 60, xp: 14, lv: 4 },
-  { who: 'rosa', text: 'Bà muốn làm bánh mì kẹp. Cháu làm 2 miếng phô mai nhé?', ev: 'make', key: 'cheese', n: 2, coins: 60, xp: 15, lv: 4 },
-  { who: 'lily', text: 'Trời nóng quá! Làm 2 cốc nước dừa mát lạnh đi.', ev: 'make', key: 'coconutmilk', n: 2, coins: 70, xp: 16, lv: 5 },
-  { who: 'ben', text: 'Thu hoạch 6 quả dâu tây ngọt lịm nhé!', ev: 'harvest', key: 'strawberry', n: 6, coins: 60, xp: 15, lv: 5 },
-  { who: 'maisie', text: 'Trồng hoa hướng dương để chuẩn bị nuôi ong nào. Thu 6 bông nhé!', ev: 'harvest', key: 'sunflower', n: 6, coins: 70, xp: 18, lv: 6 },
-  { who: 'sam', text: 'Bếp nấu mở rồi! Nấu 1 nồi súp rau thơm phức.', ev: 'make', key: 'soup', n: 1, coins: 80, xp: 20, gems: 2, lv: 6 },
-  { who: 'tom', text: 'Ong vàng đã tới! Thu 2 hũ mật ong nhé.', ev: 'collect', key: 'honey', n: 2, coins: 90, xp: 22, lv: 7 },
-  { who: 'rosa', text: 'Bà dạy cháu làm bánh kem. Làm 1 chiếc thật đẹp nhé!', ev: 'make', key: 'cake', n: 1, coins: 90, xp: 22, lv: 7 },
-  { who: 'lily', text: 'Đóng đầy 6 thùng hàng lên tàu để tàu chạy nhé!', ev: 'crate', n: 6, coins: 120, xp: 26, gems: 3, lv: 8 },
-  { who: 'ben', text: 'Tiệm bánh ngọt mở cửa! Làm 2 chiếc bánh vòng nào.', ev: 'make', key: 'donut', n: 2, coins: 120, xp: 28, lv: 9 },
-  { who: 'maisie', text: 'Làm mứt dâu tặng mọi người trên đảo nhé! Làm 2 hũ.', ev: 'make', key: 'jam', n: 2, coins: 140, xp: 30, gems: 3, lv: 10 },
-];
-
 // ---------- Hướng dẫn đầu game (chỉ ván mới) ----------
-// Cùng cấu trúc QUESTS; ev 'build' với key công trình (xem keyOf trong build.js), 'sail' đếm khi mở màn Phiêu lưu.
-// energy: thưởng thêm năng lượng. Xong hết thì chạy tiếp QUESTS từ đầu.
+// ev: tên sự kiện, key: vật phẩm (tuỳ chọn), n: số lần; ev 'build' với key công trình (xem keyOf trong build.js), 'sail' đếm khi mở màn Phiêu lưu.
+// energy: thưởng thêm năng lượng. Xong hết thì nhiệm vụ truyện và việc vặt (quests.js) mở ra.
 export const TUTORIAL = [
   { who: 'maisie', text: 'Bão làm nhà mình hỏng mất rồi! Góp gỗ và lá cọ để sửa nhà nhé.', ev: 'build', key: 'ruin:house', n: 1, coins: 20, xp: 6, energy: 10 },
   { who: 'maisie', text: 'Nhà đẹp lại rồi! Thu hoạch 3 lúa mì nào.', ev: 'harvest', key: 'wheat', n: 3, coins: 15, xp: 5 },

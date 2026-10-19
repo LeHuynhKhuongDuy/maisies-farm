@@ -3,7 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, memStorage, v1Save, obstacle } from './helpers.mjs';
 import { S, load, have, add, take, footprint, producible, currentQuest, claimQuest, questEvent, resetGame } from '../src/state.js';
-import { TUTORIAL, QUESTS, OFF, CORE, OBSTACLES, FACTORIES, ITEMS } from '../src/data.js';
+import { activeQuests } from '../src/quests.js';
+import { TUTORIAL, OFF, CORE, OBSTACLES, FACTORIES, ITEMS } from '../src/data.js';
 import { keyOf, siteReq, contribute, tryAdvance, startSite } from '../src/build.js';
 import { hitObstacle, nearestObstacle, cellDist, basicDrop } from '../src/clearing.js';
 import { isOpenCell, zoneAt } from '../src/island.js';
@@ -17,7 +18,7 @@ const build = o => { let r; do { for (const k of Object.keys(siteReq(o))) contri
 
 test('ván mới: nhà, lò bánh, thuyền là đồ đổ nát; hướng dẫn ở bước 0; thuyền chưa sửa', () => {
   fresh();
-  assert.equal(S.tut, 0); assert.equal(S.quest, 0); assert.equal(S.boatFixed, false);
+  assert.equal(S.tut, 0); assert.equal(S.boatFixed, false);
   assert.deepEqual(ruins().map(keyOf).sort(), ['ruin:bakery', 'ruin:boat', 'ruin:house']);
   for (const o of ruins()) assert.deepEqual(o.site, { stage: 0, got: {}, ruin: true });
   const house = ruin('ruin:house'), bakery = ruin('ruin:bakery'), boat = ruin('ruin:boat');
@@ -81,7 +82,7 @@ test('sửa đồ đổ nát báo nhiệm vụ đúng khóa ruin:*', () => {
   assert.equal(S.qprog, 1);
   const e = S.energy, c = S.coins;
   assert.equal(claimQuest(), TUTORIAL[0]);
-  assert.equal(S.tut, 1); assert.equal(S.quest, 0); assert.equal(S.qprog, 0);
+  assert.equal(S.tut, 1); assert.equal(S.qprog, 0);
   assert.equal(S.energy, e + 10); assert.equal(S.coins, c + TUTORIAL[0].coins);
   assert.equal(currentQuest(), TUTORIAL[1]);
 });
@@ -99,8 +100,8 @@ test('công trình xây trước khi tới bước của nó thì bước đó t
   delete f.site; currentQuest(); assert.equal(S.qprog, 1);
 });
 
-test('đi hết hướng dẫn bằng sự kiện thì chuyển sang chuỗi nhiệm vụ cũ QUESTS[0]', () => {
-  fresh(); S.inv = { wood: 99, stone: 99, palmleaf: 99, planks: 99 };
+test('đi hết hướng dẫn thì currentQuest() là null và activeQuests() có ve-dao:0', () => {
+  fresh({ level: 2 }); S.inv = { wood: 99, stone: 99, palmleaf: 99, planks: 99 };
   const fire = {
     build: q => { const o = q.key.startsWith('ruin:') ? ruin(q.key) : null; if (o) build(o); else questEvent('build', q.key); },
     harvest: q => questEvent('harvest', q.key, 2),
@@ -112,8 +113,9 @@ test('đi hết hướng dẫn bằng sự kiện thì chuyển sang chuỗi nhi
     for (let g = 0; S.qprog < q.n && g < 10; g++) fire[q.ev](q);
     assert.equal(claimQuest(), q, 'bước ' + (i + 1));
   }
-  assert.equal(S.tut, TUTORIAL.length); assert.equal(S.quest, 0);
-  assert.equal(currentQuest(), QUESTS[0]);
+  assert.equal(S.tut, TUTORIAL.length);
+  assert.equal(currentQuest(), null);
+  assert.ok(activeQuests().some(q => q.id === 've-dao:0'));
   assert.equal(S.boatFixed, true);
 });
 
@@ -154,11 +156,11 @@ test('chơi thật cả 10 bước ở cấp 1: không bao giờ kẹt năng lư
   assert.equal(regen, 0, `phải chờ hồi ${regen} năng lượng (${chops} nhát)`);
 });
 
-test('bản v1 chuyển sang: bỏ qua hướng dẫn, nhiệm vụ cũ giữ nguyên', () => {
+test('bản v1 chuyển sang: bỏ qua hướng dẫn, có 2–4 nhiệm vụ', () => {
   memStorage({ [KEY]: JSON.stringify(v1Save()) });
   load();
   assert.ok(S.tut >= TUTORIAL.length); assert.equal(S.boatFixed, true);
-  assert.equal(currentQuest(), QUESTS[9]); assert.equal(S.qprog, 2);
+  const n = activeQuests().length; assert.ok(n >= 2 && n <= 4);
 });
 
 test('bản v2 cũ (trước Task 7, không có thuyền): coi như đã xong hướng dẫn, thuyền đã sửa', () => {
@@ -169,7 +171,7 @@ test('bản v2 cũ (trước Task 7, không có thuyền): coi như đã xong h�
   memStorage({ [KEY]: JSON.stringify(old) });
   load();
   assert.ok(S.tut >= TUTORIAL.length); assert.equal(S.boatFixed, true);
-  assert.equal(currentQuest(), QUESTS[3]); assert.equal(S.qprog, 1);
+  const n = activeQuests().length; assert.ok(n >= 2 && n <= 4);
 });
 
 test('bản v2 đang giữa hướng dẫn giữ nguyên tiến độ', () => {
@@ -187,39 +189,4 @@ test('nearestObstacle: vật cản gần nhất (theo dist) trong vùng mở th�
   assert.ok(S.objs.every(x => x.k !== 'obstacle' || !OBSTACLES[x.t].drop.stone || !isOpenCell(x.x, x.z) || Math.hypot(x.x - CX, x.z - CZ) >= d));
   assert.equal(nearestObstacle(() => false, cellDist(CX, CZ)), null);
   assert.ok(basicDrop({ t: 'bush' }) && basicDrop({ t: 'logs' }) && basicDrop({ t: 'rock' }) && !basicDrop({ t: 'claymound' }) && !basicDrop({ t: 'bamboo' }));
-});
-
-// ---- Nhiệm vụ ngẫu nhiên "dọn 3 chướng ngại vật" chỉ khi còn vật cản trong vùng mở ----
-const pastChain = () => { fresh({ tut: 999, level: 12 }); S.quest = QUESTS.length; S.gq = null; S.qprog = 0; };
-const clearOpen = () => { S.objs = S.objs.filter(o => !(o.k === 'obstacle' && isOpenCell(o.x, o.z))); };
-test('vùng mở hết vật cản (chỉ còn rừng dưới mây): không bao giờ ra nhiệm vụ dọn dẹp', () => {
-  pastChain(); clearOpen();
-  assert.ok(S.objs.some(o => o.k === 'obstacle')); // rừng dưới mây vẫn còn
-  for (let i = 0; i < 300; i++) { S.gq = null; assert.notEqual(currentQuest().ev, 'clear'); }
-});
-test('còn vật cản trong vùng mở thì có lúc ra nhiệm vụ dọn dẹp', () => {
-  pastChain();
-  let seen = false;
-  for (let i = 0; i < 300 && !seen; i++) { S.gq = null; seen = currentQuest().ev === 'clear'; }
-  assert.ok(seen);
-});
-test('đang làm nhiệm vụ dọn dẹp mà vùng mở hết vật cản: đổi nhiệm vụ khác, không kẹt; làm xong rồi thì giữ để nhận thưởng', () => {
-  pastChain();
-  S.gq = { who: 'maisie', text: 'Dọn thêm 3', ev: 'clear', n: 3, coins: 1, xp: 1, gems: 0 }; S.qprog = 1;
-  clearOpen();
-  const q = currentQuest();
-  assert.notEqual(q.ev, 'clear'); assert.equal(S.qprog, 0); assert.equal(S.gq, q);
-  S.gq = { who: 'maisie', text: 'Dọn thêm 3', ev: 'clear', n: 3, coins: 1, xp: 1, gems: 0 }; S.qprog = 3;
-  assert.equal(currentQuest().ev, 'clear'); assert.ok(claimQuest());
-});
-test('nhát chặt vật cản cuối cùng trong vùng mở vẫn tính cho nhiệm vụ dọn dẹp (không bị đổi nhiệm vụ mất)', () => {
-  pastChain(); clearOpen();
-  const o = obstacle('grass'); assert.ok(isOpenCell(o.x, o.z));
-  S.gq = { who: 'maisie', text: 'Dọn thêm 3', ev: 'clear', n: 3, coins: 1, xp: 1, gems: 0 }; const gq = S.gq; S.qprog = 2;
-  S.energy = 9; let r; while (!(r = hitObstacle(o, () => 0.99)).done) { /* chặt tới hết */ }
-  assert.ok(!S.objs.includes(o));
-  questEvent('clear');
-  assert.equal(S.gq, gq); assert.equal(S.qprog, 3);
-  assert.equal(currentQuest(), gq); // xong rồi thì giữ để nhận thưởng
-  assert.equal(claimQuest(), gq);
 });

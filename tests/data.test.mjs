@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, put } from './helpers.mjs';
 import { S, producible, genOrder, newShip, energyLabel } from '../src/state.js';
-import { ITEMS, FACTORIES, TUTORIAL, QUESTS, STORIES, REQ_EVENTS, ISLANDERS, PEOPLE, CROPS, TREES, PENS, BUILD, talkerName } from '../src/data.js';
+import { ITEMS, FACTORIES, TUTORIAL, STORIES, REQ_EVENTS, ISLANDERS, PEOPLE, CROPS, TREES, PENS, BUILD, talkerName } from '../src/data.js';
 
 test('mọi nguyên liệu và thành phẩm của mọi công thức đều có trong ITEMS', () => {
   for (const [fk, F] of Object.entries(FACTORIES)) for (const r of F.rec) {
@@ -34,7 +34,7 @@ test('producible, đơn hàng và tàu hàng không có vật liệu (kể cả 
 // ---- Chữ cho bé ----
 test('anh Ben xưng "anh", không gọi mình là "ông"', () => {
   const ongRe = /(^|[\s,.!])ông([\s,.!]|$)/u;
-  for (const q of [...TUTORIAL, ...QUESTS]) if (q.who === 'ben') assert.ok(!ongRe.test(q.text), q.text);
+  for (const q of TUTORIAL) if (q.who === 'ben') assert.ok(!ongRe.test(q.text), q.text);
   // lời của Ben trong mọi mạch truyện (text, talk, outro) cũng không tự xưng "ông"
   for (const a of STORIES) for (const s of a.steps) {
     if (s.who === 'ben') assert.ok(!ongRe.test(s.text), s.text);

@@ -1,6 +1,6 @@
 import { ICONS } from './assets.js';
 import { S, now, energyNextIn, energyLabel, currentQuest } from './state.js';
-import { xpNeed, energyMax, QUESTS, ITEMS } from './data.js';
+import { xpNeed, energyMax, ITEMS } from './data.js';
 
 export const $ = s => document.querySelector(s);
 export const img = k => `<img src="${ICONS[k] || ''}" alt="">`;

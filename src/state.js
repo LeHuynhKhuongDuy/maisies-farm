@@ -1,4 +1,4 @@
-import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, QUESTS, TUTORIAL, RUINS, STARTER_DECOR,
+import { GRID, CORE, OFF, ITEMS, CROPS, TREES, PENS, FACTORIES, DECOR, JUNGLE_MIX, PEOPLE, TUTORIAL, RUINS, STARTER_DECOR,
   xpNeed, energyMax, ENERGY_REGEN, BARN_BASE, BARN_STEP } from './data.js';
 import { seeded, outerJungle, migrateV1, placeGates, isOpenCell } from './island.js';
 import { normalizeSites } from './build.js';
@@ -155,60 +155,34 @@ export function shipTick() {
 }
 
 // ---------- Nhiệm vụ ----------
-// Ván mới đi hết TUTORIAL (S.tut) trước, rồi mới tới chuỗi QUESTS (S.quest) và nhiệm vụ ngẫu nhiên.
+// Ván mới đi hết TUTORIAL (S.tut, tiến độ S.qprog) trước. Sau đó nhiệm vụ truyện và việc vặt do quests.js lo.
 // Bản cũ chuyển sang có S.tut = 999 nên bỏ qua hướng dẫn.
 export const inTutorial = () => S.tut < TUTORIAL.length;
 // Công trình của khóa `key` ('ruin:bakery', 'fac:carpentry'...) đã xây / sửa xong chưa
-function builtKey(key) {
+export function builtKey(key) {
   const [k, t] = key.split(':'), kind = k === 'ruin' ? RUINS[t] : k;
   return S.objs.some(o => o.k === kind && o.t === t && !o.site);
 }
-// reroll = false: questEvent áp sự kiện vào đúng nhiệm vụ đang có, không đổi nhiệm vụ giữa chừng
-// (nhát chặt vật cản cuối cùng vừa xóa nó khỏi S.objs vẫn phải được tính cho nhiệm vụ dọn dẹp)
-export function currentQuest(reroll = true) {
-  if (inTutorial()) {
-    const q = TUTORIAL[S.tut];
-    // bé đã xây xong từ trước khi tới bước này: bước tự xong, không phải chờ sự kiện không bao giờ tới
-    if (q.ev === 'build' && S.qprog < q.n && builtKey(q.key)) S.qprog = q.n;
-    return q;
-  }
-  const q = QUESTS[S.quest];
-  if (q) return (q.lv && S.level > 0 && S.level < q.lv) ? null : q;
-  // nhiệm vụ dọn dẹp chưa xong mà vùng mở hết vật cản (chỉ còn rừng dưới mây): đổi nhiệm vụ khác, không bắt bé chờ
-  if (reroll && S.gq?.ev === 'clear' && S.qprog < S.gq.n && !openObstacle()) { S.gq = null; S.qprog = 0; }
-  if (!S.gq) S.gq = genQuest();
-  return S.gq;
-}
 // Còn vật cản bé chặt được (trong vùng đã mở)
-const openObstacle = () => S.objs.some(o => o.k === 'obstacle' && isOpenCell(o.x, o.z));
-// Nhiệm vụ ngẫu nhiên sau khi xong chuỗi hướng dẫn
-function genQuest() {
-  const who = pick(PEOPLE).id, L = S.level, opts = [];
-  const crops = Object.entries(CROPS).filter(([, c]) => c.lv <= L).map(([k]) => k);
-  const c = pick(crops), n = 4 + rnd(6);
-  opts.push({ text: `Mình cần ${n} ${ITEMS[c].n.toLowerCase()} cho bữa tiệc. Bạn thu hoạch giúp nhé!`, ev: 'harvest', key: c, n });
-  const made = [];
-  for (const o of S.objs) if (o.k === 'fac' && !o.site) for (const r of FACTORIES[o.t].rec) if (r.lv <= L && !r.out.endsWith('feed') && !ITEMS[r.out].mat) made.push(r.out);
-  if (made.length) { const m = pick(made), k = 1 + rnd(3); opts.push({ text: `Làm giúp mình ${k} ${ITEMS[m].n.toLowerCase()} được không?`, ev: 'make', key: m, n: k }); }
-  const pens = S.objs.filter(o => o.k === 'pen' && !o.site && o.animals.length);
-  if (pens.length) { const p = PENS[pick(pens).t], k = 3 + rnd(4); opts.push({ text: `Thu ${k} ${ITEMS[p.prod].n.toLowerCase()} từ chuồng ${p.an.toLowerCase()} nhé!`, ev: 'collect', key: p.prod, n: k }); }
-  opts.push({ text: `Hôm nay nhiều người đặt hàng lắm. Giao ${2 + rnd(3)} đơn hàng nhé!`, ev: 'deliver', n: 2 + rnd(3) });
-  if (openObstacle()) opts.push({ text: 'Dọn thêm 3 chướng ngại vật để đảo rộng hơn nào!', ev: 'clear', n: 3 });
-  const q = pick(opts);
-  if (q.ev === 'deliver') q.text = q.text.replace(/\d+ đơn/, q.n + ' đơn');
-  return { who, ...q, coins: 20 + L * 8, xp: 6 + L * 2, gems: Math.random() < 0.3 ? 1 : 0 };
+export const openObstacle = () => S.objs.some(o => o.k === 'obstacle' && isOpenCell(o.x, o.z));
+// Bước hướng dẫn hiện tại (null khi đã xong hướng dẫn)
+export function currentQuest() {
+  if (!inTutorial()) return null;
+  const q = TUTORIAL[S.tut];
+  // bé đã xây xong từ trước khi tới bước này: bước tự xong, không phải chờ sự kiện không bao giờ tới
+  if (q.ev === 'build' && S.qprog < q.n && builtKey(q.key)) S.qprog = q.n;
+  return q;
 }
 export function claimQuest() {
   const q = currentQuest(); if (!q || S.qprog < q.n) return null;
-  const tut = inTutorial();
   S.coins += q.coins || 0; S.gems += q.gems || 0; S.energy += q.energy || 0; addXP(q.xp || 0);
-  if (tut) S.tut++; else if (QUESTS[S.quest]) S.quest++; else S.gq = null;
-  S.qprog = 0;
+  S.tut++; S.qprog = 0;
   return q;
 }
+// Báo một việc bé vừa làm: nhiệm vụ truyện / việc vặt nghe qua 'act' (quests.js), hướng dẫn đếm ngay ở đây
 export function questEvent(ev, key, n = 1) {
   emit('act', ev, key, n);
-  const q = currentQuest(false);
+  const q = currentQuest();
   if (!q || q.ev !== ev || (q.key && q.key !== key)) return;
   S.qprog = Math.min(q.n, S.qprog + n);
   emit('quest');
@@ -263,7 +237,8 @@ function freshState() {
     inv: { wheat: 4, chickenfeed: 2, wood: 4, palmleaf: 4 }, barnLvl: 0,
     objs, nextId: j.nextId,
     orders: [null, null, null, null, null, null],
-    ship: null, quest: 0, qprog: 0,
+    ship: null, qprog: 0,
+    story: {}, qs: [], choreN: 0, // nhiệm vụ truyện / việc vặt (quests.js)
     lastDaily: '', sound: true, music: true, seed: 'wheat',
     zones: { core: true, west: false, north: false, old: false },
     beach: [], // sao biển, vỏ sò, cua trên bãi cát (beach.js)

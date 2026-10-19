@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, HELPERS, DECOR, OBSTACLES, PEOPLE, QUESTS, ADVENTURES, FAC_SPRITE,
+import { GRID, OFF, ZONES, ITEMS, CROPS, TREES, PENS, FACTORIES, HELPERS, DECOR, OBSTACLES, PEOPLE, ADVENTURES, FAC_SPRITE,
   fieldCost, xpNeed, energyMax, barnUpgradeCost } from './data.js';
 import { S, now, on, save, footprint, isFree, findFree, noRoom, have, add, hasAll, take,
   barnCap, barnUsed, barnRoom, addXP, energyTick, shipTick, refreshOrders, newShip,
@@ -804,8 +804,7 @@ function speedUp(o) {
 function openQuest() {
   const q = currentQuest();
   if (!q) {
-    const nq = QUESTS[S.quest];
-    openModal('quest', 'Maisie', `<div class="talk">${img('face:maisie')}<div class="say">Bạn làm tốt lắm! Nhiệm vụ tiếp theo sẽ mở khi bạn lên <b>cấp ${nq?.lv || S.level + 1}</b>. Cùng chăm sóc nông trại nhé!</div></div>`);
+    openModal('quest', 'Maisie', `<div class="talk">${img('face:maisie')}<div class="say">Bạn làm tốt lắm! Nhiệm vụ tiếp theo sẽ mở khi bạn lên <b>cấp ${S.level + 1}</b>. Cùng chăm sóc nông trại nhé!</div></div>`);
     return;
   }
   const p = PEOPLE.find(x => x.id === q.who), done = S.qprog >= q.n;
@@ -813,7 +812,7 @@ function openQuest() {
     <div class="prog"><i style="width:${S.qprog / q.n * 100}%"></i><span>${S.qprog} / ${q.n}</span></div>
     <div class="reward" style="font-size:18px"><span>Thưởng:</span>${q.coins ? `<span>${coinI}${q.coins}</span>` : ''}${q.xp ? `<span>${xpI}${q.xp}</span>` : ''}${q.gems ? `<span>${gemI}${q.gems}</span>` : ''}${q.energy ? `<span>${boltI}${q.energy}</span>` : ''}</div>
     <div style="margin-top:14px">${S.qprog >= q.n ? '<button class="btn wide orange" data-act="claimquest">Nhận thưởng!</button>' : '<button class="btn wide blue" data-act="questgo">Mình đi làm ngay!</button>'}</div>`;
-  M_sig = () => S.qprog + '/' + S.quest + '/' + S.tut;
+  M_sig = () => S.qprog + '/' + S.tut;
   openModal('quest', 'Nhiệm vụ', M_draw(), { sig: M_sig() });
   if (!done) sfx('tap');
 }
@@ -1075,7 +1074,7 @@ function buildBubbles() {
   list.push({ oid: 'pier', y: 1.4, mark: '🎣', cls: 'fishmark' });
   const q = currentQuest();
   if (q && S.qprog >= q.n) list.push({ oid: 'maisie', y: 1.3, mark: '✓' });
-  else if (q && S.quest < QUESTS.length && S.qprog === 0) list.push({ oid: 'maisie', y: 1.3, mark: '!' });
+  else if (q && S.qprog === 0) list.push({ oid: 'maisie', y: 1.3, mark: '!' });
   const sig = list.map(b => b.oid + (b.icon || b.mark || 'h') + b.n + b.cls).join('|');
   if (sig === buildBubbles.sig) return;
   buildBubbles.sig = sig;
@@ -1152,7 +1151,7 @@ function makeTarget(item, left = 1) {
   return at(f);
 }
 function questTarget() {
-  if (W.mode !== 'farm' || (!inTutorial() && S.quest >= 10)) return null;
+  if (W.mode !== 'farm' || !inTutorial()) return null;
   const q = currentQuest(); if (!q) return null;
   if (S.qprog >= q.n) return M ? (M.type === 'quest' ? inModal('[data-act="claimquest"]') : { el: '#modal .xbtn' }) : { el: '#questBtn' };
   if (M?.type === 'quest') return inModal('[data-act="questgo"]'); // "Mình đi làm ngay!"
