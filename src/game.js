@@ -1234,12 +1234,18 @@ function targetFor(req, left) {
   if (M) return null;
   switch (req.ev) {
     case 'harvest': { const r = find(o => o.k === 'field' && cropStage(o, t) === 3 && (!req.key || o.crop === req.key)); if (r) return { oid: r.id, y: 0.5 };
-      const e = find(o => o.k === 'field' && !o.crop) || find(o => o.k === 'field' && o.crop === req.key); return e ? { oid: e.id, y: 0.5 } : null; }
+      const e = find(o => o.k === 'field' && !o.crop) || (!inTutorial() && find(o => o.k === 'field' && o.crop === req.key)); return e ? { oid: e.id, y: 0.5 } : null; }
     case 'plant': { const e = find(o => o.k === 'field' && !o.crop); return e ? { oid: e.id, y: 0.5 } : null; }
     case 'feed': { // có thức ăn thì chỉ chuồng đang đói, hết thì chỉ máy xay
       const p = find(o => o.k === 'pen' && !o.site && o.animals.some(a => !a.e)) || find(o => o.k === 'pen');
       return !p ? null : have(PENS[p.t].feed) || !p.animals.some(a => !a.e) ? at(p) : makeTarget(PENS[p.t].feed); }
-    case 'collect': case 'buyanimal': { const p = find(o => o.k === 'pen'); return p ? at(p) : null; }
+    case 'collect': case 'buyanimal': {
+      if (req.ev === 'collect' && req.key && !inTutorial()) { // nhiệm vụ truyện / việc vặt: đúng chuồng ra món đó
+        const mine = objs.filter(o => o.k === 'pen' && PENS[o.t].prod === req.key), built = mine.filter(o => !o.site);
+        const p = built.find(o => o.animals.some(a => a.e && t >= a.e)) || built[0]; // ưu tiên chuồng đã có món chờ thu
+        return p ? at(p) : mine[0] ? siteTarget(mine[0]) : null; // chưa xây xong thì chỉ công trường
+      }
+      const p = find(o => o.k === 'pen'); return p ? at(p) : null; }
     case 'deliver': { const b = find(o => o.k === 'board'); return b ? { oid: b.id, y: 2.1 } : null; }
     case 'clear': { const o = nearestSeen(basicDrop) || nearestSeen(() => true); return o ? at(o) : null; }
     case 'crate': return { oid: 'ship', y: 3.6 };
