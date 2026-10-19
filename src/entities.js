@@ -613,7 +613,7 @@ function gateView(o) {
 // Tấm xa vẽ trước để pha màu đúng; depthWrite tắt để mây không che lẫn nhau.
 let cloudTex = null;
 const CLOUDS = new Map(); // id vùng -> { mesh, mat, t0 }
-function cloudTexture() {
+export function cloudTexture() {
   if (cloudTex) return cloudTex;
   const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
   for (const [cx, cy, r] of [[64, 72, 44], [40, 76, 30], [88, 76, 30], [56, 52, 30], [78, 56, 26]]) {
