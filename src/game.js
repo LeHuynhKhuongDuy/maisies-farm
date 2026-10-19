@@ -813,6 +813,7 @@ function openQuest(id) {
   const list = activeQuests();
   const q = list.find(x => x.id === id) || list.find(x => x.done) || list.find(x => !x.seen) || list[0];
   if (!q) return;
+  if (guide && guide.qid !== q.id) guide = guideReq = null; // bé mở nhiệm vụ khác: thôi chỉ đường cũ
   const wasSeen = q.seen; // chưa xem thì nói chuyện trước rồi mới hiện bảng
   markSeen(q.id); renderHUD();
   const cur = () => activeQuests().find(x => x.id === q.id);
@@ -996,12 +997,20 @@ const ACT = {
     else if (q.arc && q.outro?.length) setTimeout(() => talk(q.outro), 700);
   },
   speed(b) { speedUp(byId(+b.dataset.oid)); },
-  // "Mình đi làm ngay!": đóng bảng; chỗ cần làm đang ở ngoài màn hình thì bay camera tới đó
-  questgo() {
+  // "Mình đi làm ngay!" (hướng dẫn) / "Chỉ cho bé" (nhiệm vụ truyện, việc vặt): đóng bảng, bàn tay chỉ chỗ cần làm;
+  // vật ở ngoài màn hình thì bay camera tới đó (nút trên màn hình thì giữ nguyên camera)
+  questgo(b) {
     closeModal();
-    const tg = questTarget(), r = tg?.oid != null && rootOf(tg.oid); if (!r) return;
-    const [x, y] = toScreen(v3.copy(r.position));
-    if (x < PLAY.l || x > innerWidth - PLAY.r || y < PLAY.t || y > innerHeight - PLAY.b) flyCamTo(r.position.clone());
+    if (!inTutorial() && b?.dataset.q && b.dataset.q !== 'tut') {
+      setGuide({ qid: b.dataset.q, ri: +b.dataset.r || 0 });
+      if (!guideReq) return;
+      const tg = guideTarget(), r = tg?.oid != null && rootOf(tg.oid);
+      if (!tg) toast('Chưa thấy chỗ làm, đợi một chút nhé!');
+      else if (r) flyIfOff(r, tg.y);
+      return;
+    }
+    const tg = questTarget(), r = tg?.oid != null && rootOf(tg.oid);
+    if (r) flyIfOff(r, tg.y);
   },
   togglesound() { S.sound = !S.sound; openSettings(); },
   togglemusic() { S.music = !S.music; if (S.music) startMusic(); else stopMusic(); openSettings(); },
@@ -1139,7 +1148,13 @@ function buildBubbles() {
   });
 }
 const v3 = new THREE.Vector3();
-function rootOf(oid) { return oid === 'ship' ? SPECIAL.dock : oid === 'pier' ? SPECIAL.pier : oid === 'maisie' ? SPECIAL.maisie : typeof oid === 'string' && oid.startsWith('v:') ? visitorRoot(oid) : VIEWS.get(oid)?.root; }
+// Vật đang ngoài vùng chơi thì bay camera tới đó
+function flyIfOff(r, up = 0) { // up: độ cao bàn tay trên vật
+  v3.copy(r.position); v3.y += up;
+  const [x, y] = toScreen(v3);
+  if (x < PLAY.l || x > innerWidth - PLAY.r || y < PLAY.t || y > innerHeight - PLAY.b) flyCamTo(r.position.clone());
+}
+function rootOf(oid) { return oid === 'ship' ? SPECIAL.dock : oid === 'pier' ? SPECIAL.pier : oid === 'maisie' ? SPECIAL.maisie : typeof oid === 'string' && oid.startsWith('v:') ? visitorRoot(oid) : typeof oid === 'string' && oid.startsWith('beach:') ? beachRoot(+oid.slice(6)) : VIEWS.get(oid)?.root; }
 // ---------- Bàn tay hướng dẫn cho mấy nhiệm vụ đầu ----------
 // Trả { oid, y } (vật trên đảo) hoặc { el } (nút trên màn hình, trong bảng hoặc khay)
 let hand = null;
@@ -1201,25 +1216,25 @@ function makeTarget(item, left = 1) {
   if (more && room && !hasAll(r.in)) for (const k of Object.keys(r.in)) if (have(k) < r.in[k]) { const s = sourceOf(k); if (s) return s; }
   return at(f);
 }
-function questTarget() {
-  if (W.mode !== 'farm' || !inTutorial()) return null;
-  const q = currentQuest(); if (!q) return null;
-  if (S.qprog >= q.n) return M ? (M.type === 'quest' ? inModal('[data-act="claimquest"]') : { el: '#modal .xbtn' }) : { el: '#questCol [data-q="tut"]' };
-  if (M?.type === 'quest') return inModal('[data-act="questgo"]'); // "Mình đi làm ngay!"
-  if (placing) return placing.isNew && q.ev === 'build' ? { el: '#tray [data-act="placeok"]' } : null;
+// Chỗ bé cần làm cho một yêu cầu `req` ({ ev, key, n }), còn `left` lần nữa. Dùng chung cho bước hướng dẫn và nút "Chỉ cho bé"
+function targetFor(req, left) {
+  if (placing) return placing.isNew && req.ev === 'build' ? { el: '#tray [data-act="placeok"]' } : null;
   const t = now(), objs = S.objs;
   const find = f => objs.find(f);
-  if (q.ev === 'build') {
-    const site = find(o => o.site && keyOf(o) === q.key);
+  if (req.ev === 'build') {
+    const site = find(o => o.site && keyOf(o) === req.key);
     if (site) return siteTarget(site);
-    if (M) return M.type === 'shop' ? inModal(shopTab === 'factory' ? `[data-act="buy"][data-k="${q.key}"]` : '[data-act="shoptab"][data-k="factory"]') : null;
-    return q.key.startsWith('fac:') ? { el: '#btnShop' } : null;
+    // chưa có công trường: nhà máy / thợ phụ / chuồng thì mua ở cửa hàng; đồ đổ nát và cổng thì luôn có sẵn công trường
+    const tab = /^(fac|helper):/.test(req.key) ? 'factory' : req.key.startsWith('pen:') ? 'animals' : null;
+    if (!tab) return null;
+    if (M) return M.type === 'shop' ? inModal(shopTab === tab ? `[data-act="buy"][data-k="${req.key}"]` : `[data-act="shoptab"][data-k="${tab}"]`) : null;
+    return { el: '#btnShop' };
   }
-  if (q.ev === 'make') return makeTarget(q.key, q.n - S.qprog);
+  if (req.ev === 'make') return makeTarget(req.key, left);
   if (M) return null;
-  switch (q.ev) {
-    case 'harvest': { const r = find(o => o.k === 'field' && cropStage(o, t) === 3 && (!q.key || o.crop === q.key)); if (r) return { oid: r.id, y: 0.5 };
-      const e = find(o => o.k === 'field' && !o.crop); return e ? { oid: e.id, y: 0.5 } : null; }
+  switch (req.ev) {
+    case 'harvest': { const r = find(o => o.k === 'field' && cropStage(o, t) === 3 && (!req.key || o.crop === req.key)); if (r) return { oid: r.id, y: 0.5 };
+      const e = find(o => o.k === 'field' && !o.crop) || find(o => o.k === 'field' && o.crop === req.key); return e ? { oid: e.id, y: 0.5 } : null; }
     case 'plant': { const e = find(o => o.k === 'field' && !o.crop); return e ? { oid: e.id, y: 0.5 } : null; }
     case 'feed': { // có thức ăn thì chỉ chuồng đang đói, hết thì chỉ máy xay
       const p = find(o => o.k === 'pen' && !o.site && o.animals.some(a => !a.e)) || find(o => o.k === 'pen');
@@ -1230,13 +1245,44 @@ function questTarget() {
     case 'crate': return { oid: 'ship', y: 3.6 };
     case 'buydecor': case 'buytree': return { el: '#btnShop' };
     case 'sail': return { el: '#btnAdv' };
+    case 'beach': { // món dạt vào bãi gần giữa màn hình nhất (chỉ món đã hiện ra)
+      let best = null, bd = Infinity;
+      for (const b of S.beach || []) {
+        const r = beachRoot(b.id); if (!r) continue;
+        const [x, y] = toScreen(hv.copy(r.position)), d = Math.hypot(x - innerWidth / 2, y - innerHeight / 2);
+        if (d < bd) { bd = d; best = b; }
+      }
+      return best ? { oid: 'beach:' + best.id, y: 0.9 } : null; }
   }
   return null;
+}
+// Bước hướng dẫn: một yêu cầu, bàn tay luôn chỉ đường
+function questTarget() {
+  if (W.mode !== 'farm' || !inTutorial()) return null;
+  const q = currentQuest(); if (!q) return null;
+  if (S.qprog >= q.n) return M ? (M.type === 'quest' ? inModal('[data-act="claimquest"]') : { el: '#modal .xbtn' }) : { el: '#questCol [data-q="tut"]' };
+  if (M?.type === 'quest') return inModal('[data-act="questgo"]'); // "Mình đi làm ngay!"
+  return targetFor(q, q.n - S.qprog);
+}
+// ---------- Nút "Chỉ cho bé" (ngoài hướng dẫn) ----------
+// guide = { qid, ri }: bé nhờ chỉ yêu cầu thứ ri của nhiệm vụ qid. guideReq giữ yêu cầu + số lần còn lại, làm mới 4 lần/giây
+let guide = null, guideReq = null;
+function setGuide(g) { guide = g; guideReq = null; if (g) refreshGuide(); }
+// Xong yêu cầu đó, nhiệm vụ không còn mở, hoặc đang hướng dẫn thì thôi chỉ
+function refreshGuide() {
+  if (!guide) return;
+  const q = inTutorial() ? null : activeQuests().find(x => x.id === guide.qid), r = q?.reqs[guide.ri], p = q?.p[guide.ri] || 0;
+  if (!r || p >= r.n) { guide = guideReq = null; return; }
+  guideReq = { req: r, left: r.n - p };
+}
+function guideTarget() {
+  if (!guide || !guideReq || W.mode !== 'farm') return null;
+  return targetFor(guideReq.req, guideReq.left);
 }
 function positionHand() {
   // tay nằm ngoài #bubbles để nổi được lên trên HUD và bảng khi chỉ vào nút
   if (!hand) { hand = document.createElement('div'); hand.className = 'hand'; hand.textContent = '👇'; document.body.appendChild(hand); }
-  const tg = questTarget();
+  const tg = questTarget() || guideTarget();
   if (!tg) { hand.hidden = true; return; }
   let x, y, icon = '👇';
   if (tg.el) { const r = $(tg.el)?.getBoundingClientRect(); if (!r || !r.width) { hand.hidden = true; return; } x = r.left + r.width / 2; y = r.top + r.height / 2 + 24; } // đầu ngón tay ở giữa nút (lưới nút sát nhau)
@@ -1274,6 +1320,7 @@ export function tick() {
   for (const o of S.objs) if (o.k === 'helper') helperTick(o, t);
   energyTick(); shipTick(); visitorsTick(); marketTick();
   const g = regrowTick(t); if (g) { addView(g); bounce(g.id); }
+  refreshGuide();
   beachTick(t); syncBeach(beachSpots()); // đồ dạt vào bãi biển
   if (!(M && M.type === 'orders')) refreshOrders();
   for (const v of VIEWS.values()) v.refresh?.(t);
