@@ -544,7 +544,7 @@ export const ADVENTURES = [
     intro: 'Làng chài nhỏ này đang cần người giúp. Cô Nina bán cá đang chờ mình đấy!',
     reward: { coins: 250, gems: 5, xp: 70 },
     story: {
-      who: 'nina', guide: 'dog',
+      who: 'nina', guide: 'guide_dog',
       ruin: { n: 'Sạp cá', sprite: 'ruin_boat', fixed: 'market', stages: [{ wood: 4, palmleaf: 4 }, { stone: 4, wood: 4 }] },
       steps: [
         { who: 'nina', text: 'Dọn 6 chỗ vướng trong làng.',
@@ -571,7 +571,7 @@ export const ADVENTURES = [
     intro: 'Ngọn hải đăng trên đảo đá đã tắt đèn. Ông Otto chờ mình giúp thắp lại!',
     reward: { coins: 420, gems: 9, xp: 120 },
     story: {
-      who: 'otto', guide: 'gull1',
+      who: 'otto', guide: 'guide_gull',
       ruin: { n: 'Hải đăng', sprite: 'stairs_old_broken', fixed: 'lighthouse', stages: [{ stone: 6, clay: 3 }, { wood: 5, stone: 5 }, { clay: 4, wood: 4 }] },
       steps: [
         { who: 'otto', text: 'Dọn 8 tảng đá chắn đường.',
@@ -598,7 +598,7 @@ export const ADVENTURES = [
     intro: 'Đảo Bướm đầy hoa và cánh bướm. Bé Mia muốn dẫn mình đi tìm một ao sen!',
     reward: { coins: 600, gems: 13, xp: 170 },
     story: {
-      who: 'mia', guide: 'bunny',
+      who: 'mia', guide: 'guide_bunny',
       ruin: { n: 'Vườn bướm', sprite: 'ruin_house', fixed: 'fountain', stages: [{ bamboo: 6, palmleaf: 6 }, { wood: 6, liana: 2 }, { bamboo: 6, wood: 6 }] },
       steps: [
         { who: 'mia', text: 'Dọn 10 chỗ rậm rạp.',
@@ -698,6 +698,8 @@ export const SPRITE_ART = {
   haysack: { width: 0.55 }, campfire: { width: 0.75 }, hedge: { width: 0.95 }, flag: { width: 0.7 },
   stump: { width: 0.7 }, logs: { width: 0.85 }, bee: { width: 0.3 }, bench: { width: 0.9 }, wheelbarrow: { width: 0.85 },
   tom: { width: 0.66 }, lily: { width: 0.5 }, ben: { width: 0.86 }, rosa: { width: 0.61 }, sam: { width: 0.73 },
+  nina: { width: 0.68 }, otto: { width: 0.64 }, mia: { width: 0.52 }, // người dân đảo truyện (tờ 21)
+  guide_dog: { width: 0.51 }, guide_gull: { width: 0.6 }, guide_bunny: { width: 0.37 }, // thú dẫn đường
   gull1: { width: 0.9 }, gull2: { width: 0.9 }, pier: { width: 4.6 }, grasstuft: { width: 0.6 }, daisies: { width: 0.85 },
   fence: { width: 1.05 }, axe: { width: 0.5 }, signboard: { width: 1 }, bucket: { width: 0.4 }, fishingrod: { width: 0.9 },
   soil: { width: 1.35 }, trough: { width: 0.8 },
