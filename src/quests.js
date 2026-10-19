@@ -54,9 +54,17 @@ const arcOf = id => STORIES.find(a => a.id === id);
 const stepLv = (a, s) => Math.max(a.lv, s.lv || 0);
 // Mục S.qs -> định nghĩa (bước truyện hoặc việc vặt đã lưu); null nếu bước không còn (dữ liệu đổi)
 function defOf(e) {
-  if (e.c) return e.c;
+  if (!e) return null;
+  if (e.c) return Array.isArray(e.c.reqs) ? e.c : null;
+  if (typeof e.id !== 'string') return null;
   const [arc, i] = e.id.split(':'), a = arcOf(arc);
   return a?.steps[+i] || null;
+}
+// Bản lưu hỏng (S.qs không phải mảng, mục thiếu p...) thì tự sửa, không văng lỗi mỗi nhịp
+function healQs() {
+  if (!Array.isArray(S.qs)) S.qs = [];
+  S.qs = S.qs.filter(e => e && typeof e === 'object' && defOf(e));
+  for (const e of S.qs) if (!Array.isArray(e.p)) e.p = [];
 }
 const isDone = (e, d) => d.reqs.every((r, i) => (e.p[i] || 0) >= r.n);
 const untouched = e => !e.p.some(x => x > 0);
@@ -69,7 +77,7 @@ function toQuest(e, d) {
 }
 
 export function activeQuests() {
-  S.story ||= {}; S.qs ||= []; S.choreN ||= 0;
+  S.story ||= {}; S.choreN ||= 0; healQs();
   delete S.quest; delete S.gq; // chuỗi nhiệm vụ cũ không còn; qprog và tut vẫn dùng cho hướng dẫn
   if (inTutorial()) return [];
   // bỏ mục không còn mở: bước truyện đã qua / chưa đủ cấp / không còn trong dữ liệu
@@ -134,7 +142,8 @@ const dailyGift = () => ({ coins: DAILY.coins(S.level), gems: DAILY.gems, energy
 const giveGift = g => { S.coins += g.coins; S.gems += g.gems; S.energy += g.energy; };
 // Việc nhỏ cho hôm nay: lấy từ việc vặt (nửa số lượng) hoặc ba việc luôn làm được; mỗi việc khác nhau ev+key
 function newDailyTasks() {
-  const fixed = [{ ev: 'feed', n: 2 }, { ev: 'plant', n: 4 }, { ev: 'beach', n: 2 }], tasks = [], seen = new Set();
+  const fixed = [{ ev: 'plant', n: 4 }, { ev: 'beach', n: 2 }], tasks = [], seen = new Set();
+  if (S.objs.some(o => o.k === 'pen' && !o.site)) fixed.push({ ev: 'feed', n: 2 }); // chưa có chuồng thì không bắt cho thú ăn
   for (let t = 0; t < 200 && tasks.length < DAILY.count; t++) {
     let r;
     if (rnd(2)) { const q = newChore().reqs[0]; r = { ev: q.ev, n: Math.max(1, Math.round(q.n / 2)) }; if (q.key) r.key = q.key; }
@@ -148,6 +157,7 @@ function newDailyTasks() {
 // Việc hôm nay; qua ngày mới thì làm mới (ngày cũ xong hết mà chưa nhận thì cộng quà luôn)
 export function daily() {
   const day = new Date().toDateString();
+  if (!S.daily || !Array.isArray(S.daily.tasks) || !S.daily.tasks.every(t => t && typeof t.n === 'number')) S.daily = null; // bản lưu hỏng: làm mới
   if (!S.daily || S.daily.day !== day) {
     if (S.daily && !S.daily.got && dailyDone(S.daily)) giveGift(dailyGift());
     S.daily = { day, tasks: newDailyTasks(), got: false };
@@ -173,9 +183,10 @@ on('act', (ev, key, n = 1) => {
     t.p = Math.min(t.n, t.p + n); changed = true;
   }
   if (!inTutorial()) {
-    if (!S.qs) activeQuests();
+    if (!Array.isArray(S.qs)) activeQuests();
     for (const e of S.qs) {
       const d = defOf(e); if (!d) continue;
+      if (!Array.isArray(e.p)) e.p = [];
       d.reqs.forEach((r, i) => {
         if (r.ev !== ev || (r.key && r.key !== key) || (e.p[i] || 0) >= r.n) return;
         e.p[i] = Math.min(r.n, (e.p[i] || 0) + n); changed = true;

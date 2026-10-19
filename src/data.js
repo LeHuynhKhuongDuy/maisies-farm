@@ -376,7 +376,7 @@ export const STORIES = [
   ] },
   { id: 'banh-ba', n: 'Bánh của bà Rosa', lv: 3, steps: [
     { who: 'rosa', lv: 3, text: 'Làm 2 hộp bánh quy.',
-      talk: [['rosa', 'Maisie này, hôm nay là ngày ông bà cháu từng nướng bánh quy.'], ['rosa', 'Bà muốn làm lại, nhưng tay bà mỏi rồi. Cháu giúp bà nhé?']],
+      talk: [['rosa', 'Maisie này, ông bà cháu hay nướng bánh quy vào ngày này.'], ['rosa', 'Bà muốn làm lại, nhưng tay bà mỏi rồi. Cháu giúp bà nhé?']],
       outro: [['rosa', 'Thơm quá! Cảm ơn cháu nhiều.']],
       reqs: [{ ev: 'make', key: 'cookie', n: 2 }], coins: 50, xp: 12 },
     { who: 'ben', lv: 4, text: 'Hái 6 quả dâu tây và làm 1 miếng phô mai.',
@@ -413,7 +413,7 @@ export const STORIES = [
       reqs: [{ ev: 'build', key: 'gate:bridge_w', n: 1 }], coins: 60, xp: 14 },
     { who: 'maisie', lv: 5, text: 'Làm 2 cây đuốc và dọn 10 bụi cây.',
       talk: [['maisie', 'Ông Kai nói trong rừng tối lắm.'], ['maisie', 'Mình làm đuốc để soi đường và dọn thêm bụi rậm nhé!']],
-      outro: [['maisie', 'Đuốc sáng quá! Rừng không còn đáng sợ nữa.'], ['kai', 'Cháu gan dạ lắm. Ông và ông bà cháu sẽ rất tự hào.']],
+      outro: [['maisie', 'Đuốc sáng quá! Rừng không còn đáng sợ nữa.'], ['kai', 'Cháu gan dạ lắm. Ông bà cháu cũng sẽ rất tự hào.']],
       reqs: [{ ev: 'make', key: 'torch', n: 2 }, { ev: 'clear', n: 10 }], coins: 70, xp: 16, gems: 2 },
   ] },
   { id: 'mat-ong', n: 'Mật ong của bác Tom', lv: 7, steps: [

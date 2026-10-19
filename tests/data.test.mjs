@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, put } from './helpers.mjs';
+import { unlockLevel } from '../src/build.js';
 import { S, producible, genOrder, newShip, energyLabel } from '../src/state.js';
 import { ITEMS, FACTORIES, TUTORIAL, STORIES, REQ_EVENTS, ISLANDERS, PEOPLE, CROPS, TREES, PENS, BUILD, talkerName } from '../src/data.js';
 
@@ -58,7 +59,7 @@ function doable(r, L) {
   if (r.ev === 'make') return Object.values(FACTORIES).some(F => F.lv <= L && F.rec.some(x => x.out === r.key && x.lv <= L));
   if (r.ev === 'harvest') return (CROPS[r.key]?.lv ?? 99) <= L || Object.values(TREES).some(T => T.yield === r.key && T.lv <= L);
   if (r.ev === 'collect') return Object.values(PENS).some(P => P.prod === r.key && P.lv <= L);
-  if (r.ev === 'build') return !!BUILD[r.key];
+  if (r.ev === 'build') return !!BUILD[r.key] && unlockLevel(r.key) <= L;
   return true;
 }
 test('STORIES: id không trùng, mỗi mạch 3 bước, mỗi bước 1–3 yêu cầu hợp lệ và làm được ở cấp mở', () => {

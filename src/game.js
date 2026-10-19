@@ -18,7 +18,7 @@ import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
 import { nbTap, openNeighbors } from './neighbors.js';
 import { openFishing } from './fishing.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
-import { talk } from './talk.js';
+import { talk, talkLater } from './talk.js';
 import { activeQuests, claimStory, markSeen, reqLabel, daily, claimDaily as claimDailyTasks } from './quests.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint, gainLine } from './ui.js';
@@ -1013,7 +1013,7 @@ const ACT = {
     sfx('coin'); closeModal(); activeQuests(); renderHUD();
     // hướng dẫn: mở ngay bước kế; nhiệm vụ truyện: sau khi xu bay xong thì nói lời kết `outro`
     if (tut && inTutorial()) setTimeout(() => { if (!M) openQuest('tut'); }, 900);
-    else if (q.arc && q.outro?.length) setTimeout(() => talk(q.outro), 700);
+    else if (q.arc && q.outro?.length) setTimeout(() => talkLater(q.outro), 700); // bé đang nghe lời thoại khác thì xếp hàng, không cắt ngang
   },
   // mở quà việc hằng ngày (khác `claimdaily` là quà đăng nhập)
   claimtasks(b, x, y) {
@@ -1244,6 +1244,11 @@ function makeTarget(item, left = 1) {
   if (more && room && !hasAll(r.in)) for (const k of Object.keys(r.in)) if (have(k) < r.in[k]) { const s = sourceOf(k); if (s) return s; }
   return at(f);
 }
+// Chỉ tới món `key` ở thẻ `tab` của cửa hàng: chưa mở cửa hàng thì chỉ nút, đang mở thì chỉ thẻ rồi nút mua
+function shopTarget(tab, key) {
+  if (M) return M.type === 'shop' ? inModal(shopTab === tab ? `[data-act="buy"][data-k="${key}"]` : `[data-act="shoptab"][data-k="${tab}"]`) : null;
+  return { el: '#btnShop' };
+}
 // Chỗ bé cần làm cho một yêu cầu `req` ({ ev, key, n }), còn `left` lần nữa. Dùng chung cho bước hướng dẫn và nút "Chỉ cho bé"
 function targetFor(req, left) {
   if (placing) return placing.isNew && req.ev === 'build' ? { el: '#tray [data-act="placeok"]' } : null;
@@ -1254,9 +1259,12 @@ function targetFor(req, left) {
     if (site) return siteTarget(site);
     // chưa có công trường: nhà máy / thợ phụ / chuồng thì mua ở cửa hàng; đồ đổ nát và cổng thì luôn có sẵn công trường
     const tab = /^(fac|helper):/.test(req.key) ? 'factory' : req.key.startsWith('pen:') ? 'animals' : null;
-    if (!tab) return null;
-    if (M) return M.type === 'shop' ? inModal(shopTab === tab ? `[data-act="buy"][data-k="${req.key}"]` : `[data-act="shoptab"][data-k="${tab}"]`) : null;
-    return { el: '#btnShop' };
+    return tab ? shopTarget(tab, req.key) : null;
+  }
+  // nhiệm vụ truyện / việc vặt cần món chuồng hoặc cho thú ăn mà chưa có chuồng: chỉ tới cửa hàng mua chuồng, không bắt bé chờ
+  if (!inTutorial() && (req.ev === 'collect' || req.ev === 'feed')) {
+    const pen = req.ev === 'feed' ? 'coop' : Object.keys(PENS).find(k => PENS[k].prod === req.key);
+    if (pen && !objs.some(o => o.k === 'pen' && (req.ev === 'feed' || PENS[o.t].prod === req.key))) return shopTarget('animals', 'pen:' + pen);
   }
   if (req.ev === 'make') return makeTarget(req.key, left);
   if (M) return null;

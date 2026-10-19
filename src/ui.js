@@ -120,7 +120,7 @@ function renderQuestCol() {
   const sig = btns.map(b => [b.id, b.who, b.badge, b.daily].join('~')).join('|') + (tut ? S.tut : '');
   if (sig === colSig) return;
   colSig = sig;
-  $('#questCol').innerHTML = btns.map((b, i) => `<button class="qbtn ${b.daily ? 'daily' : ''}" id="qb${i}" data-q="${b.id}" aria-label="${b.daily ? 'Việc hằng ngày' : 'Nhiệm vụ'}">`
+  $('#questCol').innerHTML = btns.map((b, i) => `<button class="qbtn ${b.daily ? 'qdaily' : ''}" id="qb${i}" data-q="${b.id}" aria-label="${b.daily ? 'Việc hằng ngày' : 'Nhiệm vụ'}">`
     + (b.daily ? `<span>☀️</span><small>${b.daily}</small>` : faceImg(b.who))
     + (b.badge ? `<span class="badge ${b.ok ? 'ok' : ''}">${b.badge}</span>` : '') + '</button>').join('');
 }

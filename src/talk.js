@@ -4,6 +4,7 @@ import { ICONS } from './assets.js';
 import { talkerName } from './data.js';
 
 let cur = null; // { lines, i, done } khi đang nói chuyện
+const queue = []; // lời thoại xếp hàng, nói sau khi đoạn đang nói xong
 
 const $ = s => document.querySelector(s);
 
@@ -23,6 +24,7 @@ function finish() {
   cur = null;
   $('#talk').hidden = true;
   c.done?.();
+  if (!cur && queue.length) talk(queue.shift());
 }
 
 function next() {
@@ -47,7 +49,7 @@ function wire() {
 
 // lines: [[who, text], …]. Rỗng thì gọi done ngay.
 export function talk(lines, done) {
-  if (cur) finish(); // đang nói dở thì kết thúc câu chuyện cũ trước
+  if (cur) { const q = queue.splice(0); finish(); queue.unshift(...q); } // đang nói dở thì kết thúc câu chuyện cũ trước (hàng đợi giữ nguyên)
   if (!lines || !lines.length) { done?.(); return; }
   wire();
   cur = { lines, i: 0, done };
@@ -55,5 +57,8 @@ export function talk(lines, done) {
   show();
   $('#talkSkip').focus({ preventScroll: true });
 }
+
+// Đang nói thì xếp hàng nói sau, rảnh thì nói ngay
+export function talkLater(lines) { if (cur) queue.push(lines); else talk(lines); }
 
 export const talking = () => !!cur;

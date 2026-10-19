@@ -31,3 +31,23 @@ test('một sự kiện cộng cho cả nhiệm vụ truyện và việc hằng 
   questEvent('harvest', 'wheat', 2);
   assert.equal(daily().tasks[0].p, 2); assert.equal(activeQuests().find(q => q.id === 've-dao:0').p[0], 2);
 });
+test('chưa có chuồng nào thì việc hằng ngày không có "cho thú ăn"; có chuồng thì mới có thể có', () => {
+  fresh({ tut: 999, level: 3 }); S.objs = S.objs.filter(o => o.k !== 'pen');
+  for (let i = 0; i < 60; i++) { S.daily = null; assert.ok(daily().tasks.every(t => t.ev !== 'feed'), 'lần ' + i); }
+  S.objs.push({ id: 999, k: 'pen', t: 'coop', x: 14, z: 9, r: 0, animals: [{ s: 0, e: 0 }] });
+  let got = false; for (let i = 0; i < 60 && !got; i++) { S.daily = null; got = daily().tasks.some(t => t.ev === 'feed'); }
+  assert.ok(got, 'có chuồng thì vẫn có thể ra việc cho thú ăn');
+});
+test('bản lưu hỏng: S.daily thiếu tasks / S.qs không phải mảng / mục thiếu p thì không văng lỗi và tự lành', () => {
+  fresh({ tut: 999, level: 2 });
+  S.daily = { day: new Date().toDateString(), got: false };
+  assert.doesNotThrow(() => daily()); assert.equal(daily().tasks.length, 5);
+  S.daily = { day: new Date().toDateString(), tasks: 'x', got: false };
+  assert.doesNotThrow(() => questEvent('harvest', 'wheat', 1)); assert.equal(daily().tasks.length, 5);
+  S.qs = 'hỏng'; assert.doesNotThrow(() => activeQuests()); assert.ok(Array.isArray(S.qs) && S.qs.length >= 2);
+  S.qs = { a: 1 }; assert.doesNotThrow(() => questEvent('harvest', 'wheat', 1)); assert.doesNotThrow(() => activeQuests());
+  activeQuests(); S.qs[0].p = undefined; S.qs[1].p = 5;
+  assert.doesNotThrow(() => questEvent('harvest', 'wheat', 1));
+  assert.doesNotThrow(() => activeQuests()); assert.ok(S.qs.every(e => Array.isArray(e.p)));
+  S.qs.push(null); assert.doesNotThrow(() => activeQuests()); assert.ok(S.qs.every(Boolean));
+});
