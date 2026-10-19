@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { ADVENTURES, ITEMS, CROPS, DECOR, talkerName } from './data.js';
+import { ADVENTURES, CHART_ART, ITEMS, CROPS, DECOR, talkerName } from './data.js';
 import { buildMap } from './advmap.js';
-import { isleState, isleReplayReset, isleQuest, isleEvent, isleClaim, isleFinish, nextHint, lootMat, mainOf, touchable, fogged, ruinNeed, ruinGive, ruinAdvance } from './isles.js';
+import { isleState, isleReplayReset, isleQuest, isleEvent, isleClaim, isleFinish, nextHint, lootMat, mainOf, touchable, fogged, ruinNeed, ruinGive, ruinAdvance, chartLocked } from './isles.js';
 import { S, rnd, add, have, barnRoom, addXP, save, questEvent, emit } from './state.js';
 import { W, pickAt, groundAt, toScreen, focusOn, flyCamTo, updateCamera, slab, roundedRect } from './world.js';
 import { make, play, ICONS } from './assets.js';
@@ -585,19 +585,33 @@ export function advUpdate(t, dt) {
   cur.boat.position.y = -0.45 + Math.sin(t * 1.5) * 0.04;
 }
 
-// ---------- Bảng chọn đảo ----------
+// ---------- Hải đồ ----------
+const chartIcon = A => (A.story ? ICONS['face:' + A.story.who] : ICONS[A.goal.pet ? 'decor:' + A.goal.pet : 'decor:chest']);
+const chartBtn = (A, p, pct) => (p.done ? 'Chơi lại' : pct ? 'Đi tiếp' : 'Ra khơi');
 export function openAdventures(h) {
-  const cards = ADVENTURES.filter(A => !A.story).map(A => { // đảo truyện chờ bảng đồ biển mới vào được
-    const lock = S.level < A.lv, p = progress(A), pct = advPercent(A);
-    return `<div class="card adv ${lock ? 'lock' : ''}">${lock ? `<span class="lk">Cấp ${A.lv}</span>` : ''}
-      <img src="${ICONS[A.goal.pet ? 'decor:' + A.goal.pet : 'decor:chest']}" alt="">
-      <b>${esc(A.n)}</b><small>${p.done ? 'Đã hoàn thành ✓' : `Đã khám phá ${pct}%`}</small>
-      <button class="btn small ${lock ? 'gray' : 'blue'}" data-adv="${A.id}">${lock ? 'Chưa mở' : p.done ? 'Chơi lại' : pct ? 'Đi tiếp' : 'Ra khơi'}</button></div>`;
+  const nodes = ADVENTURES.map(A => {
+    const lock = chartLocked(A), p = progress(A), pct = advPercent(A), done = !lock && p.done;
+    return `<button class="cnode ${lock ? 'lock' : ''} ${done ? 'done' : ''}" data-adv="${A.id}" style="left:${A.chart.x}%;top:${A.chart.y}%" aria-label="${esc(A.n)}">
+      <span class="cdisc"><img src="${chartIcon(A)}" alt="">${lock ? '<i class="clk">🔒</i>' : done ? '<i class="cok">✓</i>' : ''}</span>
+      <b>${esc(A.n)}</b>${lock ? `<small>${esc(lock)}</small>` : `<span class="cbar"><i style="width:${done ? 100 : pct}%"></i></span>`}</button>`;
   }).join('');
-  openModal('adventures', 'Phiêu lưu', `<p class="hint">Đi thuyền tới các hòn đảo, dọn đường bằng năng lượng <span class="ico bolt sm"></span> để tìm kho báu và giải cứu các bạn thú!</p><div class="grid">${cards}</div>`);
+  const art = CHART_ART ? ` style="background-image:url(${import.meta.env.BASE_URL}items/seachart.webp)"` : '';
+  openModal('adventures', 'Hải đồ', `<div class="chart ${CHART_ART ? 'art' : ''}"${art}>
+    <i class="cwave" style="left:6%;top:6%"></i><i class="cwave" style="left:62%;top:6%"></i><i class="cwave" style="left:30%;top:35%"></i>
+    <i class="cwave" style="left:70%;top:35%"></i><i class="cwave" style="left:8%;top:64%"></i><i class="cwave" style="left:86%;top:66%"></i>
+    <i class="ccompass"></i>
+    <div class="cpier"><span class="ico boat"></span><small>Nhà</small></div>
+    ${nodes}<div class="ccard" id="chartCard" hidden></div></div>`);
+  const card = $('#chartCard');
   document.querySelectorAll('[data-adv]').forEach(b => b.onclick = () => {
-    const A = ADVENTURES.find(a => a.id === b.dataset.adv);
-    if (S.level < A.lv) { toast(`Mở ở cấp ${A.lv}`); sfx('no'); return; }
-    enterAdventure(A.id, h);
+    const A = ADVENTURES.find(a => a.id === b.dataset.adv), lock = chartLocked(A), p = progress(A), pct = advPercent(A);
+    sfx(lock ? 'no' : 'tap');
+    card.hidden = false; card.classList.toggle('top', A.chart.y > 55); // đảo ở nửa dưới thì thẻ hiện ở trên để khỏi che
+    card.innerHTML = lock
+      ? `<img src="${chartIcon(A)}" alt=""><div class="cinfo"><b>${esc(A.n)}</b><p>${esc(lock)}</p></div>`
+      : `<img src="${chartIcon(A)}" alt=""><div class="cinfo"><b>${esc(A.n)}</b><p>${esc(A.intro)}</p>
+         <small>${p.done ? 'Đã hoàn thành ✓' : `Đã khám phá ${pct}%`}</small></div>
+         <button class="btn small blue" id="chartGo">${chartBtn(A, p, pct)}</button>`;
+    const go = $('#chartGo'); if (go) go.onclick = () => enterAdventure(A.id, h);
   });
 }
