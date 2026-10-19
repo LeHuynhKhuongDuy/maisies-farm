@@ -4,7 +4,7 @@ import { ADVENTURES } from '../src/data.js';
 import { buildMap } from '../src/advmap.js';
 import { S, have } from '../src/state.js';
 import {
-  FOG_R, isleState, fogged, lootMat, ruinNeed, ruinGive, ruinAdvance,
+  FOG_R, touchable, isleState, fogged, lootMat, ruinNeed, ruinGive, ruinAdvance,
   isleQuest, isleEvent, isleClaim, nextHint, isleFinish, isleReplayReset, chartLocked,
 } from '../src/isles.js';
 import { fresh } from './helpers.mjs';
@@ -52,17 +52,19 @@ test('sương: ô xa hơn 2 ô so với vùng đã mở bị che; mở thêm th�
   assert.equal(fogged(mo, isleState(OLD)).size, 0);
 });
 
-test('lootMat: vật cản rơi đúng vật liệu; jungletree có thể rơi thêm dây leo (roll giả)', () => {
+test('lootMat: vật cản rơi đúng vật liệu; jungletree rơi thêm dây leo theo ô (không ngẫu nhiên)', () => {
   const m = buildMap(DB), T = m.T;
-  const jt = m.cells.find(c => c.k === 'ob' && T.obstacles[c.t][0] === 'art:jungletree');
-  assert.ok(jt, 'đảo Bướm có jungletree');
-  assert.deepEqual(lootMat(jt, () => 0.1, T), { wood: 1, liana: 1 });
-  assert.deepEqual(lootMat(jt, () => 0.5, T), { wood: 1 });
+  const jts = m.cells.filter(c => c.k === 'ob' && T.obstacles[c.t][0] === 'art:jungletree');
+  const yes = jts.find(c => (c.x + c.z) % 3 === 0), no = jts.find(c => (c.x + c.z) % 3 !== 0);
+  assert.ok(yes && no, 'đảo Bướm có cả hai loại cây');
+  assert.deepEqual(lootMat(yes, T), { wood: 1, liana: 1 });
+  assert.deepEqual(lootMat(no, T), { wood: 1 });
+  assert.deepEqual(lootMat(yes, T), lootMat(yes, T), 'cùng ô thì cùng kết quả');
   const bam = m.cells.find(c => c.k === 'ob' && c.mat === 'bamboo');
-  assert.deepEqual(lootMat(bam, () => 0, T), { bamboo: 1 });
+  assert.deepEqual(lootMat(bam, T), { bamboo: 1 });
   const none = m.cells.find(c => c.k === 'ob' && c.mat === null);
-  assert.deepEqual(lootMat(none, () => 0, T), {});
-  assert.deepEqual(lootMat({ k: 'ob', t: 0, mat: 'stone' }), { stone: 1 }); // không có T: không có dây leo
+  assert.deepEqual(lootMat(none, T), {});
+  assert.deepEqual(lootMat({ k: 'ob', t: 0, x: 0, z: 0, mat: 'stone' }), { stone: 1 }); // không có T: không có dây leo
 });
 
 test('sửa công trình: góp từ Kho, không góp quá cần, đủ thì sang giai đoạn, xong thì aruin', () => {
@@ -142,7 +144,7 @@ test('nhiệm vụ đảo: sự kiện chỉ cộng cho đúng đảo, chặn �
 
 test('nextHint: chỉ ô chạm được; đích sau vật cản thì chỉ vật cản đầu tiên trên đường; bước aruin thiếu đá thì chỉ vật cản rơi đá; hết vật cản thì null', () => {
   start();
-  const m = buildMap(LC), p = isleState(LC), T = m.T;
+  const m = buildMap(LC), p = isleState(LC);
   // aclear: một vật cản chạm được
   let h = nextHint(m, p);
   assert.equal(m.cells[h].k, 'ob');
@@ -152,11 +154,11 @@ test('nextHint: chỉ ô chạm được; đích sau vật cản thì chỉ vậ
   const chests = new Set(m.cells.map((c, i) => c.k === 'chest' ? i : -1).filter(i => i >= 0));
   let guard = 0;
   for (h = nextHint(m, p); !chests.has(h); h = nextHint(m, p)) {
-    assert.ok(reach(m, p, m.cells[h]) && m.cells[h].k === 'ob', 'gợi ý phải chạm được');
+    assert.ok(reach(m, p, m.cells[h]) && touchable(m, p, h) && m.cells[h].k === 'ob', 'gợi ý phải chạm được');
     p.open.push(h);
     assert.ok(++guard < 200);
   }
-  assert.ok(reach(m, p, m.cells[h]));
+  assert.ok(reach(m, p, m.cells[h]) && touchable(m, p, h));
   p.chests.push(h);
   // mở hết rương: bước achest xong (đủ 2) thì chỉ người dân
   const other = [...chests].find(i => i !== h);
@@ -172,10 +174,11 @@ test('nextHint: chỉ ô chạm được; đích sau vật cản thì chỉ vậ
   const ruinIdx = m.cells.findIndex(c => c.k === 'ruin');
   guard = 0;
   for (h = nextHint(m, p2); h !== ruinIdx; h = nextHint(m, p2)) {
-    assert.equal(m.cells[h].k, 'ob'); assert.ok(reach(m, p2, m.cells[h]));
+    assert.equal(m.cells[h].k, 'ob'); assert.ok(reach(m, p2, m.cells[h]) && touchable(m, p2, h));
     p2.open.push(h);
     assert.ok(++guard < 200);
   }
+  assert.ok(touchable(m, p2, ruinIdx), 'đến lúc chỉ công trình thì chạm được');
   // giai đoạn 2 cần đá: thiếu đá thì chỉ vật cản rơi đá
   ruinGive(LC, p2, 'wood'); ruinGive(LC, p2, 'palmleaf');
   assert.equal(ruinAdvance(LC, p2), 'stage');
@@ -183,7 +186,7 @@ test('nextHint: chỉ ô chạm được; đích sau vật cản thì chỉ vậ
   h = nextHint(m, p2);
   assert.equal(m.cells[h].k, 'ob');
   assert.equal(m.cells[h].mat, 'stone');
-  assert.ok(reach(m, p2, m.cells[h]));
+  assert.ok(reach(m, p2, m.cells[h]) && touchable(m, p2, h));
   // đủ đá thì lại chỉ công trình
   S.inv.stone = 4;
   guard = 0;
@@ -193,10 +196,11 @@ test('nextHint: chỉ ô chạm được; đích sau vật cản thì chỉ vậ
   guard = 0;
   const goalIdx = m.cells.findIndex(c => c.k === 'goal');
   for (h = nextHint(m, p2); h !== goalIdx; h = nextHint(m, p2)) {
-    assert.equal(m.cells[h].k, 'ob'); assert.ok(reach(m, p2, m.cells[h]));
+    assert.equal(m.cells[h].k, 'ob'); assert.ok(reach(m, p2, m.cells[h]) && touchable(m, p2, h));
     p2.open.push(h);
     assert.ok(++guard < 300);
   }
+  assert.ok(touchable(m, p2, goalIdx));
   // hết vật cản: aclear không còn gì để chỉ
   start();
   const p3 = isleState(LC);
@@ -206,11 +210,17 @@ test('nextHint: chỉ ô chạm được; đích sau vật cản thì chỉ vậ
   start();
   const md = buildMap(DB), pd = isleState(DB); pd.q = 1; pd.ruin.stage = 1;
   S.inv.wood = 6;
-  h = nextHint(md, pd);
+  // lần theo gợi ý: mỗi bước chạm được, cuối cùng tới đúng cây rơi dây leo (đích chưa chạm được thì chỉ vật cản đầu đường)
+  guard = 0;
+  for (h = nextHint(md, pd); !lootMat(md.cells[h], md.T).liana; h = nextHint(md, pd)) {
+    assert.equal(md.cells[h].k, 'ob'); assert.ok(touchable(md, pd, h));
+    pd.open.push(h);
+    assert.ok(++guard < 300);
+  }
+  assert.ok(touchable(md, pd, h));
   assert.equal(md.T.obstacles[md.cells[h].t][0], 'art:jungletree');
   // đảo cũ
   assert.equal(nextHint(buildMap(OLD), isleState(OLD)), null);
-  void T;
 });
 
 test('xong đảo: trao quà một lần; chơi lại: vật cản mọc lại, sương không phủ lại, nhiệm vụ và công trình giữ nguyên, quà không trao lần hai', () => {
@@ -268,4 +278,44 @@ test('chartLocked: cấp thấp thì có lời gợi ý, đủ cấp thì null',
   S.level = 5; assert.equal(chartLocked(HD), 'Mở ở cấp 6');
   S.level = 6; assert.equal(chartLocked(HD), null);
   S.level = 12; assert.equal(chartLocked(DB), null);
+});
+
+test('nextHint/isleEvent: chạm đích sớm rồi tới bước agoal thì vẫn chỉ đích và đếm được', () => {
+  start();
+  const m = buildMap(LC), p = isleState(LC);
+  // bé chạm đích trước khi làm xong các bước (đảo đã xong, cờ done bật), rồi làm các bước trước và tới bước agoal
+  p.done = true;
+  isleFinish(LC);
+  p.q = 3;                        // các bước trước đã nhận xong
+  const goalIdx = m.cells.findIndex(c => c.k === 'goal');
+  let guard = 0, h;
+  for (h = nextHint(m, p); h !== goalIdx; h = nextHint(m, p)) { assert.ok(touchable(m, p, h)); p.open.push(h); assert.ok(++guard < 300); }
+  assert.ok(touchable(m, p, goalIdx));
+  isleEvent(LC, 'agoal');
+  assert.equal(isleQuest(LC).got, 1);
+  assert.ok(isleClaim(LC));
+  assert.equal(nextHint(m, p), null, 'hết bước thì không còn gợi ý');
+});
+
+test('touchable: công trình 2×2 là một vật; chỉ một ô phụ kề vùng mở cũng chạm được và nextHint chỉ ô chính', () => {
+  let found = 0;
+  for (const A of [LC, HD, DB]) {
+    start();
+    const m = buildMap(A), p = isleState(A), r = m.cells.findIndex(c => c.k === 'ruin');
+    if (m.cells[r].span !== 2) continue;
+    const parts = m.cells.map((c, i) => (c.k === 'ruinpart' ? i : -1)).filter(i => i >= 0);
+    const fp = new Set([r, ...parts]);
+    const mainNb = new Set(nbrs(m, m.cells[r]).map(c => m.idx(c.x, c.z)));
+    // một ô kề chỉ ô phụ (không kề ô chính)
+    const spot = parts.flatMap(i => nbrs(m, m.cells[i]).map(c => m.idx(c.x, c.z))).find(j => !fp.has(j) && !mainNb.has(j) && m.cells[j].k === 'ob');
+    if (spot === undefined) continue;
+    found++;
+    assert.ok(!touchable(m, p, r), 'chưa mở gì thì chưa chạm được');
+    p.open.push(spot);
+    assert.ok(touchable(m, p, r) && parts.every(i => touchable(m, p, i)));
+    assert.ok(!nbrs(m, m.cells[r]).some(c => isOpen(m, p, c)), 'ô chính đơn lẻ không kề ô mở');
+    p.q = 1; S.inv = { ...Object.fromEntries(Object.entries(A.story.ruin.stages[0])) };
+    assert.equal(nextHint(m, p), r);
+  }
+  assert.ok(found > 0, 'có ít nhất một đảo thử được');
 });

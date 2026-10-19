@@ -5,6 +5,7 @@ import { unlockLevel } from '../src/build.js';
 import { S, producible, genOrder, newShip, energyLabel } from '../src/state.js';
 import { ITEMS, FACTORIES, TUTORIAL, STORIES, REQ_EVENTS, ISLANDERS, PEOPLE, CROPS, TREES, PENS, BUILD, DECOR, ADVENTURES, talkerName } from '../src/data.js';
 import { buildMap } from '../src/advmap.js';
+import { lootMat } from '../src/isles.js';
 
 test('mọi nguyên liệu và thành phẩm của mọi công thức đều có trong ITEMS', () => {
   for (const [fk, F] of Object.entries(FACTORIES)) for (const r of F.rec) {
@@ -91,8 +92,9 @@ test('đảo truyện: đủ vật liệu cho mọi giai đoạn sửa, bước 
       assert.ok(ITEMS[k], `${A.id}: vật liệu ${k} không có trong ITEMS`);
       const have = obs.filter(c => c.mat === k).length;
       if (k === 'liana') {
-        const trees = obs.filter(c => m.T.obstacles[c.t][0] === 'art:jungletree').length;
-        assert.ok(trees * 0.3 >= 2 * n, `${A.id}: liana ${trees * 0.3} < ${2 * n}`);
+        // dây leo rơi cố định theo ô (lootMat): đếm chính xác số ô rơi dây leo
+        const drops = obs.filter(c => lootMat(c, m.T).liana).length;
+        assert.ok(drops >= n, `${A.id}: liana rơi ${drops} < cần ${n}`);
       } else assert.ok(have >= n, `${A.id}: ${k} có ${have} < ${n}`);
     }
     const chests = m.cells.filter(c => c.k === 'chest').length;
