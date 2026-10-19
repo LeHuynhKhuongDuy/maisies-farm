@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ADVENTURES, ITEMS, CROPS, DECOR } from './data.js';
 import { buildMap } from './advmap.js';
+import { isleState, isleReplayReset } from './isles.js';
 import { S, rnd, add, barnRoom, addXP, save, questEvent, emit } from './state.js';
 import { W, pickAt, toScreen, focusOn, updateCamera, slab, roundedRect } from './world.js';
 import { make, play, ICONS } from './assets.js';
@@ -9,7 +10,7 @@ import { sfx } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, toast, plus, flyCoins, flyGems, flyXP, flyItem, confetti, openModal, closeModal, renderHUD } from './ui.js';
 
 // ---------- Trạng thái ----------
-const progress = A => (S.adv ||= {})[A.id] ||= { open: [], chests: [], done: false, runs: 0 };
+const progress = isleState; // đảo cũ: { open, chests, done, runs }; đảo truyện thêm q, qp, ruin, prize
 export function advPercent(A) {
   const m = buildMap(A), p = progress(A);
   const n = m.cells.filter(c => c.k === 'ob').length;
@@ -131,7 +132,7 @@ export function enterAdventure(id, h) {
   hooks = h;
   const A = ADVENTURES.find(a => a.id === id);
   const p = progress(A);
-  if (p.done) { Object.assign(p, { open: [], chests: [], done: false }); p.runs++; }
+  isleReplayReset(A); // đảo đã xong: vật cản và rương mọc lại
   closeModal();
   saved = { target: W.target.clone(), zoom: W.zoom, bounds: W.bounds };
   W.farm.visible = false;
