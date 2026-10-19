@@ -343,6 +343,12 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 .qreq .prog span { font-size: 13px; line-height: 20px; }
 .qreq .tick { flex: none; font-size: 26px; font-weight: 800; color: var(--green-d); }
 .qreq .btn { flex: none; }
+.dgift { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 16px; background: var(--cream-d); font-weight: 800; font-size: 17px; line-height: 1.25; }
+.dgift .gift { flex: none; font-size: 40px; filter: grayscale(.8); opacity: .6; }
+.dgift.open { background: #fff1c9; }
+.dgift.open .gift, .dgift.got .gift { filter: none; opacity: 1; }
+.dgift.open .gift { animation: giftwig .8s infinite; }
+@keyframes giftwig { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
 .celebrate { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .celebrate > img { width: 132px; height: 132px; max-height: 30vh; object-fit: contain; }
 .bigstar { width: 130px; height: 130px; display: grid; place-items: center; padding-top: 14px; background: var(--gold); clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); animation: pop-in .5s ease-out; }

@@ -19,7 +19,7 @@ import { nbTap, openNeighbors } from './neighbors.js';
 import { openFishing } from './fishing.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
 import { talk } from './talk.js';
-import { activeQuests, claimStory, markSeen, reqLabel, daily } from './quests.js';
+import { activeQuests, claimStory, markSeen, reqLabel, daily, claimDaily as claimDailyTasks } from './quests.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint, gainLine } from './ui.js';
 
@@ -840,6 +840,25 @@ function openQuest(id) {
   };
   if (intro) talk(q.talk, show); else show();
 }
+// Bảng ☀️ "Việc hôm nay": 5 việc nhỏ + hộp quà; không đồng hồ, xong hết mới có nút "Mở quà!"
+function openDaily() {
+  M_draw = () => {
+    const d = daily();
+    const rows = d.tasks.map(t => {
+      const p = Math.min(t.p, t.n), ok = p >= t.n;
+      return `<div class="qreq ${ok ? 'ok' : ''}"><span class="qi">${reqIcon(t)}</span>
+        <div class="qm">${esc(reqLabel(t))}<div class="prog"><i style="width:${p / t.n * 100}%"></i><span>${p} / ${t.n}</span></div></div>
+        ${ok ? '<span class="tick">✓</span>' : ''}</div>`;
+    }).join('');
+    const box = d.got ? '<div class="dgift got"><span class="gift">🎁</span><div>Bé nhận quà rồi!<br>Mai quay lại nhé!</div></div>'
+      : d.done ? '<div class="dgift open"><span class="gift">🎁</span><div>Bé làm xong hết rồi!</div></div><div style="margin-top:14px"><button class="btn wide orange" data-act="claimtasks">Mở quà!</button></div>'
+      : '<div class="dgift"><span class="gift">🎁</span><div>Làm xong hết để mở quà nhé!</div></div>';
+    return rows + box;
+  };
+  M_sig = () => { const d = daily(); return d.tasks.map(t => t.p).join() + d.got; };
+  openModal('daily', 'Việc hôm nay', M_draw(), { sig: M_sig() });
+  sfx('tap');
+}
 // Bước hướng dẫn đầu game: một yêu cầu, bàn tay chỉ đường
 function openTutorialQuest() {
   const q = currentQuest();
@@ -996,6 +1015,15 @@ const ACT = {
     if (tut && inTutorial()) setTimeout(() => { if (!M) openQuest('tut'); }, 900);
     else if (q.arc && q.outro?.length) setTimeout(() => talk(q.outro), 700);
   },
+  // mở quà việc hằng ngày (khác `claimdaily` là quà đăng nhập)
+  claimtasks(b, x, y) {
+    const g = claimDailyTasks();
+    if (!g) return;
+    if (g.coins) flyCoins(x, y, g.coins);
+    if (g.gems) flyGems(x, y);
+    for (let i = 0; i < Math.min(g.energy || 0, 4); i++) flyTo(x, y, '#energyPill', boltI, i * 80);
+    confetti(); sfx('level'); renderHUD(); redrawModal(); save();
+  },
   speed(b) { speedUp(byId(+b.dataset.oid)); },
   // "Mình đi làm ngay!" (hướng dẫn) / "Chỉ cho bé" (nhiệm vụ truyện, việc vặt): đóng bảng, bàn tay chỉ chỗ cần làm;
   // vật ở ngoài màn hình thì bay camera tới đó (nút trên màn hình thì giữ nguyên camera)
@@ -1057,7 +1085,7 @@ export function initUI() {
   $('#questCol').onclick = e => {
     const b = e.target.closest('.qbtn'); if (!b) return;
     audioUnlock();
-    if (b.dataset.q === 'daily') { sfx('tap'); const d = daily(); toast(`Việc hôm nay: ${d.tasks.filter(t => t.p >= t.n).length}/${d.tasks.length}`); return; }
+    if (b.dataset.q === 'daily') return openDaily();
     openQuest(b.dataset.q);
   };
   $('#btnGift').onclick = () => { audioUnlock(); openGift(); renderHUD(); save(); };
