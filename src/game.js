@@ -13,6 +13,7 @@ import { isOpenCell, zoneAt, gateFor, zoneOfGate, GATES, canReach } from './isla
 import { helperTick, helperCollect, helperUpgrade, helperCount, helperCap, helperFull, helperNextUp } from './helper.js';
 import { startSite, siteReq, contribute, tryAdvance, stageCount, matHint, gateLock, keyOf } from './build.js';
 import { advTap, openAdventures, leaveAdventure } from './adventure.js';
+import { lotusReady, lotusCollect, placePrize } from './isles.js';
 import { visitorsTick, visitorBubbles, visitorRoot, tapVisitor } from './visitors.js';
 import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
 import { nbTap, openNeighbors } from './neighbors.js';
@@ -85,10 +86,22 @@ export function tapObject(oid, sx, sy) {
     case 'boat': return goSail(); // thuyền đã sửa: ra khơi
     case 'decor': {
       const D = DECOR[o.t];
+      if (o.t === 'lotuspond') return tapLotus(o, sx, sy);
       if (D.pet) { const m = VIEWS.get(o.id).root.children[0]; m.userData.dance = true; m.userData.wait = 2.5; m.userData.goal.copy(m.position); sfx('collect'); }
       else { sfx('tap'); toast(`${D.n} · giữ lâu để di chuyển`); }
     }
   }
+}
+
+// Ao sen: đủ giờ thì năng lượng bay về thanh năng lượng, chưa đủ thì hẹn bé quay lại (không hiện đồng hồ)
+function tapLotus(o, sx, sy) {
+  const e = lotusCollect(o, now());
+  if (!e) { sfx('tap'); toast('Sen đang nở, lát nữa quay lại nhé!'); return; }
+  S.energy += e; sfx('collect');
+  for (let i = 0; i < Math.min(e, 4); i++) flyTo(sx, sy, '#energyPill', boltI, i * 80);
+  plus(sx, sy - 30, `+${e}⚡`);
+  buildBubbles.sig = null; // bong bóng ⚡ tắt ngay
+  renderHUD(); save();
 }
 
 // ============ Ruộng ============
@@ -1113,15 +1126,15 @@ function goSail() {
   questEvent('sail');
 }
 
-// Thú được giải cứu từ đảo phiêu lưu về sống ở nông trại
+// Thú và quà từ đảo phiêu lưu / đảo truyện về nông trại; hết chỗ thì cất vào kho đồ trang trí (không bao giờ mất)
 export function placePendingPets() {
   const list = S.pendingDecor || [];
   while (list.length) {
-    const t = list.shift(), spot = findFree(1, 1, 12 + OFF, 9 + OFF);
-    if (!spot) break;
-    const o = { id: newId(), k: 'decor', t, x: spot[0], z: spot[1], r: 0 };
-    S.objs.push(o); addView(o); focusOn(VIEWS.get(o.id).root.position);
-    toast(`${DECOR[t].n} đã về nông trại!`); bounce(o.id);
+    const t = list.shift(), r = placePrize(t);
+    if (r.obj) {
+      addView(r.obj); focusOn(VIEWS.get(r.obj.id).root.position);
+      toast(`${DECOR[t].n} đã về nông trại!`); bounce(r.obj.id);
+    } else toast('Đã cất vào kho đồ trang trí');
   }
   save();
 }
@@ -1147,6 +1160,8 @@ function buildBubbles() {
       if (helperCount(o)) list.push({ oid: o.id, y: 1.9, icon: 'wood', n: helperCount(o) });
     } else if (o.k === 'market') {
       if (soldCount()) list.push({ oid: o.id, y: 1.9, html: coinI, n: soldCount() });
+    } else if (o.k === 'decor' && o.t === 'lotuspond') {
+      if (lotusReady(o, t)) list.push({ oid: o.id, y: 1.5, mark: '⚡', cls: 'lotusmark' });
     } else if (o.k === 'board') {
       if (S.orders.some(x => !x.wait && hasAll(x.items))) list.push({ oid: o.id, y: 1.9, mark: '!' });
     }

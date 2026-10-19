@@ -287,6 +287,8 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 .mat small { font-size: 12px; font-weight: 700; color: var(--ink-soft); line-height: 1.15; text-align: center; }
 .bub.mark.sitemark { background: #ffe6b8; font-size: 20px; -webkit-text-stroke: 0; }
 .bub.mark.sitemark::after { border-top-color: #ffe6b8; }
+.bub.mark.lotusmark { background: #fff3a6; font-size: 20px; -webkit-text-stroke: 0; }
+.bub.mark.lotusmark::after { border-top-color: #fff3a6; }
 .queue { display: flex; gap: 10px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
 .slot { position: relative; width: 82px; height: 82px; border-radius: 18px; background: var(--white); border: 3px dashed var(--cream-d); display: grid; place-items: center; }
 .slot img { width: 56px; height: 56px; }

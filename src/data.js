@@ -289,6 +289,8 @@ export const fieldCost = n => (n < 6 ? 0 : 10 + (n - 6) * 6);
 export const xpNeed = l => 10 + l * 12;
 // Năng lượng tự hồi tới giới hạn theo cấp (quà, rương, bãi biển, món ăn thì được vượt)
 export const energyMax = level => 30 + Math.floor(level / 2);
+// Ao sen trên đảo nhà (quà đảo Lá Buồm): cứ 4 giờ cho 5 năng lượng, bé chạm để nhận
+export const LOTUS = { every: 4 * 3600, energy: 5 };
 export const ENERGY_REGEN = 30; // giây hồi 1 năng lượng
 // Đồ nhặt trên bãi cát quanh đảo: chạm để nhận năng lượng
 export const BEACH = {

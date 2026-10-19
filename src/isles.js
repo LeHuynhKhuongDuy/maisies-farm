@@ -1,6 +1,7 @@
 // Đảo có truyện: sương, vật liệu rơi, sửa công trình, nhiệm vụ đảo, gợi ý đường, quà mang về.
 // Chỉ logic thuần (không Three/DOM) để chạy được trong node --test. Đảo cũ (không có `story`) không bị đụng tới.
-import { S, add, take, have, addXP, emit } from './state.js';
+import { S, add, take, have, addXP, emit, findFree, footprint as sizeOf, newId } from './state.js';
+import { LOTUS, OFF } from './data.js';
 
 export const FOG_R = 2; // ô cách vùng đã mở quá 2 ô (Manhattan) thì bị sương che
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -208,3 +209,27 @@ export function isleReplayReset(A) {
 }
 // Gợi ý khóa trên bản đồ biển; null khi đủ cấp
 export const chartLocked = A => (S.level < A.lv ? `Mở ở cấp ${A.lv}` : null);
+
+// ---------- Ao sen: sinh năng lượng ----------
+// Ao mới đặt chưa có mốc `at` nên nhận được ngay lần đầu. Giờ máy lùi thì kéo mốc về hiện tại (không kẹt chờ mãi)
+export function lotusReady(o, t) {
+  if ((o.at ?? 0) > t) { o.at = t; return false; }
+  return t - (o.at ?? 0) >= LOTUS.every * 1000;
+}
+// Trả số năng lượng nhận (0 nếu chưa tới giờ) và đặt lại mốc. Người gọi tự cộng vào S.energy (để còn bay về thanh năng lượng)
+export function lotusCollect(o, t) {
+  if (!lotusReady(o, t)) return 0;
+  o.at = t;
+  return LOTUS.energy;
+}
+
+// ---------- Đặt đồ thưởng lên đảo nhà ----------
+// Còn chỗ: thêm vào S.objs, trả { obj }. Hết chỗ: cất vào S.store (không mất), trả { stored: true }. Hình và lời chào do game.js lo
+export function placePrize(t, near = [12 + OFF, 9 + OFF]) {
+  const o = { id: 0, k: 'decor', t, x: 0, z: 0, r: 0 };
+  const [w, d] = sizeOf(o), spot = findFree(w, d, ...near);
+  if (!spot) { (S.store ||= {})[t] = (S.store[t] || 0) + 1; return { stored: true }; }
+  o.id = newId(); o.x = spot[0]; o.z = spot[1];
+  S.objs.push(o);
+  return { obj: o };
+}

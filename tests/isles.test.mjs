@@ -319,3 +319,61 @@ test('touchable: công trình 2×2 là một vật; chỉ một ô phụ kề v�
   }
   assert.ok(found > 0, 'có ít nhất một đảo thử được');
 });
+
+// ---------- Phần thưởng đảo nhà: ao sen, đặt quà ----------
+import { LOTUS, DECOR } from '../src/data.js';
+import { lotusReady, lotusCollect, placePrize } from '../src/isles.js';
+import { findFree } from '../src/state.js';
+
+test('ao sen: chưa đủ 4 giờ thì 0; đủ thì 5 và đặt lại mốc; giờ lùi thì không nhận và mốc về hiện tại', () => {
+  start();
+  assert.deepEqual(LOTUS, { every: 4 * 3600, energy: 5 });
+  const T = 1.8e12, H = 3600 * 1000;
+  const o = { k: 'decor', t: 'lotuspond', at: T };
+  S.energy = 10;
+  assert.equal(lotusReady(o, T + 4 * H - 1), false);
+  assert.equal(lotusCollect(o, T + 4 * H - 1), 0);
+  assert.equal(o.at, T, 'chưa nhận thì mốc giữ nguyên');
+  assert.equal(S.energy, 10);
+  assert.equal(lotusReady(o, T + 4 * H), true);
+  assert.equal(lotusCollect(o, T + 4 * H), 5);
+  assert.equal(o.at, T + 4 * H);
+  assert.equal(S.energy, 10, 'lotusCollect chỉ trả số, người gọi mới cộng (không cộng đôi)');
+  assert.equal(lotusReady(o, T + 4 * H + 1), false);
+  assert.equal(lotusCollect(o, T + 5 * H), 0);
+  // giờ máy lùi
+  const back = { k: 'decor', t: 'lotuspond', at: T + 10 * H };
+  assert.equal(lotusReady(back, T), false);
+  assert.equal(back.at, T);
+  assert.equal(lotusCollect({ at: T + 10 * H }, T), 0);
+  // ao mới chưa có mốc: nhận được ngay lần đầu
+  const fresh1 = { k: 'decor', t: 'lotuspond' };
+  assert.equal(lotusReady(fresh1, T), true);
+  assert.equal(lotusCollect(fresh1, T), 5);
+  assert.equal(fresh1.at, T);
+  assert.equal(lotusReady(fresh1, T + 1), false);
+});
+
+test('placePrize: còn chỗ thì đặt lên đảo; kín chỗ thì vào S.store, không mất', () => {
+  start();
+  const n0 = S.objs.length;
+  const r = placePrize('lotuspond');
+  assert.ok(r.obj, 'còn chỗ: trả vật vừa đặt');
+  assert.equal(S.objs.length, n0 + 1);
+  assert.deepEqual(S.objs.at(-1), r.obj);
+  assert.equal(r.obj.k, 'decor'); assert.equal(r.obj.t, 'lotuspond');
+  assert.ok(r.obj.id);
+  assert.equal(S.store?.lotuspond ?? 0, 0);
+  // lấp kín mọi chỗ trống 1×1 rồi đặt tiếp
+  let spot, guard = 0;
+  while ((spot = findFree(1, 1)) && guard++ < 5000) S.objs.push({ id: 9000 + guard, k: 'decor', t: 'path', x: spot[0], z: spot[1], r: 0 });
+  assert.equal(findFree(1, 1), null);
+  const m = S.objs.length;
+  const full = placePrize('kitten');
+  assert.ok(!full.obj); assert.equal(full.stored, true);
+  assert.equal(S.objs.length, m);
+  assert.equal(S.store.kitten, 1);
+  placePrize('kitten');
+  assert.equal(S.store.kitten, 2);
+  assert.ok(DECOR.kitten, 'quà là đồ trang trí thường');
+});
