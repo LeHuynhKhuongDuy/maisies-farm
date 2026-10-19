@@ -540,12 +540,12 @@ export const ADVENTURES = [
     reward: { coins: 600, gems: 14, xp: 180 } },
   // ---- Ba đảo có truyện: chạy trên cùng bộ máy phiêu lưu, thêm người dân, công trình cần sửa và quà mang về ----
   { id: 'lang-chai', n: 'Làng Chài Gió', lv: 3, w: 10, h: 14, seed: 101, theme: 'village', chart: { x: 17, y: 50 }, chests: 2,
-    goal: { n: 'Chú mèo nghịch ngợm', model: 'art:cat', pet: 'kitten' },
+    goal: { n: 'Chú mèo nghịch ngợm', model: 'art:kitten', pet: 'kitten' },
     intro: 'Làng chài nhỏ này đang cần người giúp. Cô Nina bán cá đang chờ mình đấy!',
     reward: { coins: 250, gems: 5, xp: 70 },
     story: {
       who: 'nina', guide: 'guide_dog',
-      ruin: { n: 'Sạp cá', sprite: 'ruin_boat', fixed: 'market', stages: [{ wood: 4, palmleaf: 4 }, { stone: 4, wood: 4 }] },
+      ruin: { n: 'Sạp cá', sprite: 'ruin_fishstall', fixed: 'fishstall', stages: [{ wood: 4, palmleaf: 4 }, { stone: 4, wood: 4 }] },
       steps: [
         { who: 'nina', text: 'Dọn 6 chỗ vướng trong làng.',
           talk: [['nina', 'Chào bé! Làng chài của cô bị gió thổi bừa bộn hết rồi.'], ['maisie', 'Cháu giúp cô nhé! Cháu dọn trước.']],
@@ -572,7 +572,7 @@ export const ADVENTURES = [
     reward: { coins: 420, gems: 9, xp: 120 },
     story: {
       who: 'otto', guide: 'guide_gull',
-      ruin: { n: 'Hải đăng', sprite: 'stairs_old_broken', fixed: 'lighthouse', stages: [{ stone: 6, clay: 3 }, { wood: 5, stone: 5 }, { clay: 4, wood: 4 }] },
+      ruin: { n: 'Hải đăng', sprite: 'ruin_lighthouse', fixed: 'lighthouse_big', stages: [{ stone: 6, clay: 3 }, { wood: 5, stone: 5 }, { clay: 4, wood: 4 }] },
       steps: [
         { who: 'otto', text: 'Dọn 8 tảng đá chắn đường.',
           talk: [['otto', 'Chào cháu! Ta giữ ngọn hải đăng này.'], ['otto', 'Đá chắn kín lối đi rồi. Cháu dọn giúp ta nhé.']],
@@ -599,7 +599,7 @@ export const ADVENTURES = [
     reward: { coins: 600, gems: 13, xp: 170 },
     story: {
       who: 'mia', guide: 'guide_bunny',
-      ruin: { n: 'Vườn bướm', sprite: 'ruin_house', fixed: 'fountain', stages: [{ bamboo: 6, palmleaf: 6 }, { wood: 6, liana: 2 }, { bamboo: 6, wood: 6 }] },
+      ruin: { n: 'Vườn bướm', sprite: 'ruin_butterfly', fixed: 'butterfly_garden', stages: [{ bamboo: 6, palmleaf: 6 }, { wood: 6, liana: 2 }, { bamboo: 6, wood: 6 }] },
       steps: [
         { who: 'mia', text: 'Dọn 10 chỗ rậm rạp.',
           talk: [['mia', 'Chào chị Maisie! Em thích bướm nhất đấy.'], ['mia', 'Nhưng cây cối rậm quá, bướm không bay được.'], ['maisie', 'Chị dọn giúp em nhé!']],
@@ -699,6 +699,8 @@ export const SPRITE_ART = {
   stump: { width: 0.7 }, logs: { width: 0.85 }, bee: { width: 0.3 }, bench: { width: 0.9 }, wheelbarrow: { width: 0.85 },
   tom: { width: 0.66 }, lily: { width: 0.5 }, ben: { width: 0.86 }, rosa: { width: 0.61 }, sam: { width: 0.73 },
   nina: { width: 0.68 }, otto: { width: 0.64 }, mia: { width: 0.52 }, // người dân đảo truyện (tờ 21)
+  ruin_fishstall: { width: 1.9 }, fishstall: { width: 1.9 }, ruin_lighthouse: { width: 1.45 }, lighthouse_big: { width: 1.5 }, // công trình đảo truyện (tờ 22)
+  ruin_butterfly: { width: 1.9 }, butterfly_garden: { width: 1.9 }, kitten: { width: 0.55 }, lotuspond: { width: 1.95 },
   guide_dog: { width: 0.51 }, guide_gull: { width: 0.6 }, guide_bunny: { width: 0.37 }, // thú dẫn đường
   gull1: { width: 0.9 }, gull2: { width: 0.9 }, pier: { width: 4.6 }, grasstuft: { width: 0.6 }, daisies: { width: 0.85 },
   fence: { width: 1.05 }, axe: { width: 0.5 }, signboard: { width: 1 }, bucket: { width: 0.4 }, fishingrod: { width: 0.9 },
@@ -709,7 +711,7 @@ export const SPRITE_ART = {
 export const PEN_SPRITE = { coop: 'chicken', cowpen: 'cow', pigpen: 'pig', beehive: 'bee' };
 export const TREE_SPRITE = { apple: 'appletree', palm: 'palm', banana: 'bananatree', orange: 'orangetree', lemon: 'lemontree', pear: 'peartree', cherry: 'cherrytree' };
 // Đồ trang trí: tên hình 2D (mặc định trùng tên món)
-export const DECOR_SPRITE = { palmdeco: 'palm', flowerbed: 'daisies', whitefence: 'fence', kitten: 'cat', minilight: 'lighthouse', lotuspond: 'fountain' };
+export const DECOR_SPRITE = { palmdeco: 'palm', flowerbed: 'daisies', whitefence: 'fence', kitten: 'kitten', minilight: 'lighthouse_big', lotuspond: 'lotuspond' };
 // Mô hình 3D -> hình 2D thay thế (dùng ở màn phiêu lưu và bến tàu)
 export const MODEL_SPRITE = {
   'nature/plant_bushLarge': 'bush', 'pirate/crate': 'crate', 'pirate/crate-bottles': 'crate', 'pirate/barrel': 'barrel',
