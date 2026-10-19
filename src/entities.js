@@ -14,8 +14,9 @@ export function art(name, w = 1, d = 1, extra = {}) {
   return spriteObject(name, { width: SPRITE_ART[name].width * (extra.scale || 1), w, d, shadow: extra.shadow !== false });
 }
 // Mô hình 3D có hình 2D thay thế thì dùng hình 2D
+// 'art:<tên>' vẽ thẳng hình 2D <tên> (đảo truyện); thiếu hình thì make() trả khối tạm
 export function artOrModel(model, fit, w = 1, d = 1) {
-  return art(MODEL_SPRITE[model], w, d) || make(model, fit);
+  return art(model.startsWith('art:') ? model.slice(4) : MODEL_SPRITE[model], w, d) || make(model, fit);
 }
 // Đặt hướng nhìn cho nhân vật/thú: mô hình 3D thì xoay, hình 2D thì lật trái/phải
 export function faceDir(obj, dx, dz) {

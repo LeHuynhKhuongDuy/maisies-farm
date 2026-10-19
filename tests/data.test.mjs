@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { fresh, put } from './helpers.mjs';
 import { unlockLevel } from '../src/build.js';
 import { S, producible, genOrder, newShip, energyLabel } from '../src/state.js';
-import { ITEMS, FACTORIES, TUTORIAL, STORIES, REQ_EVENTS, ISLANDERS, PEOPLE, CROPS, TREES, PENS, BUILD, talkerName } from '../src/data.js';
+import { ITEMS, FACTORIES, TUTORIAL, STORIES, REQ_EVENTS, ISLANDERS, PEOPLE, CROPS, TREES, PENS, BUILD, DECOR, ADVENTURES, talkerName } from '../src/data.js';
+import { buildMap } from '../src/advmap.js';
 
 test('mọi nguyên liệu và thành phẩm của mọi công thức đều có trong ITEMS', () => {
   for (const [fk, F] of Object.entries(FACTORIES)) for (const r of F.rec) {
@@ -76,4 +77,39 @@ test('STORIES: id không trùng, mỗi mạch 3 bước, mỗi bước 1–3 yê
 });
 test('ISLANDERS không trùng id với PEOPLE', () => {
   for (const i of ISLANDERS) assert.ok(!PEOPLE.some(p => p.id === i.id));
+});
+
+test('đảo truyện: đủ vật liệu cho mọi giai đoạn sửa, bước nhiệm vụ hợp lệ, quà và người dân có trong dữ liệu', () => {
+  const stories = ADVENTURES.filter(A => A.story);
+  assert.equal(stories.length, 3);
+  for (const A of stories) {
+    const m = buildMap(A), obs = m.cells.filter(c => c.k === 'ob');
+    // tổng yêu cầu mỗi loại vật liệu qua mọi giai đoạn
+    const need = {};
+    for (const st of A.story.ruin.stages) for (const [k, n] of Object.entries(st)) need[k] = (need[k] || 0) + n;
+    for (const [k, n] of Object.entries(need)) {
+      assert.ok(ITEMS[k], `${A.id}: vật liệu ${k} không có trong ITEMS`);
+      const have = obs.filter(c => c.mat === k).length;
+      if (k === 'liana') {
+        const trees = obs.filter(c => m.T.obstacles[c.t][0] === 'art:jungletree').length;
+        assert.ok(trees * 0.3 >= 2 * n, `${A.id}: liana ${trees * 0.3} < ${2 * n}`);
+      } else assert.ok(have >= n, `${A.id}: ${k} có ${have} < ${n}`);
+    }
+    const chests = m.cells.filter(c => c.k === 'chest').length;
+    assert.equal(chests, A.chests);
+    for (const s of A.story.steps) {
+      assert.ok(['aclear', 'achest', 'aruin', 'agoal'].includes(s.req.ev), s.req.ev);
+      assert.ok(s.req.n >= 1);
+      if (s.req.ev === 'aclear') assert.ok(s.req.n <= obs.length, A.id);
+      if (s.req.ev === 'achest') assert.ok(s.req.n <= A.chests, A.id);
+      assert.ok(talkerName(s.who), s.who);
+      for (const [w, t] of [...(s.talk || []), ...(s.outro || [])]) { assert.ok(talkerName(w), w); assert.ok(t); }
+    }
+    assert.ok(DECOR[A.story.prize], A.id + ' prize');
+    assert.ok(ISLANDERS.some(p => p.id === A.story.who), A.id + ' who');
+  }
+});
+
+test('quà mang về từ đảo truyện không bán trong cửa hàng', () => {
+  for (const k of ['kitten', 'minilight', 'lotuspond']) assert.ok(DECOR[k].gift && DECOR[k].cost === 0, k);
 });

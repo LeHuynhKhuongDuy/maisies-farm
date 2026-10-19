@@ -1,44 +1,12 @@
 import * as THREE from 'three';
-import { ADVENTURES, ADV_THEMES, ITEMS, CROPS, DECOR } from './data.js';
+import { ADVENTURES, ITEMS, CROPS, DECOR } from './data.js';
+import { buildMap } from './advmap.js';
 import { S, rnd, add, barnRoom, addXP, save, questEvent, emit } from './state.js';
 import { W, pickAt, toScreen, focusOn, updateCamera, slab, roundedRect } from './world.js';
 import { make, play, ICONS } from './assets.js';
 import { dressUp, bodyOf, faceDir, artOrModel } from './entities.js';
 import { sfx } from './sound.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, toast, plus, flyCoins, flyGems, flyXP, flyItem, confetti, openModal, closeModal, renderHUD } from './ui.js';
-
-// ---------- Sinh bản đồ (cố định theo seed để lần sau vẫn giống) ----------
-function rng(seed) { let s = seed * 9301 + 49297; return () => ((s = (s * 16807) % 2147483647) / 2147483647); }
-
-export function buildMap(A) {
-  const R = rng(A.seed), T = ADV_THEMES[A.theme];
-  const cells = [], cx = Math.floor(A.w / 2);
-  const idx = (x, z) => z * A.w + x;
-  for (let z = 0; z < A.h; z++) for (let x = 0; x < A.w; x++) {
-    const dx = (x - (A.w - 1) / 2) / (A.w / 2), dz = (z - (A.h - 1) / 2) / (A.h / 2);
-    const inside = dx * dx + dz * dz < 1.0 + R() * 0.28;
-    cells.push({ x, z, k: inside ? 'ob' : 'water' });
-  }
-  // lối vào ở mép trước, đích ở cuối đảo
-  const start = [[cx, A.h - 1], [cx, A.h - 2], [cx - 1, A.h - 2], [cx + 1, A.h - 2]];
-  start.forEach(([x, z]) => { cells[idx(x, z)].k = 'open'; });
-  const goal = cells[idx(cx, 1)]; goal.k = 'goal';
-  [[cx, 0], [cx - 1, 1], [cx + 1, 1], [cx, 2]].forEach(([x, z]) => { if (cells[idx(x, z)].k === 'water') cells[idx(x, z)].k = 'ob'; });
-  // rương báu
-  const mids = cells.filter(c => c.k === 'ob' && c.z > 2 && c.z < A.h - 3);
-  for (let i = 0; i < A.chests && mids.length; i++) mids.splice(Math.floor(R() * mids.length), 1)[0].k = 'chest';
-  // chướng ngại vật + phần thưởng ẩn bên dưới
-  const total = T.obstacles.reduce((s, o) => s + o[3], 0);
-  cells.forEach(c => {
-    if (c.k !== 'ob') return;
-    let r = R() * total, t = 0;
-    while (r > T.obstacles[t][3]) { r -= T.obstacles[t][3]; t++; }
-    c.t = t; c.e = T.obstacles[t][2]; c.rot = R() * 6.28;
-    const l = R();
-    c.loot = l < 0.35 ? { coins: 3 + Math.floor(R() * 8) } : l < 0.55 ? { item: 'crop' } : l < 0.67 ? { energy: 3 } : l < 0.71 ? { gems: 1 } : null;
-  });
-  return { A, T, cells, idx, cx };
-}
 
 // ---------- Trạng thái ----------
 const progress = A => (S.adv ||= {})[A.id] ||= { open: [], chests: [], done: false, runs: 0 };
@@ -96,6 +64,7 @@ function buildScene(A) {
   const ringMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false });
   map.cells.forEach((c, i) => {
     if (c.k === 'water' || c.k === 'open' || isOpen(c)) return;
+    if (c.k === 'npc' || c.k === 'ruin' || c.k === 'ruinpart') return; // đảo truyện: vẽ ở bước sau
     let v;
     if (c.k === 'ob') { const [model, fit] = T.obstacles[c.t]; v = artOrModel(model, fit); if (!v.userData.plane) v.rotation.y = c.rot; }
     else if (c.k === 'chest') { v = artOrModel('pirate/chest', { size: 0.7 }); if (!v.userData.plane) v.rotation.y = -0.6; }
@@ -332,7 +301,7 @@ export function advUpdate(t, dt) {
 
 // ---------- Bảng chọn đảo ----------
 export function openAdventures(h) {
-  const cards = ADVENTURES.map(A => {
+  const cards = ADVENTURES.filter(A => !A.story).map(A => { // đảo truyện chờ bảng đồ biển mới vào được
     const lock = S.level < A.lv, p = progress(A), pct = advPercent(A);
     return `<div class="card adv ${lock ? 'lock' : ''}">${lock ? `<span class="lk">Cấp ${A.lv}</span>` : ''}
       <img src="${ICONS[A.goal.pet ? 'decor:' + A.goal.pet : 'decor:chest']}" alt="">

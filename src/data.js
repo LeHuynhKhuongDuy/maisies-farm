@@ -242,6 +242,10 @@ export const DECOR = {
   sandcastle:  { n: 'Lâu đài cát',   lv: 99, cost: 0,  model: 'pirate/tower-complete-small', fit: { size: 1.8 }, w: 2, d: 2, gift: true, paint: 0xf2d38a },
   goldboat:    { n: 'Thuyền vàng',   lv: 99, cost: 0,  model: 'pirate/boat-row-large', fit: { size: 1.9 }, w: 2, d: 2, gift: true, paint: 0xffc93c },
   crab:        { n: 'Bạn Cua',       lv: 99, cost: 0,  model: 'pets/animal-crab', pet: true, fit: { h: 0.5 }, gift: true },
+  // quà mang về từ ba đảo có truyện (không bán trong cửa hàng)
+  kitten:      { n: 'Mèo con nghịch ngợm', lv: 99, cost: 0, model: 'pets/animal-cat', pet: true, fit: { h: 0.6 }, gift: true },
+  minilight:   { n: 'Hải đăng nhỏ',  lv: 99, cost: 0,  model: 'pirate/tower-complete-small', fit: { size: 1.9 }, w: 2, d: 2, gift: true },
+  lotuspond:   { n: 'Ao sen',        lv: 99, cost: 0,  model: 'town/fountain-round', fit: { size: 1.9 }, w: 2, d: 2, gift: true },
   fountain:    { n: 'Đài phun nước', lv: 5, cost: 300, model: 'town/fountain-round', fit: { size: 1.9 }, w: 2, d: 2 },
   boat:        { n: 'Thuyền nhỏ',    lv: 4, cost: 90,  model: 'pirate/boat-row-small', fit: { size: 1.9 }, w: 2, d: 2 },
   campfire:    { n: 'Lửa trại',      lv: 4, cost: 40,  model: 'survival/campfire-pit', fit: { size: 0.7 } },
@@ -446,7 +450,7 @@ export const STORIES = [
   ] },
 ];
 // Người dân đảo không đi dạo, chỉ có chân dung khi nói chuyện
-export const ISLANDERS = [{ id: 'kai', n: 'Ông Kai' }];
+export const ISLANDERS = [{ id: 'kai', n: 'Ông Kai' }, { id: 'nina', n: 'Cô Nina' }, { id: 'otto', n: 'Ông Otto' }, { id: 'mia', n: 'Bé Mia' }];
 // id nhân vật đã có hình nửa người public/items/talk-<id>.webp (chưa có thì dùng hình tạm)
 export const TALK_ART = ['maisie', 'tom', 'lily', 'ben', 'rosa', 'sam', 'kai'];
 // Việc vặt hằng ngày: số việc, thưởng mỗi việc (theo cấp), kim cương và năng lượng khi làm xong cả ngày
@@ -482,6 +486,30 @@ export const ADV_THEMES = {
       ['pirate/palm-bend', { h: 1.8 }, 3, 2], ['nature/plant_bushLarge', { size: 0.9 }, 1, 2],
     ],
   },
+  village: {
+    ground: 0xf0dcae, ground2: 0xe6cd98, edge: 0xd6b878,
+    obstacles: [
+      ['art:bush', { size: 0.9 }, 1, 4, 'palmleaf'], ['art:crate', { size: 0.75 }, 1, 3, 'wood'],
+      ['art:palm', { h: 1.7 }, 3, 2, 'wood'], ['art:rock', { size: 0.9 }, 2, 3, 'stone'],
+      ['art:barrel', { size: 0.6 }, 1, 2, null],
+    ],
+  },
+  rock: {
+    ground: 0xb7c4c9, ground2: 0xa8b7bd, edge: 0x8d9ea6,
+    obstacles: [
+      ['art:rock', { size: 0.9 }, 1, 4, 'stone'], ['art:bigrock', { size: 1.1 }, 2, 3, 'stone'],
+      ['art:stump', { size: 0.7 }, 1, 2, 'wood'], ['art:claymound', { size: 0.8 }, 1, 3, 'clay'],
+      ['art:grasstuft', { size: 0.7 }, 1, 2, 'palmleaf'],
+    ],
+  },
+  flower: {
+    ground: 0xa5e07a, ground2: 0x93d46a, edge: 0x72b84a,
+    obstacles: [
+      ['art:bush', { size: 0.95 }, 1, 3, 'palmleaf'], ['art:bamboo', { size: 0.9 }, 1, 4, 'bamboo'],
+      ['art:jungletree', { h: 1.8 }, 2, 3, 'wood'], ['art:flower_pur', { size: 0.6 }, 1, 2, null],
+      ['art:logs', { size: 0.85 }, 1, 3, 'wood'],
+    ],
+  },
 };
 
 export const ADVENTURES = [
@@ -505,6 +533,88 @@ export const ADVENTURES = [
     goal: { n: 'Bạn Cánh Cụt', model: 'pets/animal-penguin', pet: 'penguin' },
     intro: 'Một bạn cánh cụt trôi dạt tới mũi đá. Mình tới đưa bạn ấy về nhà nhé!',
     reward: { coins: 600, gems: 14, xp: 180 } },
+  // ---- Ba đảo có truyện: chạy trên cùng bộ máy phiêu lưu, thêm người dân, công trình cần sửa và quà mang về ----
+  { id: 'lang-chai', n: 'Làng Chài Gió', lv: 3, w: 10, h: 14, seed: 101, theme: 'village', chests: 2,
+    goal: { n: 'Chú mèo nghịch ngợm', model: 'art:cat', pet: 'kitten' },
+    intro: 'Làng chài nhỏ này đang cần người giúp. Cô Nina bán cá đang chờ mình đấy!',
+    reward: { coins: 250, gems: 5, xp: 70 },
+    story: {
+      who: 'nina', guide: 'dog',
+      ruin: { n: 'Sạp cá', sprite: 'ruin_boat', fixed: 'market', stages: [{ wood: 4, palmleaf: 4 }, { stone: 4, wood: 4 }] },
+      steps: [
+        { who: 'nina', text: 'Dọn 6 chỗ vướng trong làng.',
+          talk: [['nina', 'Chào bé! Làng chài của cô bị gió thổi bừa bộn hết rồi.'], ['maisie', 'Cháu giúp cô nhé! Cháu dọn trước.']],
+          outro: [['nina', 'Gọn quá! Giờ thấy sạp cá của cô rồi.']],
+          req: { ev: 'aclear', n: 6 }, coins: 40, xp: 10 },
+        { who: 'nina', text: 'Sửa sạp cá cho cô Nina.',
+          talk: [['nina', 'Sạp cá của cô hỏng rồi. Cần gỗ và lá cọ để sửa.'], ['maisie', 'Đồ trên đảo mình nhặt được. Cháu sửa ngay!']],
+          outro: [['nina', 'Sạp cá đẹp lại rồi! Cảm ơn bé nhiều.']],
+          req: { ev: 'aruin', n: 1 }, coins: 50, xp: 12 },
+        { who: 'nina', text: 'Mở 2 rương báu.',
+          talk: [['nina', 'Gió thổi mấy cái rương lên bờ đấy.'], ['maisie', 'Cháu đi tìm và mở rương cho cô.']],
+          outro: [['nina', 'Giỏi quá! Có đồ trong rương thì cô bán thêm được nhiều cá.']],
+          req: { ev: 'achest', n: 2 }, coins: 50, xp: 12 },
+        { who: 'nina', text: 'Bắt chú mèo nghịch ngợm.',
+          talk: [['nina', 'Chú mèo nghịch ngợm trốn mất rồi. Bé tìm giúp cô nhé.'], ['maisie', 'Cháu tìm thấy rồi! Mèo con ơi, lại đây nào.']],
+          outro: [['nina', 'Mèo con thích bé lắm. Bé mang mèo về nhà nuôi nhé!'], ['maisie', 'Cháu cảm ơn cô Nina!']],
+          req: { ev: 'agoal', n: 1 }, coins: 60, xp: 16 },
+      ],
+      prize: 'kitten',
+    } },
+  { id: 'hai-dang', n: 'Đảo Đá Hải Đăng', lv: 6, w: 11, h: 15, seed: 113, theme: 'rock', chests: 3,
+    goal: { n: 'Ngọn đèn hải đăng', model: 'art:lighthouse' },
+    intro: 'Ngọn hải đăng trên đảo đá đã tắt đèn. Ông Otto chờ mình giúp thắp lại!',
+    reward: { coins: 420, gems: 9, xp: 120 },
+    story: {
+      who: 'otto', guide: 'seagull',
+      ruin: { n: 'Hải đăng', sprite: 'stairs_old_broken', fixed: 'lighthouse', stages: [{ stone: 6, clay: 3 }, { wood: 5, stone: 5 }, { clay: 4, wood: 4 }] },
+      steps: [
+        { who: 'otto', text: 'Dọn 8 tảng đá chắn đường.',
+          talk: [['otto', 'Chào cháu! Ta giữ ngọn hải đăng này.'], ['otto', 'Đá chắn kín lối đi rồi. Cháu dọn giúp ta nhé.']],
+          outro: [['otto', 'Đường sáng sủa rồi. Cảm ơn cháu.']],
+          req: { ev: 'aclear', n: 8 }, coins: 60, xp: 14 },
+        { who: 'otto', text: 'Sửa lại hải đăng.',
+          talk: [['otto', 'Hải đăng cũ hỏng rồi. Cần đá, đất sét và gỗ.'], ['maisie', 'Cháu nhặt đủ rồi! Mình sửa từng bước nhé.']],
+          outro: [['otto', 'Hải đăng đứng vững lại rồi! Cháu giỏi lắm.']],
+          req: { ev: 'aruin', n: 1 }, coins: 80, xp: 18 },
+        { who: 'otto', text: 'Mở 3 rương báu.',
+          talk: [['otto', 'Đèn cần dầu và dây. Chúng nằm trong mấy cái rương.'], ['maisie', 'Cháu đi tìm rương ngay!']],
+          outro: [['otto', 'Đủ cả rồi. Giờ chỉ còn thắp đèn thôi.']],
+          req: { ev: 'achest', n: 3 }, coins: 80, xp: 18 },
+        { who: 'otto', text: 'Thắp lại ngọn đèn.',
+          talk: [['otto', 'Cháu lên đỉnh thắp đèn giúp ta nhé.'], ['maisie', 'Cháu thắp rồi! Đèn sáng quá!']],
+          outro: [['otto', 'Tàu thuyền nhìn thấy đèn là về bến an toàn.'], ['otto', 'Cháu mang hải đăng nhỏ này về nhà nhé.']],
+          req: { ev: 'agoal', n: 1 }, coins: 90, xp: 22 },
+      ],
+      prize: 'minilight',
+    } },
+  { id: 'dao-buom', n: 'Đảo Bướm', lv: 9, w: 12, h: 16, seed: 131, theme: 'flower', chests: 3,
+    goal: { n: 'Ao sen bí mật', model: 'art:fountain' },
+    intro: 'Đảo Bướm đầy hoa và cánh bướm. Bé Mia muốn dẫn mình đi tìm một ao sen!',
+    reward: { coins: 600, gems: 13, xp: 170 },
+    story: {
+      who: 'mia', guide: 'bunny',
+      ruin: { n: 'Vườn bướm', sprite: 'ruin_house', fixed: 'fountain', stages: [{ bamboo: 6, palmleaf: 6 }, { wood: 6, liana: 2 }, { bamboo: 6, wood: 6 }] },
+      steps: [
+        { who: 'mia', text: 'Dọn 10 chỗ rậm rạp.',
+          talk: [['mia', 'Chào chị Maisie! Em thích bướm nhất đấy.'], ['mia', 'Nhưng cây cối rậm quá, bướm không bay được.'], ['maisie', 'Chị dọn giúp em nhé!']],
+          outro: [['mia', 'Hoa lộ ra rồi! Bướm bay ra kìa.']],
+          req: { ev: 'aclear', n: 10 }, coins: 70, xp: 16 },
+        { who: 'mia', text: 'Sửa vườn bướm.',
+          talk: [['mia', 'Vườn bướm của em hỏng rồi. Cần tre, lá cọ, gỗ và dây leo.'], ['maisie', 'Chị lấy ở trên đảo này, không sao đâu.']],
+          outro: [['mia', 'Vườn bướm đẹp quá! Cảm ơn chị.']],
+          req: { ev: 'aruin', n: 1 }, coins: 90, xp: 20 },
+        { who: 'mia', text: 'Mở 3 rương báu.',
+          talk: [['mia', 'Có mấy cái rương giấu giữa các bụi hoa đấy.'], ['maisie', 'Chị đi tìm rương cho em!']],
+          outro: [['mia', 'Chị giỏi quá! Trong rương toàn đồ lấp lánh.']],
+          req: { ev: 'achest', n: 3 }, coins: 90, xp: 20 },
+        { who: 'mia', text: 'Tìm ao sen.',
+          talk: [['mia', 'Bướm bay về phía cuối đảo. Ở đó có ao sen.'], ['maisie', 'Chị thấy ao sen rồi! Đẹp quá!']],
+          outro: [['mia', 'Chị mang ao sen này về nhà nhé. Bướm sẽ tới thăm chị.'], ['maisie', 'Cảm ơn em Mia!']],
+          req: { ev: 'agoal', n: 1 }, coins: 100, xp: 24 },
+      ],
+      prize: 'lotuspond',
+    } },
 ];
 
 // ---------- Bộ sưu tập (nhặt ngẫu nhiên khi chơi) ----------
@@ -592,7 +702,7 @@ export const SPRITE_ART = {
 export const PEN_SPRITE = { coop: 'chicken', cowpen: 'cow', pigpen: 'pig', beehive: 'bee' };
 export const TREE_SPRITE = { apple: 'appletree', palm: 'palm', banana: 'bananatree', orange: 'orangetree', lemon: 'lemontree', pear: 'peartree', cherry: 'cherrytree' };
 // Đồ trang trí: tên hình 2D (mặc định trùng tên món)
-export const DECOR_SPRITE = { palmdeco: 'palm', flowerbed: 'daisies', whitefence: 'fence' };
+export const DECOR_SPRITE = { palmdeco: 'palm', flowerbed: 'daisies', whitefence: 'fence', kitten: 'cat', minilight: 'lighthouse', lotuspond: 'fountain' };
 // Mô hình 3D -> hình 2D thay thế (dùng ở màn phiêu lưu và bến tàu)
 export const MODEL_SPRITE = {
   'nature/plant_bushLarge': 'bush', 'pirate/crate': 'crate', 'pirate/crate-bottles': 'crate', 'pirate/barrel': 'barrel',
