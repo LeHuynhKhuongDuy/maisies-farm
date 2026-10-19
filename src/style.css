@@ -535,6 +535,15 @@ img { object-fit: contain; }
   #talk .tbox { min-height: 0; padding: 22px 16px 12px; }
   #talk .tbox p, #talk .tbox b { font-size: 18px; }
 }
+@media (min-width: 900px) and (min-height: 600px) { /* máy tính: khung chữ vừa tầm mắt ở giữa, chân dung to, "Bỏ qua" nằm dưới ô xu/kim cương */
+  #talk { --tw: min(820px, calc(100vw - 80px)); }
+  #talk .tbox { width: var(--tw); margin: 0 auto calc(var(--sb) + 28px); padding: 34px 28px 22px; }
+  #talk .tbox b { font-size: 22px; }
+  #talk .tbox p { font-size: 24px; }
+  #talkFace { margin-left: calc((100vw - var(--tw)) / 2 + 18px); }
+  #talkFace.half { height: min(380px, 46vh); max-width: none; margin-bottom: -58px; }
+  #talk .tskip { top: calc(var(--st) + 96px); right: calc(var(--sr) + 96px); font-size: 20px; } /* né cột Lễ hội/Sưu tập */
+}
 
 /* ---------- Đảo có truyện: thẻ nhiệm vụ, bảng nhiệm vụ ---------- */
 .isleq { position: absolute; left: calc(var(--sl) + 86px); right: calc(var(--sr) + 10px); bottom: calc(var(--sb) + 14px); display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; min-height: 66px;
