@@ -355,6 +355,135 @@ export const TUTORIAL = [
 // Đồ đổ nát của ván mới: t -> k của vật sau khi sửa (khóa công trường 'ruin:<t>')
 export const RUINS = { house: 'house', bakery: 'fac', boat: 'boat' };
 
+// ---------- Nhiệm vụ có truyện (giai đoạn B) ----------
+// Sự kiện mà một yêu cầu có thể đếm. Không có 'loot' và 'buyanimal' (có thể bị chặn hoặc ngẫu nhiên -> làm bé kẹt)
+export const REQ_EVENTS = ['harvest', 'plant', 'make', 'feed', 'collect', 'deliver', 'clear', 'crate', 'buydecor', 'buytree', 'build', 'beach', 'sail'];
+// Một mạch truyện gồm 3 bước làm lần lượt; bước mở khi S.level >= max(arc.lv, step.lv || 0).
+// who: người giao; text: một dòng mô tả; talk: lời thoại lúc nhận; outro: lời thoại lúc xong.
+// reqs: { ev, key, n } (key là vật phẩm cho harvest/make/collect, khoá công trình cho build).
+// Thưởng mỗi bước ~ coins 20 + cấp * 10, xp 6 + cấp * 2; bước cuối thêm 2 kim cương.
+export const STORIES = [
+  { id: 've-dao', n: 'Về đảo của ông bà', lv: 1, steps: [
+    { who: 'rosa', lv: 2, text: 'Gặt 6 lúa mì và nướng 2 ổ bánh mì cho bà Rosa.',
+      talk: [['rosa', 'Maisie! Cháu về rồi à? Bà nhớ ông bà của cháu lắm.'], ['maisie', 'Cháu chào bà Rosa! Bão làm đảo hỏng nhiều quá. Cháu về để sửa lại.'], ['rosa', 'Giỏi lắm! Trước tiên cháu cần ăn no đã. Gặt lúa mì rồi nướng bánh mì nhé.']],
+      outro: [['rosa', 'Bánh mì thơm quá! Ông bà cháu cũng hay nướng bánh như vậy đó.']],
+      reqs: [{ ev: 'harvest', key: 'wheat', n: 6 }, { ev: 'make', key: 'bread', n: 2 }], coins: 40, xp: 10 },
+    { who: 'maisie', lv: 1, text: 'Dọn 5 bụi cây và làm 2 tấm ván gỗ.',
+      talk: [['maisie', 'Bà Rosa kể ông bà từng sửa nhà bằng ván gỗ.'], ['maisie', 'Mình dọn bớt bụi rậm lấy gỗ, rồi làm ván ở Xưởng mộc nhé!']],
+      outro: [['maisie', 'Có ván gỗ rồi! Đảo sắp đẹp lại rồi.']],
+      reqs: [{ ev: 'clear', n: 5 }, { ev: 'make', key: 'planks', n: 2 }], coins: 30, xp: 8 },
+    { who: 'rosa', lv: 3, text: 'Xây Nhà đan lát và đan 1 chiếc giỏ.',
+      talk: [['rosa', 'Ông bà cháu hay đan giỏ để đựng quả đó.'], ['rosa', 'Cháu xây Nhà đan lát rồi đan thử một chiếc giỏ nhé.'], ['maisie', 'Dạ! Cháu sẽ cố gắng ạ.']],
+      outro: [['rosa', 'Chiếc giỏ đẹp quá! Ông bà cháu mà thấy chắc vui lắm.'], ['maisie', 'Cháu sẽ giữ gìn đảo thật tốt ạ!']],
+      reqs: [{ ev: 'build', key: 'fac:weaving', n: 1 }, { ev: 'make', key: 'basket', n: 1 }], coins: 50, xp: 12, gems: 2 },
+  ] },
+  { id: 'dan-ga', n: 'Đàn gà của bác Tom', lv: 1, steps: [
+    { who: 'tom', lv: 1, text: 'Làm 2 mẻ thức ăn và cho gà ăn 2 lần.',
+      talk: [['tom', 'Maisie ơi, đàn gà của ông bà cháu đói cả buổi rồi.'], ['maisie', 'Cháu giúp bác ạ! Cháu làm thức ăn thế nào ạ?'], ['tom', 'Ra máy xay làm thức ăn, rồi cho gà ăn nhé.']],
+      outro: [['tom', 'Cục ta cục tác! Gà vui lắm kìa.']],
+      reqs: [{ ev: 'make', key: 'chickenfeed', n: 2 }, { ev: 'feed', n: 2 }], coins: 30, xp: 8 },
+    { who: 'tom', lv: 1, text: 'Nhặt 4 quả trứng.',
+      talk: [['tom', 'Gà ăn no thì sẽ đẻ trứng.'], ['tom', 'Cháu nhặt giúp bác 4 quả trứng nhé.']],
+      outro: [['tom', 'Trứng còn ấm nữa! Cảm ơn cháu.']],
+      reqs: [{ ev: 'collect', key: 'egg', n: 4 }], coins: 30, xp: 8 },
+    { who: 'tom', lv: 2, text: 'Giao 3 đơn hàng.',
+      talk: [['tom', 'Có nhiều người muốn mua trứng và rau của đảo mình đó.'], ['maisie', 'Cháu giao hàng giúp bác nhé!'], ['tom', 'Ừ, nhìn bảng đơn hàng và giao 3 đơn nhé.']],
+      outro: [['tom', 'Cháu giỏi như ông bà ngày xưa vậy.'], ['maisie', 'Hì hì, cháu cảm ơn bác Tom!']],
+      reqs: [{ ev: 'deliver', n: 3 }], coins: 40, xp: 10, gems: 2 },
+  ] },
+  { id: 'thuyen', n: 'Chiếc thuyền của chú Sam', lv: 2, steps: [
+    { who: 'sam', lv: 2, text: 'Đóng đầy 2 thùng hàng trên tàu.',
+      talk: [['sam', 'Chào Maisie! Tàu hàng cập bến rồi đó.'], ['sam', 'Chú cần người đóng thùng hàng. Cháu giúp chú 2 thùng nhé?'], ['maisie', 'Dạ được ạ!']],
+      outro: [['sam', 'Nhanh quá! Chú thấy cháu làm việc giỏi lắm.']],
+      reqs: [{ ev: 'crate', n: 2 }], coins: 40, xp: 10 },
+    { who: 'sam', lv: 4, text: 'Làm 2 sợi dây thừng và giao 2 đơn hàng.',
+      talk: [['sam', 'Thuyền của chú cần dây thừng mới để buộc buồm.'], ['maisie', 'Cháu làm dây ở Nhà đan lát nhé chú?'], ['sam', 'Đúng rồi. Giao thêm 2 đơn hàng để chú mua gỗ nữa nhé.']],
+      outro: [['sam', 'Dây chắc quá! Buồm buộc xong rồi.']],
+      reqs: [{ ev: 'make', key: 'rope', n: 2 }, { ev: 'deliver', n: 2 }], coins: 60, xp: 14 },
+    { who: 'sam', lv: 4, text: 'Ra khơi phiêu lưu 1 chuyến.',
+      talk: [['sam', 'Thuyền đã sẵn sàng. Ra khơi thử một chuyến nào!'], ['maisie', 'Cháu hơi hồi hộp, nhưng cháu muốn đi ạ.']],
+      outro: [['sam', 'Gió đẹp quá! Có thuyền rồi, mình khám phá được nhiều nơi.'], ['maisie', 'Cảm ơn chú Sam nhiều ạ!']],
+      reqs: [{ ev: 'sail', n: 1 }], coins: 60, xp: 14, gems: 2 },
+  ] },
+  { id: 'banh-ba', n: 'Bánh của bà Rosa', lv: 3, steps: [
+    { who: 'rosa', lv: 3, text: 'Làm 2 hộp bánh quy.',
+      talk: [['rosa', 'Maisie này, hôm nay là ngày ông bà cháu từng nướng bánh quy.'], ['rosa', 'Bà muốn làm lại, nhưng tay bà mỏi rồi. Cháu giúp bà nhé?']],
+      outro: [['rosa', 'Thơm quá! Cảm ơn cháu nhiều.']],
+      reqs: [{ ev: 'make', key: 'cookie', n: 2 }], coins: 50, xp: 12 },
+    { who: 'ben', lv: 4, text: 'Hái 6 quả dâu tây và làm 1 miếng phô mai.',
+      talk: [['ben', 'Chào Maisie! Bà Rosa muốn làm bánh kem, anh phải chuẩn bị đồ.'], ['ben', 'Em hái giúp anh 6 quả dâu và làm một miếng phô mai nhé.'], ['maisie', 'Dạ, em làm ngay ạ!']],
+      outro: [['ben', 'Dâu đỏ mọng luôn! Em giỏi lắm.']],
+      reqs: [{ ev: 'harvest', key: 'strawberry', n: 6 }, { ev: 'make', key: 'cheese', n: 1 }], coins: 60, xp: 14 },
+    { who: 'rosa', lv: 6, text: 'Làm 1 chiếc bánh kem.',
+      talk: [['rosa', 'Giờ cháu có đủ đồ rồi. Làm một chiếc bánh kem thật đẹp nhé.'], ['maisie', 'Cháu sợ làm không đẹp ạ.'], ['rosa', 'Đừng lo. Làm bằng cả tấm lòng là đẹp nhất.']],
+      outro: [['rosa', 'Đúng vị bánh ngày xưa rồi! Bà nhớ ông bà cháu quá.'], ['maisie', 'Cháu cũng nhớ ông bà ạ.']],
+      reqs: [{ ev: 'make', key: 'cake', n: 1 }], coins: 80, xp: 18, gems: 2 },
+  ] },
+  { id: 'vuon-lily', n: 'Khu vườn của cô Lily', lv: 3, steps: [
+    { who: 'lily', lv: 3, text: 'Mua 1 món trang trí và 1 cái cây.',
+      talk: [['lily', 'Maisie ơi, cô thích khu vườn thật xinh.'], ['lily', 'Cháu mua một món trang trí và trồng một cái cây cho vườn nhé.']],
+      outro: [['lily', 'Đẹp ghê! Khu vườn sáng bừng lên rồi.']],
+      reqs: [{ ev: 'buydecor', n: 1 }, { ev: 'buytree', n: 1 }], coins: 50, xp: 12 },
+    { who: 'lily', lv: 5, text: 'Hái 6 quả cà chua và làm 1 cốc nước táo.',
+      talk: [['lily', 'Cô muốn mời mọi người một bữa nhẹ trong vườn.'], ['maisie', 'Cháu hái cà chua và ép nước táo nhé cô?'], ['lily', 'Đúng rồi. Cô cảm ơn cháu.']],
+      outro: [['lily', 'Cà chua tươi quá! Nước táo thơm nữa.']],
+      reqs: [{ ev: 'harvest', key: 'tomato', n: 6 }, { ev: 'make', key: 'applejuice', n: 1 }], coins: 70, xp: 16 },
+    { who: 'lily', lv: 6, text: 'Hái 6 bông hướng dương.',
+      talk: [['lily', 'Vườn còn thiếu một màu vàng thật rực.'], ['lily', 'Hoa hướng dương là hợp nhất. Cháu hái 6 bông nhé.']],
+      outro: [['lily', 'Vàng rực như mặt trời vậy!'], ['maisie', 'Vườn đẹp quá, cháu thích lắm!']],
+      reqs: [{ ev: 'harvest', key: 'sunflower', n: 6 }], coins: 80, xp: 18, gems: 2 },
+  ] },
+  { id: 'ong-kai', n: 'Ông Kai trong rừng', lv: 4, steps: [
+    { who: 'kai', lv: 4, text: 'Dọn 8 bụi cây và nhặt 3 món ở bãi biển.',
+      talk: [['kai', 'Chào cháu. Ông là Kai, ông sống trong rừng này.'], ['kai', 'Ông biết nhiều lối đi trên đảo, nhưng rừng rậm quá. Cháu dọn giúp ông nhé.'], ['maisie', 'Dạ, cháu chào ông Kai! Cháu giúp ông ạ.']],
+      outro: [['kai', 'Rừng thoáng hơn rồi. Cảm ơn cháu.']],
+      reqs: [{ ev: 'clear', n: 8 }, { ev: 'beach', n: 3 }], coins: 60, xp: 14 },
+    { who: 'kai', lv: 4, text: 'Sửa Cầu tre phía tây.',
+      talk: [['kai', 'Phía tây có một lối đi cũ, nhưng cầu tre bị bão làm gãy.'], ['kai', 'Cháu sửa cầu giúp ông, mình sẽ đi qua được.']],
+      outro: [['kai', 'Cầu chắc lắm! Giờ ông đi lại dễ rồi.']],
+      reqs: [{ ev: 'build', key: 'gate:bridge_w', n: 1 }], coins: 60, xp: 14 },
+    { who: 'maisie', lv: 5, text: 'Làm 2 cây đuốc và dọn 10 bụi cây.',
+      talk: [['maisie', 'Ông Kai nói trong rừng tối lắm.'], ['maisie', 'Mình làm đuốc để soi đường và dọn thêm bụi rậm nhé!']],
+      outro: [['maisie', 'Đuốc sáng quá! Rừng không còn đáng sợ nữa.'], ['kai', 'Cháu gan dạ lắm. Ông và ông bà cháu sẽ rất tự hào.']],
+      reqs: [{ ev: 'make', key: 'torch', n: 2 }, { ev: 'clear', n: 10 }], coins: 70, xp: 16, gems: 2 },
+  ] },
+  { id: 'mat-ong', n: 'Mật ong của bác Tom', lv: 7, steps: [
+    { who: 'tom', lv: 7, text: 'Thu 2 hũ mật ong.',
+      talk: [['tom', 'Maisie, ong của bác làm tổ xong rồi.'], ['tom', 'Cháu thu giúp bác 2 hũ mật nhé. Cẩn thận ong nha!']],
+      outro: [['tom', 'Ngọt thơm quá! Cảm ơn cháu.']],
+      reqs: [{ ev: 'collect', key: 'honey', n: 2 }], coins: 90, xp: 20 },
+    { who: 'tom', lv: 7, text: 'Thu 3 cây nấm.',
+      talk: [['tom', 'Bác còn muốn nấu món nấm thơm.'], ['tom', 'Heo của bác tìm được nấm đó. Cháu nhặt 3 cây giúp bác nhé.']],
+      outro: [['tom', 'Nấm to quá! Tối nay bác nấu món ngon.']],
+      reqs: [{ ev: 'collect', key: 'mushroom', n: 3 }], coins: 90, xp: 20 },
+    { who: 'sam', lv: 8, text: 'Đóng đầy 6 thùng hàng trên tàu.',
+      talk: [['sam', 'Bác Tom muốn gửi mật ong và nấm đi xa.'], ['sam', 'Chú cần 6 thùng hàng để chất lên tàu. Cháu giúp chú nhé.'], ['maisie', 'Dạ được ạ!']],
+      outro: [['sam', 'Tàu đầy hàng rồi. Mọi người sẽ được ăn đồ của đảo mình.'], ['maisie', 'Cháu vui quá!']],
+      reqs: [{ ev: 'crate', n: 6 }], coins: 100, xp: 22, gems: 2 },
+  ] },
+  { id: 'tiec-dao', n: 'Bữa tiệc trên đảo', lv: 9, steps: [
+    { who: 'maisie', lv: 9, text: 'Làm 2 chiếc bánh vòng.',
+      talk: [['maisie', 'Đảo mình đẹp lại rồi! Mình mở một bữa tiệc nhé.'], ['maisie', 'Đầu tiên, cháu làm bánh vòng ngọt cho mọi người.']],
+      outro: [['maisie', 'Bánh vòng thơm phức! Ai cũng sẽ thích.']],
+      reqs: [{ ev: 'make', key: 'donut', n: 2 }], coins: 110, xp: 24 },
+    { who: 'rosa', lv: 10, text: 'Làm 2 hũ mứt và giao 4 đơn hàng.',
+      talk: [['rosa', 'Tiệc cần mứt ngọt để ăn với bánh.'], ['rosa', 'Cháu làm mứt dâu, rồi giao vài đơn hàng để mua đồ trang trí nhé.']],
+      outro: [['rosa', 'Mứt thơm ngon quá! Bà tự hào về cháu.']],
+      reqs: [{ ev: 'make', key: 'jam', n: 2 }, { ev: 'deliver', n: 4 }], coins: 120, xp: 26 },
+    { who: 'maisie', lv: 10, text: 'Làm 2 cốc trà chanh.',
+      talk: [['maisie', 'Cuối cùng là đồ uống mát lạnh.'], ['maisie', 'Cháu pha trà chanh mật ong cho cả đảo uống.']],
+      outro: [['maisie', 'Mọi người tới đủ rồi! Cùng ăn tiệc thôi.'], ['tom', 'Maisie, đảo này lại đông vui như ngày xưa rồi.'], ['rosa', 'Ông bà cháu nhìn thấy chắc sẽ cười thật tươi.']],
+      reqs: [{ ev: 'make', key: 'lemontea', n: 2 }], coins: 120, xp: 26, gems: 2 },
+  ] },
+];
+// Người dân đảo không đi dạo, chỉ có chân dung khi nói chuyện
+export const ISLANDERS = [{ id: 'kai', n: 'Ông Kai' }];
+// id nhân vật đã có hình nửa người public/items/talk-<id>.webp (chưa có thì dùng hình tạm)
+export const TALK_ART = [];
+// Việc vặt hằng ngày: số việc, thưởng mỗi việc (theo cấp), kim cương và năng lượng khi làm xong cả ngày
+export const DAILY = { count: 5, coins: l => 20 + l * 10, gems: 2, energy: 10 };
+export const talkerName = id => (PEOPLE.find(p => p.id === id) || ISLANDERS.find(p => p.id === id))?.n || '';
+
 // ---------- Đảo phiêu lưu ----------
 // Mỗi đảo là lưới w x h; bắt đầu ở mép trước (gần bến thuyền), đích ở cuối đảo.
 // obstacles: [mô hình, cách thu phóng, năng lượng, tỉ lệ xuất hiện]
