@@ -1215,7 +1215,7 @@ function rootOf(oid) { return oid === 'ship' ? SPECIAL.dock : oid === 'pier' ? S
 // Trả { oid, y } (vật trên đảo) hoặc { el } (nút trên màn hình, trong bảng hoặc khay)
 let hand = null;
 // Vùng chơi trên màn hình 375x812 (px tới mép): ngoài đó là các cột nút HUD
-const PLAY = { l: 110, r: 60, t: 150, b: 140 };
+const PLAY = { get l() { return 110 * (W.ui || 1); }, get r() { return 60 * (W.ui || 1); }, get t() { return 150 * (W.ui || 1); }, get b() { return 140 * (W.ui || 1); } }; // theo cỡ giao diện (world.js uiScale)
 // Vật cản thỏa `pred` gần giữa màn hình nhất, ưu tiên vật đang thấy trên màn hình (bé không phải kéo tìm)
 const hv = new THREE.Vector3();
 const nearestSeen = pred => nearestObstacle(pred, o => {
@@ -1366,7 +1366,7 @@ function positionHand() {
   }
   if (hand.textContent !== icon) hand.textContent = icon;
   hand.style.zIndex = tg.el ? 35 : 5; // chỉ nút: nổi trên HUD và bảng; chỉ vật: nằm dưới HUD
-  hand.hidden = false; hand.style.transform = `translate(${x}px,${y}px)`;
+  hand.hidden = false; hand.style.transform = `translate(${x}px,${y}px) scale(${W.ui || 1})`; // phóng tại chỗ, không đẩy lệch vị trí
 }
 
 export function positionBubbles() {
@@ -1375,7 +1375,7 @@ export function positionBubbles() {
     const r = rootOf(b.oid); if (!r) continue;
     v3.copy(r.position); v3.y += b.y;
     const [x, y] = toScreen(v3);
-    b.el.style.transform = `translate(${x}px,${y}px)`;
+    b.el.style.transform = `translate(${x}px,${y}px) scale(${W.ui || 1})`;
   }
   if (timerPop) {
     const r = VIEWS.get(timerPop.oid)?.root;

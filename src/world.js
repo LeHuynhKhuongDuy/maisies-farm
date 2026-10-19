@@ -134,8 +134,12 @@ function buildIsland(scene) {
   W.ground = grass;
 }
 
+// Giao diện vẽ theo cỡ điện thoại; màn máy tính to thì phóng các nút lên (1280x800 ~1,1 lần, 1920x1080 1,5 lần, tối đa 2)
+export const uiScale = (w, h) => Math.min(2, Math.max(1, Math.min(w / 1150, h / 720)));
 export function resize() {
   const w = window.innerWidth, h = window.innerHeight;
+  W.ui = uiScale(w, h);
+  document.documentElement.style.setProperty('--ui', W.ui.toFixed(3));
   W.renderer.setSize(w, h, false);
   updateCamera();
 }

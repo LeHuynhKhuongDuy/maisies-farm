@@ -6,6 +6,7 @@
   --font: 'Baloo 2', ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
   --st: env(safe-area-inset-top, 0px); --sb: env(safe-area-inset-bottom, 0px);
   --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px);
+  --ui: 1; --uis: min(var(--ui), 1.35); /* hệ số phóng giao diện trên màn to (đặt trong world.js resize); bảng to vừa phải hơn */
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #5fd0e0; font-family: var(--font); color: var(--ink);
@@ -604,4 +605,24 @@ img { object-fit: contain; }
   .cdisc { border-width: 3px; } .cdisc img { width: 46px; height: 46px; }
   .cnode { gap: 0; width: 112px; } /* màn thấp: tên đảo nằm một dòng cho đỡ cao */
   .cpier { display: none; }
+}
+
+/* ---------- Màn máy tính: phóng giao diện theo --ui, mỗi cụm neo vào góc của nó ---------- */
+.tl { scale: var(--ui); transform-origin: 0 0; }
+.tr { scale: var(--ui); transform-origin: 100% 0; }
+.tc, .advtitle, #toast { scale: var(--ui); transform-origin: 0 0; } /* đã dời -50% bằng transform: neo ở điểm giữa phía trên */
+.br { scale: var(--ui); transform-origin: 100% 100%; }
+.advbtn, .giftbtn, .rbtn.home { scale: var(--ui); transform-origin: 0 100%; }
+#tray { scale: var(--ui); transform-origin: 0 100%; }
+.bub, .hand { transform-origin: 50% 100%; } /* phóng bằng scale() trong transform ở game.js (vị trí cũng đặt bằng transform) */
+.timer { scale: var(--ui); transform-origin: 0 0; }
+.sheet { scale: var(--uis); }
+@media (min-width: 1151px) and (min-height: 721px) { /* chỉ màn to (--ui > 1): giữ nguyên bố cục điện thoại và khổ ngang */
+  .advbtn { bottom: calc(var(--sb) + 92px * var(--ui)); }
+  .advbtn.nbbtn { bottom: calc(var(--sb) + 170px * var(--ui)); }
+  .giftbtn { bottom: calc(var(--sb) + 16px * var(--ui)); }
+  #tray { max-width: calc((100% - 20px) / var(--ui)); }
+  .sheet { width: min(640px, 100% / var(--uis)); max-height: calc(100% / var(--uis)); }
+  .chart { height: clamp(270px, calc((100dvh - 160px) / var(--uis)), 640px); }
+  .isleq { right: auto; width: 460px; left: calc(var(--sl) + 22px + 64px * var(--ui)); scale: var(--ui); transform-origin: 0 100%; }
 }
