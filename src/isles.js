@@ -189,6 +189,16 @@ export function nextHint(map, p) {
   return aim(map, p, one((c, i) => closedOb(c, i) && Object.keys(lootMat(c, map.T)).some(k => miss.includes(k))));
 }
 
+// Bước sửa công trình còn thiếu vật liệu mà trên đảo không còn vật cản nào rơi ra nó (vd. chặt hết rồi lại dùng ở nhà):
+// trả các mã vật liệu còn thiếu (bé phải về nhà lấy thêm); [] nếu không rơi vào trường hợp đó
+export function ruinShort(map, p) {
+  const A = map.A, q = A.story ? questOf(A, p) : null;
+  if (!q || q.got >= q.req.n || q.req.ev !== 'aruin' || nextHint(map, p) !== null) return [];
+  const need = ruinNeed(A, p);
+  if (!need) return [];
+  return Object.entries(need).filter(([k, n]) => have(k) < n.need - n.got).map(([k]) => k);
+}
+
 // ---------- Xong đảo, chơi lại, khóa cấp ----------
 // Trao quà một lần (vào hàng chờ đặt ở nông trại), tắt sương. Trả { prize } lần đầu, {} các lần sau và với đảo cũ
 export function isleFinish(A) {

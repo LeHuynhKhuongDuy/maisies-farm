@@ -5,7 +5,7 @@ import { buildMap } from '../src/advmap.js';
 import { S, have } from '../src/state.js';
 import {
   FOG_R, touchable, isleState, fogged, lootMat, ruinNeed, ruinGive, ruinAdvance,
-  isleQuest, isleEvent, isleClaim, nextHint, isleFinish, isleReplayReset, chartLocked,
+  isleQuest, isleEvent, isleClaim, nextHint, isleFinish, isleReplayReset, chartLocked, ruinShort,
 } from '../src/isles.js';
 import { fresh } from './helpers.mjs';
 
@@ -376,4 +376,55 @@ test('placePrize: còn chỗ thì đặt lên đảo; kín chỗ thì vào S.sto
   placePrize('kitten');
   assert.equal(S.store.kitten, 2);
   assert.ok(DECOR.kitten, 'quà là đồ trang trí thường');
+});
+
+test('không kẹt: mỗi đảo truyện chơi theo gợi ý từ ván mới, Kho trống, tới hết chuỗi nhiệm vụ; quà trao đúng một lần', () => {
+  for (const A of [LC, HD, DB]) {
+    start(); S.energy = 999;
+    const m = buildMap(A), p = isleState(A), prize = A.story.prize;
+    let taps = 0, done = false;
+    for (; taps < 400 && !done; taps++) {
+      const h = nextHint(m, p), q = isleQuest(A);
+      if (q === null) { assert.equal(h, null, `${A.id}: hết bước thì không gợi ý nữa`); done = true; break; }
+      if (q.got < q.req.n) assert.notEqual(h, null, `${A.id}: bước ${q.i} bị kẹt (không còn gợi ý) sau ${taps} lần chạm`);
+      if (h !== null) {
+        const c = m.cells[h];
+        assert.ok(touchable(m, p, h), `${A.id}: gợi ý ô ${h} phải chạm được`);
+        // "chạm" bằng đúng các hàm thuần mà cảnh dùng
+        if (c.k === 'ob') { p.open.push(h); for (const [k, n] of Object.entries(lootMat(c, m.T))) S.inv[k] = (S.inv[k] || 0) + n; isleEvent(A, 'aclear'); }
+        else if (c.k === 'chest') { p.chests.push(h); isleEvent(A, 'achest'); }
+        else if (c.k === 'ruin') { for (const k of Object.keys(ruinNeed(A, p) || {})) ruinGive(A, p, k); ruinAdvance(A, p); }
+        else if (c.k === 'goal') { assert.equal(ruinNeed(A, p), null, 'chỉ chạm đích khi đã sửa xong'); assert.equal(q.req.ev, 'agoal'); isleEvent(A, 'agoal'); isleFinish(A); }
+        else assert.equal(c.k, 'npc', `${A.id}: gợi ý lạ ${c.k}`);
+      }
+      isleClaim(A);
+    }
+    assert.ok(done, `${A.id}: không xong sau ${taps} lần chạm`);
+    assert.equal(ruinNeed(A, p), null, `${A.id}: công trình đã sửa xong`);
+    assert.equal(S.pendingDecor.filter(t => t === prize).length, 1, `${A.id}: quà trao đúng một lần`);
+    assert.deepEqual(isleFinish(A), {}, 'gọi lại không trao thêm');
+    assert.equal(S.pendingDecor.filter(t => t === prize).length, 1);
+  }
+});
+
+test('ruinShort: bước sửa còn thiếu vật liệu mà hết vật cản rơi nó thì nextHint null và ruinShort nêu vật liệu thiếu', () => {
+  start(); S.energy = 999;
+  const m = buildMap(LC), p = isleState(LC);
+  p.q = LC.story.steps.findIndex(s => s.req.ev === 'aruin');
+  assert.ok(p.q >= 0);
+  // còn vật cản rơi vật liệu: có gợi ý, không cần về nhà
+  assert.notEqual(nextHint(m, p), null);
+  assert.deepEqual(ruinShort(m, p), []);
+  // mở hết vật cản rồi mà Kho trống
+  m.cells.forEach((c, i) => { if (c.k === 'ob') p.open.push(i); });
+  assert.equal(nextHint(m, p), null);
+  const short = ruinShort(m, p);
+  assert.deepEqual(short, Object.keys(ruinNeed(LC, p)));
+  // có đủ vật liệu thì không còn thiếu
+  for (const k of short) S.inv[k] = 99;
+  assert.deepEqual(ruinShort(m, p), []);
+  // bước khác (không phải aruin) và đảo cũ thì luôn []
+  p.q = 0; S.inv = {};
+  assert.deepEqual(ruinShort(m, p), []);
+  assert.deepEqual(ruinShort(buildMap(OLD), isleState(OLD)), []);
 });

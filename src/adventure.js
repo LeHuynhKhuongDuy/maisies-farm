@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ADVENTURES, CHART_ART, ITEMS, CROPS, DECOR, talkerName } from './data.js';
 import { buildMap } from './advmap.js';
-import { isleState, isleReplayReset, isleQuest, isleEvent, isleClaim, isleFinish, nextHint, lootMat, mainOf, touchable, fogged, ruinNeed, ruinGive, ruinAdvance, chartLocked } from './isles.js';
+import { isleState, isleReplayReset, isleQuest, isleEvent, isleClaim, isleFinish, nextHint, lootMat, mainOf, touchable, fogged, ruinNeed, ruinGive, ruinAdvance, ruinShort, chartLocked } from './isles.js';
 import { S, rnd, add, have, barnRoom, addXP, save, questEvent, emit } from './state.js';
 import { W, pickAt, groundAt, toScreen, focusOn, flyCamTo, updateCamera, slab, roundedRect } from './world.js';
 import { make, play, ICONS } from './assets.js';
@@ -342,7 +342,7 @@ function giveRuin(k, x, y) {
   const r = ruinAdvance(A, p);
   renderHUD(); save();
   if (r === 'done') { closeModal(); confetti(); sfx('level'); toast(`${R.n} đã sửa xong!`); swapRuin(); refreshStory(); return; }
-  if (r === 'stage') { confetti(18); flyXP(x, y); sfx('build'); toast(`Xong giai đoạn ${stage + 1}! Cố lên nào`); }
+  if (r === 'stage') { confetti(18); sfx('build'); toast(`Xong giai đoạn ${stage + 1}! Cố lên nào`); }
   else { plus(x, y - 24, '+' + n); sfx('tap'); }
   setModalBody(ruinHtml()); bindRuin(); refreshStory();
 }
@@ -359,7 +359,11 @@ function tapNpc(c) {
 function tapGuide() {
   sfx('collect'); cur.guide.userData.happy = performance.now() + 1000;
   const i = cur.hint, v = i != null && cur.views.get(i);
-  if (!v) { toast('Bé làm xong hết rồi! Mình về nhà thôi.'); return; }
+  if (!v) { // không còn ô để chỉ: hoặc đang thiếu vật liệu sửa mà đảo hết vật cản rơi ra nó, hoặc thật sự xong hết
+    const short = ruinShort(cur.map, cur.p);
+    toast(short.length ? `Về nhà chặt thêm ${short.map(k => ITEMS[k].n.toLowerCase()).join(', ')} rồi quay lại nhé!` : 'Bé làm xong hết rồi! Mình về nhà thôi.');
+    return;
+  }
   flyCamTo(v.position); hop(v);
 }
 // Chạm vào sương (hoặc vật đang ẩn dưới sương)
@@ -388,7 +392,9 @@ function hop(v) { v.userData.hopT = performance.now(); }
 // ---------- Chạm trên đảo ----------
 export function advTap(sx, sy) {
   if (!cur) return;
-  const oid = pickAt(sx, sy, cur.A.story ? preferOid : undefined);
+  // Đảo truyện: vòng gợi ý của thú dẫn đường được ưu tiên tuyệt đối (công trình cao chưa sửa che phía trước không cướp cú chạm)
+  const hinted = cur.A.story && cur.hint != null && pickAt(sx, sy, id => id === 'a:' + cur.hint) === 'a:' + cur.hint ? 'a:' + cur.hint : null;
+  const oid = hinted ?? pickAt(sx, sy, cur.A.story ? preferOid : undefined);
   if (oid === 'a:boat') { leaveAdventure(); return; }
   if (oid === 'a:maisie') { play(cur.maisie, 'emote-yes'); cur.maisie.userData.busy = 1; sfx('collect'); return; }
   if (oid === 'a:guide') { tapGuide(); return; }
@@ -422,7 +428,7 @@ export function advTap(sx, sy) {
     questEvent('clear');
   } else if (c.k === 'chest') {
     walkTo([c]);
-    const mixer = v.userData.mixer; if (mixer) { play(v, 'open'); }
+    const here = cur, mixer = v.userData.mixer; if (mixer) { play(v, 'open'); }
     sfx('collect');
     cur.p.chests.push(i);
     emit('act', 'chest');
@@ -431,7 +437,7 @@ export function advTap(sx, sy) {
     S.coins += coins; flyCoins(sx, sy, coins);
     if (roll < 0.4) { S.gems += 1 + rnd(2); flyGems(sx, sy); }
     else if (roll < 0.7) { S.energy += 5; plus(sx, sy - 60, '+5⚡'); }
-    setTimeout(() => vanish(v, () => { updateRings(); }), 900);
+    setTimeout(() => vanish(v, () => { if (cur === here) updateRings(); }), 900); // bé có thể đã rời đảo
     drawAdvHud(); renderHUD(); save();
   } else if (c.k === 'goal') {
     const { A, p } = cur;
@@ -504,9 +510,11 @@ function finish(v, sx, sy) {
     openModal('advdone', 'Hoàn thành!', `<div class="celebrate"><div class="talk"><img src="${ICONS['face:maisie']}" alt=""><div class="say">Tuyệt vời! Bạn đã tới được <b>${esc(A.goal.n)}</b> ở ${esc(A.n)}!</div></div>
       <div class="reward" style="font-size:22px"><span>${coinI}+${r.coins}</span><span>${gemI}+${r.gems}</span><span>${xpI}+${r.xp}</span></div>${petNote}
       <button class="btn wide orange" id="advBack">Về nông trại</button></div>`);
-    $('#advBack').onclick = () => { closeModal(); leaveAdventure(); };
-    drawAdvHud(); renderHUD(); save();
-    if (A.story && cur?.A === A) claimIsle(null); // bước cuối đã đủ: nhận thưởng luôn, kể cả lời kết (không có gì để nhận thì bỏ qua)
+    const here = cur?.A === A; // bé có thể đã rời đảo trong 1,2 giây này: bảng vẫn hiện, chỉ không vẽ lại HUD đảo
+    $('#advBack').onclick = () => { closeModal(); if (cur?.A === A) leaveAdventure(); };
+    if (here) drawAdvHud();
+    renderHUD(); save();
+    if (A.story && here) claimIsle(null); // bước cuối đã đủ: nhận thưởng luôn, kể cả lời kết (không có gì để nhận thì bỏ qua)
   }, 1200);
 }
 

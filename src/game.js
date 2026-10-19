@@ -19,7 +19,7 @@ import { marketTick, soldCount, collectMarket, openMarket } from './market.js';
 import { nbTap, openNeighbors } from './neighbors.js';
 import { openFishing } from './fishing.js';
 import { sfx, audioUnlock, startMusic, stopMusic } from './sound.js';
-import { talk, talkLater } from './talk.js';
+import { talk, talkLater, talking } from './talk.js';
 import { activeQuests, claimStory, markSeen, reqLabel, daily, claimDaily as claimDailyTasks } from './quests.js';
 import { $, img, coinI, gemI, boltI, xpI, esc, fmt, toast, plus, flyItem, flyCoins, flyGems, flyXP, flyTo,
   confetti, M, openModal as uiOpen, setModalBody, closeModal, renderHUD, energyHint, gainLine } from './ui.js';
@@ -717,6 +717,7 @@ function placeConfirm() {
     removeView('ghost');
     obj.id = newId(); S.objs.push(obj);
     if (obj.k === 'helper') obj.at = now();
+    if (obj.t === 'lotuspond' && fromStore) { obj.at = S.lotusAt ?? now(); delete S.lotusAt; } // ao sen lấy từ túi: giữ mốc cũ
     startSite(obj); // nhà máy, chuồng: thành công trường, góp vật liệu để xây
     addView(obj);
     if (obj.site) toast('Chạm vào công trường để góp vật liệu nhé!');
@@ -895,15 +896,26 @@ function unlocksAt(L) {
   for (const A of ADVENTURES) if (A.lv === L) u.push([A.goal.pet ? 'decor:' + A.goal.pet : 'decor:chest', 'Đảo ' + A.n]);
   return u;
 }
+// Lên cấp chờ khi bé đang xem bảng "Hoàn thành!" của đảo, đang nghe hội thoại hoặc đang xem bảng lên cấp trước:
+// bảng nào cũng chỉ có một ô #modal nên không được đè lên nhau; đóng xong thì bảng lên cấp hiện ra ngay sau đó
+const levelWait = [];
+let levelPump = 0;
+function pumpLevelUp() {
+  levelPump = 0;
+  if (!levelWait.length) return;
+  if (M?.type === 'advdone' || M?.type === 'level' || talking()) { levelPump = setTimeout(pumpLevelUp, 400); return; }
+  const [L, bonus] = levelWait.shift();
+  const u = unlocksAt(L);
+  openModal('level', 'Lên cấp!', `<div class="celebrate"><span class="bigstar"><b>${L}</b></span>
+    <div class="reward" style="font-size:20px"><span>${coinI}+${bonus.coins}</span><span>${gemI}+${bonus.gems}</span><span>${boltI}Đầy</span></div>
+    ${u.length ? `<h3 class="sub" style="margin:4px 0 0">Mở khoá mới</h3><div class="unlocks">${u.map(([k, n]) => `<div>${img(k)}${esc(n)}</div>`).join('')}</div>` : ''}
+    <button class="btn wide orange" data-close>Tuyệt vời!</button></div>`);
+  confetti(); sfx('level');
+  if (levelWait.length) levelPump = setTimeout(pumpLevelUp, 400);
+}
 on('levelup', (L, bonus) => {
-  setTimeout(() => {
-    const u = unlocksAt(L);
-    openModal('level', 'Lên cấp!', `<div class="celebrate"><span class="bigstar"><b>${L}</b></span>
-      <div class="reward" style="font-size:20px"><span>${coinI}+${bonus.coins}</span><span>${gemI}+${bonus.gems}</span><span>${boltI}Đầy</span></div>
-      ${u.length ? `<h3 class="sub" style="margin:4px 0 0">Mở khoá mới</h3><div class="unlocks">${u.map(([k, n]) => `<div>${img(k)}${esc(n)}</div>`).join('')}</div>` : ''}
-      <button class="btn wide orange" data-close>Tuyệt vời!</button></div>`);
-    confetti(); sfx('level');
-  }, 400);
+  levelWait.push([L, bonus]);
+  if (!levelPump) levelPump = setTimeout(pumpLevelUp, 400);
 });
 on('quest', () => renderHUD());
 // Cổng xong, vùng mở: mây tan (entities.js), chúc mừng bé
@@ -973,6 +985,7 @@ const ACT = {
   placestore() {
     const o = placing.real; W.scene.remove(marker); removeView(o.id);
     S.objs.splice(S.objs.indexOf(o), 1); (S.store ||= {})[o.t] = (S.store[o.t] || 0) + 1;
+    if (o.t === 'lotuspond' && o.at != null) S.lotusAt = o.at; // cất rồi đặt lại không được nhận năng lượng ngay: giữ mốc
     placing = null; closeTray(); sfx('collect'); toast(`Đã cất ${DECOR[o.t].n.toLowerCase()} vào túi. Đặt lại trong Cửa hàng → Trang trí`);
   },
   claimdaily(b, x, y) { claimDaily(x, y); },

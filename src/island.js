@@ -101,7 +101,7 @@ export function placeGates(s) {
       if (zoneAt(x, z) === G.zone && zoneAt(x + 1, z) === G.zone) consider(x, z, 3);
     }
     if (!best) continue; // vùng đóng chỉ có vật cản nên bước 2 luôn có chỗ
-    for (const o of best.hit) if (o.k === 'decor') (s.store ||= {})[o.t] = (s.store[o.t] || 0) + 1; // bé không mất đồ trang trí
+    for (const o of best.hit) if (o.k === 'decor') { (s.store ||= {})[o.t] = (s.store[o.t] || 0) + 1; if (o.t === 'lotuspond' && o.at != null) s.lotusAt = o.at; } // bé không mất đồ trang trí (ao sen giữ mốc nhận năng lượng)
     s.objs = s.objs.filter(o => !best.hit.has(o));
     const id = Math.max(s.nextId || 1, ...s.objs.map(o => (o.id || 0) + 1));
     s.objs.push({ id, k: 'gate', t, x: best.x, z: best.z, r: 0, site: { stage: 0, got: {} } });
