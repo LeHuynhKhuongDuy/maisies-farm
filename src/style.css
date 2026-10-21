@@ -368,6 +368,7 @@ body.in-adv .tl { top: calc(var(--st) + 8px); }
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
 .fly { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; }
 .fly img, .fly .ico { width: 100%; height: 100%; margin: 0; }
+.spark { position: absolute; left: 0; top: 0; margin: -4px 0 0 -4px; border-radius: 50%; box-shadow: 0 0 6px rgba(255,240,150,.9); pointer-events: none; }
 .gain { position: absolute; right: calc(var(--sr) + 12px); bottom: calc(var(--sb) + 116px); max-width: calc(100% - 24px); display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 10px;
   font-size: 20px; font-weight: 800; color: var(--white); paint-order: stroke fill; -webkit-text-stroke: 4px var(--ink); transition: opacity .4s, transform .4s; transform-origin: right bottom; }
 .gain span { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }

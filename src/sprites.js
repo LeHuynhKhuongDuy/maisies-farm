@@ -11,7 +11,7 @@ export async function loadSprites() {
   const loader = new THREE.TextureLoader();
   await Promise.all(Object.keys(SPRITE_ART).map(name => new Promise(res => {
     loader.load(BASE + name + '.webp', t => {
-      t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+      t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
       TEX[name] = { tex: t, aspect: t.image.height / t.image.width };
       res();
     }, undefined, () => res()); // chưa có ảnh thì dùng mô hình 3D như cũ
@@ -80,7 +80,8 @@ export function spriteObject(name, { width = 1.4, w = 1, d = 1, lift = 0, shadow
   const height = width * T.aspect;
   const key = width + ':' + height;
   if (!planeCache.has(key)) { const geo = new THREE.PlaneGeometry(width, height); geo.translate(0, height / 2, 0); planeCache.set(key, geo); }
-  const mat = new THREE.MeshBasicMaterial({ map: T.tex, transparent: true, alphaTest: 0.35, side: THREE.DoubleSide });
+  // alphaToCoverage: viền trong suốt được làm mịn bằng MSAA thay vì cắt cứng (răng cưa)
+  const mat = new THREE.MeshBasicMaterial({ map: T.tex, transparent: true, alphaTest: 0.35, alphaToCoverage: true, side: THREE.DoubleSide });
   const p = new THREE.Mesh(planeCache.get(key), mat);
   // khung xoay về camera; tấm ảnh nằm trong khung nên có thể nhún/nghiêng/co giãn/lật theo trục của chính nó
   const pivot = new THREE.Group();

@@ -8,6 +8,7 @@ import { initInput } from './input.js';
 import { initUI, tick, positionBubbles, placePendingPets } from './game.js';
 import { renderHUD, $ } from './ui.js';
 import { audioUnlock } from './sound.js';
+import { WebGLRenderTarget, HalfFloatType } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
@@ -18,6 +19,7 @@ import { initVisitors, visitorsUpdate } from './visitors.js';
 import { buildAmbient, updateAmbient } from './ambient.js';
 import { initEvents, eventIcons } from './events.js';
 import { loadSprites } from './sprites.js';
+import { buildScenery, refreshScenery, updateScenery } from './scenery.js';
 import { ensureMarket } from './market.js';
 import { nbUpdate, neighborsHelpYou } from './neighbors.js';
 
@@ -38,6 +40,7 @@ async function boot() {
   neighborsHelpYou();
   buildSpecials();
   buildClouds(); // mây phủ các vùng rừng còn đóng
+  buildScenery(); // cỏ hoa rải trên đất trống, cây cối đung đưa
   initVisitors();
   buildAmbient();
   focusOn(cellToWorld(12.5 + OFF, 11.5 + OFF)); // nhìn vào vùng lõi như trước
@@ -54,7 +57,9 @@ async function boot() {
   setInterval(tick, 250);
   tick();
   // Hậu kỳ màu kiểu game di động: tươi, rực, vùng tối được nâng sáng (tắt khi máy yếu)
-  const composer = new EffectComposer(W.renderer);
+  // khung vẽ trung gian có khử răng cưa (MSAA): không có thì viền mọi hình lởm chởm vì hậu kỳ bỏ mất antialias của canvas
+  const rt = new WebGLRenderTarget(window.innerWidth, window.innerHeight, { type: HalfFloatType, samples: 4 });
+  const composer = new EffectComposer(W.renderer, rt);
   composer.addPass(new RenderPass(W.scene, W.camera));
   composer.addPass(new OutputPass()); // chỉnh màu sau khi đã ra không gian màu sRGB
   composer.addPass(new ShaderPass({
@@ -73,18 +78,22 @@ async function boot() {
   }));
   const resizeComposer = () => { composer.setPixelRatio(W.renderer.getPixelRatio()); composer.setSize(window.innerWidth, window.innerHeight); };
   resizeComposer(); window.addEventListener('resize', resizeComposer);
-  let last = performance.now(), slow = 0, lowered = false;
+  let last = performance.now(), slow = 0, lowered = false, lastScenery = 0;
   // Máy yếu: tự giảm độ nét và bóng đổ để chơi mượt hơn
   const lowerQuality = () => {
     lowered = true;
-    W.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    W.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     W.scene.traverse(o => { if (o.isDirectionalLight && o.shadow) { o.shadow.mapSize.set(1024, 1024); o.shadow.map?.dispose(); o.shadow.map = null; } });
     window.dispatchEvent(new Event('resize'));
   };
-  if (S.lowGfx) lowerQuality();
+  // Cờ máy yếu cũ (lowGfx) bật quá dễ (vài giây chậm lúc tải hình) và lưu mãi làm hình mờ: bỏ đi, đo lại bằng cờ mới
+  delete S.lowGfx;
+  if (S.lowGfx2) lowerQuality();
+  const bootAt = performance.now();
   const loop = () => {
     const nowT = performance.now(), dt = Math.min(0.1, (nowT - last) / 1000); last = nowT;
-    if (!lowered && !document.hidden) { slow = dt > 0.04 ? slow + dt : Math.max(0, slow - dt * 0.5); if (slow > 3) { S.lowGfx = true; lowerQuality(); } }
+    // chỉ tính sau 15 giây đầu (lúc tải hình hay giật) và phải chậm kéo dài (dưới ~22 hình/giây cộng dồn 8 giây)
+    if (!lowered && !document.hidden && nowT - bootAt > 15000) { slow = dt > 0.045 ? slow + dt : Math.max(0, slow - dt * 0.5); if (slow > 8) { S.lowGfx2 = true; lowerQuality(); } }
     const t = nowT / 1000;
     momentum();
     if (W.mode === 'adv') advUpdate(t, dt);
@@ -96,6 +105,8 @@ async function boot() {
       updateBeach(t);
       visitorsUpdate(t, dt);
       updateAmbient(t, dt);
+      updateScenery(t);
+      if (t - lastScenery > 0.5) { lastScenery = t; refreshScenery(); } // vật vừa đặt / dọn: ẩn hiện cỏ hoa
     }
     W.waterTex.offset.x = (t * 0.01) % 1; W.waterTex.offset.y = (t * 0.006) % 1;
     positionBubbles();

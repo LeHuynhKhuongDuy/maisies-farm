@@ -60,7 +60,21 @@ export function flyTo(x, y, target, html, delay = 0) {
   a.onfinish = () => { f.remove(); el.animate([{ transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 200 }); };
 }
 export function flyItem(x, y, item, n = 1) {
+  burst(x, y);
   for (let i = 0; i < Math.min(n, 4); i++) flyTo(x + i * 8, y, '#btnBarn', img(item), i * 90);
+}
+// Lấp lánh bung ra khi thu hoạch / nhặt được đồ
+const SPARK = ['#fff3a0', '#ffd23f', '#9be15d', '#ffffff', '#ffb3e0'];
+export function burst(x, y, n = 10) {
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('i'); s.className = 'spark';
+    const a = (i / n) * 6.283 + Math.random() * 0.5, d = 40 + Math.random() * 40, sz = 6 + Math.random() * 7;
+    s.style.cssText = `width:${sz}px;height:${sz}px;background:${SPARK[i % SPARK.length]}`;
+    $('#fx').appendChild(s);
+    s.animate([{ transform: `translate(${x}px,${y}px) scale(1)`, opacity: 1 },
+      { transform: `translate(${x + Math.cos(a) * d}px,${y + Math.sin(a) * d - 20}px) scale(.2)`, opacity: 0 }],
+      { duration: 550 + Math.random() * 250, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => s.remove();
+  }
 }
 export const flyCoins = (x, y, n) => { for (let i = 0; i < Math.min(5, Math.ceil(n / 10)); i++) flyTo(x, y, '#coinPill', coinI, i * 80); };
 export const flyGems = (x, y) => flyTo(x, y, '#gemPill', gemI);
