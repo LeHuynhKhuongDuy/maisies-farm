@@ -679,10 +679,11 @@ export const STARTER_DECOR = [
 ];
 
 // Hình 2D vẽ tay (AI vẽ, ảnh trong public/sprites). width: bề rộng ảnh tính theo ô đất.
+// faceR: hình vẽ quay mặt sang phải (mặc định quay trái) — để lật đúng chiều khi đi (faceDir)
 export const SPRITE_ART = {
   house: { width: 3.7 }, ruin_house: { width: 3.7 }, carpentry: { width: 2.6 }, weaving: { width: 2.6 }, lumberjack: { width: 2.5 }, scaffold: { width: 2.2 }, ruin_bakery: { width: 2.6 }, ruin_boat: { width: 1.9 }, bridge_w: { width: 2.3 }, bridge_w_broken: { width: 2.3 }, bridge_n: { width: 2.3 }, bridge_n_broken: { width: 2.3 }, stairs_old: { width: 2.1 }, stairs_old_broken: { width: 2.1 }, jungletree: { width: 1.85 }, bigtree: { width: 2.4 }, claymound: { width: 1.0 }, bigrock: { width: 1.5 }, starfish: { width: 0.6 }, beachshell: { width: 0.55 }, bamboo: { width: 1.05 }, barn: { width: 2.7 }, feedmill: { width: 2.9 }, bakery: { width: 2.6 },
   market: { width: 2.7 }, board: { width: 2.0 }, coop: { width: 1.25 }, cowshed: { width: 1.7 }, pigsty: { width: 1.6 },
-  chicken: { width: 0.55 }, cow: { width: 1.05 }, pig: { width: 0.85 },
+  chicken: { width: 0.55, faceR: true }, cow: { width: 1.05 }, pig: { width: 0.85 },
   wheat: { width: 1.35 }, corn: { width: 1.35 }, carrot: { width: 1.35 }, sprout: { width: 1.35 },
   appletree: { width: 1.7 }, leafytree: { width: 1.6 }, palm: { width: 1.7 },
   maisie: { width: 0.54 }, bush: { width: 0.95 }, rock: { width: 0.9 },
@@ -691,22 +692,22 @@ export const SPRITE_ART = {
   strawberry: { width: 1.35 }, tomato: { width: 1.35 }, pumpkin: { width: 1.35 }, sunflower: { width: 1.35 },
   melon: { width: 1.35 }, cabbage: { width: 1.35 }, onion: { width: 1.35 }, bananatree: { width: 1.8 },
   orangetree: { width: 1.7 }, lemontree: { width: 1.7 }, peartree: { width: 1.7 }, cherrytree: { width: 1.75 },
-  goldboat: { width: 1.9 }, boat: { width: 1.8 }, tent: { width: 1.3 }, sandcastle: { width: 1.8 },
+  goldboat: { width: 1.9 }, boat: { width: 1.8, faceR: true }, tent: { width: 1.3 }, sandcastle: { width: 1.8 },
   well: { width: 1.05 }, cart: { width: 1.1 }, fountain: { width: 1.95 }, lighthouse: { width: 1.5 },
   flower_red: { width: 0.6 }, flower_yel: { width: 0.6 }, flower_pur: { width: 0.6 }, flower_red2: { width: 0.65 },
   mushroomdeco: { width: 0.5 }, lantern: { width: 0.5 }, barrel: { width: 0.55 }, chest: { width: 0.7 }, crate: { width: 0.7 },
   haysack: { width: 0.55 }, campfire: { width: 0.75 }, hedge: { width: 0.95 }, flag: { width: 0.7 },
-  stump: { width: 0.7 }, logs: { width: 0.85 }, bee: { width: 0.3 }, bench: { width: 0.9 }, wheelbarrow: { width: 0.85 },
+  stump: { width: 0.7 }, logs: { width: 0.85 }, bee: { width: 0.3, faceR: true }, bench: { width: 0.9 }, wheelbarrow: { width: 0.85 },
   tom: { width: 0.66 }, lily: { width: 0.5 }, ben: { width: 0.86 }, rosa: { width: 0.61 }, sam: { width: 0.73 },
   nina: { width: 0.68 }, otto: { width: 0.64 }, mia: { width: 0.52 }, // người dân đảo truyện (tờ 21)
   ruin_fishstall: { width: 1.9 }, fishstall: { width: 1.9 }, ruin_lighthouse: { width: 1.45 }, lighthouse_big: { width: 1.5 }, // công trình đảo truyện (tờ 22)
-  ruin_butterfly: { width: 1.9 }, butterfly_garden: { width: 1.9 }, kitten: { width: 0.55 }, lotuspond: { width: 1.95 },
-  guide_dog: { width: 0.51 }, guide_gull: { width: 0.6 }, guide_bunny: { width: 0.37 }, // thú dẫn đường
-  gull1: { width: 0.9 }, gull2: { width: 0.9 }, pier: { width: 4.6 }, grasstuft: { width: 0.6 }, daisies: { width: 0.85 },
+  ruin_butterfly: { width: 1.9 }, butterfly_garden: { width: 1.9 }, kitten: { width: 0.55, faceR: true }, lotuspond: { width: 1.95 },
+  guide_dog: { width: 0.51 }, guide_gull: { width: 0.6, faceR: true }, guide_bunny: { width: 0.37 }, // thú dẫn đường
+  gull1: { width: 0.9, faceR: true }, gull2: { width: 0.9, faceR: true }, pier: { width: 4.6 }, grasstuft: { width: 0.6 }, daisies: { width: 0.85 },
   fence: { width: 1.05 }, axe: { width: 0.5 }, signboard: { width: 1 }, bucket: { width: 0.4 }, fishingrod: { width: 0.9 },
   soil: { width: 1.35 }, trough: { width: 0.8 },
-  dog: { width: 0.62 }, cat: { width: 0.58 }, bunny: { width: 0.52 }, parrot: { width: 0.6 }, penguin: { width: 0.56 },
-  sheepdeco: { width: 0.7 }, horse: { width: 0.85 }, llama: { width: 0.6 }, crab: { width: 0.6 },
+  dog: { width: 0.62 }, cat: { width: 0.58 }, bunny: { width: 0.52, faceR: true }, parrot: { width: 0.6, faceR: true }, penguin: { width: 0.56 },
+  sheepdeco: { width: 0.7, faceR: true }, horse: { width: 0.85, faceR: true }, llama: { width: 0.6, faceR: true }, crab: { width: 0.6 },
 };
 export const PEN_SPRITE = { coop: 'chicken', cowpen: 'cow', pigpen: 'pig', beehive: 'bee' };
 export const TREE_SPRITE = { apple: 'appletree', palm: 'palm', banana: 'bananatree', orange: 'orangetree', lemon: 'lemontree', pear: 'peartree', cherry: 'cherrytree' };

@@ -20,7 +20,10 @@ export function artOrModel(model, fit, w = 1, d = 1) {
 }
 // Đặt hướng nhìn cho nhân vật/thú: mô hình 3D thì xoay, hình 2D thì lật trái/phải
 export function faceDir(obj, dx, dz) {
-  if (obj.userData.isArt) { const sx = dx * Math.cos(Math.PI / 4) - dz * Math.sin(Math.PI / 4); if (Math.abs(sx) > 1e-3) obj.userData.plane.scale.x = sx > 0 ? -1 : 1; }
+  if (obj.userData.isArt) { // hình 2D: lật theo hướng đi trên màn hình (hình gốc quay trái, trừ hình có faceR)
+    const p = obj.userData.plane, sx = dx * Math.cos(Math.PI / 4) - dz * Math.sin(Math.PI / 4);
+    if (Math.abs(sx) > 1e-3) p.scale.x = (sx > 0) === !!p.userData.faceR ? 1 : -1;
+  }
   else obj.rotation.y = Math.atan2(dx, dz);
 }
 // Thân thể (mô hình hoặc hình 2D) cho nhân vật và thú

@@ -105,8 +105,8 @@ export function updateAmbient(t, dt) {
     if (u.frames) {
       const [up, down] = u.frames, flapUp = Math.sin(t * 7 + u.ph) > 0;
       up.visible = flapUp; down.visible = !flapUp;
-      // bay theo vòng tròn: lật hình theo hướng bay trên màn hình (hình gốc quay mặt sang trái)
-      const dx = -Math.sin(a) * u.sp, dz = Math.cos(a) * u.sp, sx = (dx - dz) > 0 ? -1 : 1;
+      // bay theo vòng tròn: lật hình theo hướng bay trên màn hình (xem faceR trong SPRITE_ART)
+      const dx = -Math.sin(a) * u.sp, dz = Math.cos(a) * u.sp, sx = ((dx - dz) > 0) === !!up.userData.plane.userData.faceR ? 1 : -1;
       up.userData.plane.scale.x = down.userData.plane.scale.x = sx;
       continue;
     }

@@ -89,7 +89,7 @@ export function spriteObject(name, { width = 1.4, w = 1, d = 1, lift = 0, shadow
   const fwd = new THREE.Vector3(Math.sin(AZ), 0, Math.cos(AZ));
   pivot.position.copy(new THREE.Vector3(w / 2, 0, d / 2).projectOnVector(fwd));
   pivot.position.y = lift;
-  p.userData.sprite = true;
+  p.userData.sprite = true; p.userData.faceR = !!SPRITE_ART[name]?.faceR; // hình quay mặt sang phải
   p.raycast = (rc, out) => spriteRaycast(p, T, rc, out);
   pivot.add(p); g.add(pivot); g.userData.plane = p;
   if (shadow) g.add(blobShadow(w * 0.62, d * 0.62));
